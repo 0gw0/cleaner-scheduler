@@ -1,0 +1,45 @@
+package is442g3t2.cleaner_scheduler.models;
+
+import jakarta.persistence.*;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+
+import java.util.ArrayList;
+import java.util.List;
+
+@NoArgsConstructor
+@Getter
+@Setter
+@Entity
+@Table(name = "admins")
+public class Admin {
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
+
+    @Column(nullable = false)
+    private String name;
+
+    @Column(nullable = false, unique = true)
+    private String employeeId;
+
+    @OneToMany(mappedBy = "supervisor", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<Worker> workers = new ArrayList<>();
+
+    public Admin(String name, String employeeId) {
+        this.name = name;
+        this.employeeId = employeeId;
+    }
+
+    public void addWorker(Worker worker) {
+        workers.add(worker);
+        worker.setSupervisor(this);
+    }
+
+    public void removeWorker(Worker worker) {
+        workers.remove(worker);
+        worker.setSupervisor(null);
+    }
+}
