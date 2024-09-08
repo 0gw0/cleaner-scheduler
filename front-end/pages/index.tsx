@@ -9,14 +9,12 @@ export default function Home() {
       <div className="h-[40rem] flex items-center justify-center">
           <TextHoverEffect text="Cleaners" />
         </div>     
-        <a
-      className="flex items-center gap-2 hover:underline hover:underline-offset-4 fc-white"
-          href="/signup"
-          rel="noopener noreferrer"
-        >
-         
-          Sign up now →
-        </a> 
+        <div>
+          <a href="/signup">
+          <TextHoverEffect text="Log In"/>
+          </a>
+        
+        </div>
       </main>
   
     </div>
