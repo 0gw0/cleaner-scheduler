@@ -36,7 +36,7 @@ function MyApp({ Component, pageProps }: AppProps) {
   }, [isLoading, isAuthenticated, router])
 
   if (isLoading) {
-    return <div>Loading...</div> // Or your custom loading component
+    return <div>Loading...</div> 
   }
 
   return (

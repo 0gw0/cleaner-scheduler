@@ -32,10 +32,10 @@ export default function LoginPage() {
       ) {
         localStorage.setItem('isAuthenticated', 'true');
         localStorage.setItem('userType', 'admin');
-        router.push("/homepage");
-        router.push('/homepage').then(() => {
-          if (router.pathname !== '/homepage') {
-            window.location.href = '/homepage';
+        router.push("/dashboard");
+        router.push('/dashboard').then(() => {
+          if (router.pathname !== '/dashboard') {
+            window.location.href = '/dashboard';
           }
         });
       } else if (
@@ -45,10 +45,10 @@ export default function LoginPage() {
       ) {
         localStorage.setItem('isAuthenticated', 'true');
         localStorage.setItem('userType', 'maid');
-        router.push("/homepage");
-        router.push('/homepage').then(() => {
-          if (router.pathname !== '/homepage') {
-            window.location.href = '/homepage';
+        router.push("/dashboard");
+        router.push('/dashboard').then(() => {
+          if (router.pathname !== '/dashboard') {
+            window.location.href = '/dashboard';
           }
         });
       } else {
