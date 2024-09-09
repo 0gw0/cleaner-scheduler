@@ -1,11 +1,9 @@
-import React, { useState } from "react";
-import { Calendar, Users, CheckSquare, Settings, User, Terminal } from "lucide-react";
+import React, { useState, FormEvent } from "react";
+import { useRouter } from "next/router";
+import Link from 'next/link';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import Link from 'next/link';
-import { useRouter } from "next/router";
-
 import {
   Select,
   SelectContent,
@@ -16,13 +14,13 @@ import {
 import { Alert, AlertDescription } from "@/components/ui/alert";
 
 export default function LoginPage() {
-  const [userType, setUserType] = useState("");
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [error, setError] = useState("");
+  const [userType, setUserType] = useState<string>("");
+  const [email, setEmail] = useState<string>("");
+  const [password, setPassword] = useState<string>("");
+  const [error, setError] = useState<string>("");
   const router = useRouter();
 
-  const handleLogin = (e) => {
+  const handleLogin = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setError("");
     //  API call to authenticate the user
@@ -32,13 +30,27 @@ export default function LoginPage() {
         email === "admin@gmail.com" &&
         password === "admin123"
       ) {
+        localStorage.setItem('isAuthenticated', 'true');
+        localStorage.setItem('userType', 'admin');
         router.push("/homepage");
+        router.push('/homepage').then(() => {
+          if (router.pathname !== '/homepage') {
+            window.location.href = '/homepage';
+          }
+        });
       } else if (
         userType === "maid" &&
         email === "maid@gmail.com" &&
         password === "maid123"
       ) {
+        localStorage.setItem('isAuthenticated', 'true');
+        localStorage.setItem('userType', 'maid');
         router.push("/homepage");
+        router.push('/homepage').then(() => {
+          if (router.pathname !== '/homepage') {
+            window.location.href = '/homepage';
+          }
+        });
       } else {
         setError("Invalid credentials");
       }
@@ -62,7 +74,7 @@ export default function LoginPage() {
               >
                 User Type
               </label>
-              <Select onValueChange={setUserType} required>
+              <Select onValueChange={(value: string) => setUserType(value)} required>
                 <SelectTrigger>
                   <SelectValue placeholder="Select user type" />
                 </SelectTrigger>
@@ -83,7 +95,7 @@ export default function LoginPage() {
                 type="email"
                 id="email"
                 value={email}
-                onChange={(e) => setEmail(e.target.value)}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setEmail(e.target.value)}
                 placeholder="Enter your email"
                 required
               />
@@ -99,7 +111,7 @@ export default function LoginPage() {
                 type="password"
                 id="password"
                 value={password}
-                onChange={(e) => setPassword(e.target.value)}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setPassword(e.target.value)}
                 placeholder="Enter your password"
                 required
               />
@@ -112,13 +124,11 @@ export default function LoginPage() {
             <Button type="submit" className="w-full">
               Login
             </Button>
-
-            <Button type="submit" className="w-full">
-          <Link href="/signup">
-          Register here
-          </Link>
-        </Button>
-
+            <Button type="button" className="w-full">
+              <Link href="/signup">
+                Register here
+              </Link>
+            </Button>
           </form>
         </CardContent>
       </Card>

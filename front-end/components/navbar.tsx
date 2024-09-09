@@ -5,9 +5,21 @@ import { Button } from "@/components/ui/button";
 
 const Navbar = () => {
   const router = useRouter();
-  
+
   const hiddenPaths = ['/', '/login', '/signup'];
-  
+
+  // Function to handle logout
+  const handleLogout = () => {
+    localStorage.removeItem('isAuthenticated');
+    localStorage.removeItem('userType'); 
+    router.push('/login');
+    router.push('/login').then(() => {
+      if (router.pathname !== '/login') {
+        window.location.href = '/login';
+      }
+    });
+  };
+
   if (hiddenPaths.includes(router.pathname)) {
     return null;
   }
@@ -23,19 +35,28 @@ const Navbar = () => {
               </Link>
             </div>
             <div className="hidden sm:ml-6 sm:flex sm:space-x-8">
-              <Link href="/dashboard" className="border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700 inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium">
+              <Link
+                href="/dashboard"
+                className="border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700 inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium"
+              >
                 Dashboard
               </Link>
-              <Link href="/profile" className="border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700 inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium">
+              <Link
+                href="/profile"
+                className="border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700 inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium"
+              >
                 Profile
               </Link>
-              <Link href="/settings" className="border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700 inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium">
+              <Link
+                href="/settings"
+                className="border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700 inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium"
+              >
                 Settings
               </Link>
             </div>
           </div>
           <div className="hidden sm:ml-6 sm:flex sm:items-center">
-            <Button variant="outline" onClick={() => router.push('/logout')}>
+            <Button variant="outline" onClick={handleLogout}>
               Logout
             </Button>
           </div>
