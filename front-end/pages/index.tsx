@@ -63,7 +63,7 @@ export default function LandingPage(){
       </main>
 
       <div className="mt-12 text-center">
-        <a href="/signup">
+        <a href="/login">
           <Button size="lg">Get Started</Button>
         </a>
       </div>
