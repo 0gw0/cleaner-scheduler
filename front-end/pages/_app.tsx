@@ -30,7 +30,7 @@ function MyApp({ Component, pageProps }: AppProps) {
       if (!isAuthenticated && !publicPaths.includes(path)) {
         router.push('/login')
       } else if (isAuthenticated && publicPaths.includes(path)) {
-        router.push('/homepage')
+        router.push('/dashboard')
       }
     }
   }, [isLoading, isAuthenticated, router])
