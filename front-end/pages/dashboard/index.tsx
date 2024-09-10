@@ -6,8 +6,13 @@ const IndexPage: React.FC = () => {
   const jobsPerMonth = [
     { month: 'Jan', jobs: 50 },
     { month: 'Feb', jobs: 60 },
-    { month: 'Mar', jobs: 45 },
-    // Add more data as needed
+    { month: 'Mar', jobs: 70 },
+    { month: 'Apr', jobs: 45 },
+    { month: 'May', jobs: 20 },
+    { month: 'Jun', jobs: 50 },
+    { month: 'July', jobs: 65 },
+    { month: 'Aug', jobs: 55 },
+    { month: 'Sep', jobs: 76 },
   ];
 
   const clientProfile = {

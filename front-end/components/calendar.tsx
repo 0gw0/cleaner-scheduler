@@ -232,7 +232,7 @@ const Calendar: React.FC<CalendarProps> = ({ tasks }) => {
             <div className="absolute left-16 right-0 border-t border-gray-200"></div>
           </div>
         ))}
-        {taskGroups.map((group, index) => {
+        {taskGroups.map((group) => {
           const groupSize = group.tasks.length;
 
           return group.tasks.map((task, i) => {
