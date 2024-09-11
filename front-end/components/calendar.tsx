@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useCallback } from "react";
 import {
   format,
   startOfWeek,
@@ -11,6 +11,7 @@ import {
   addHours,
   startOfDay,
   endOfDay,
+  differenceInMinutes,
 } from "date-fns";
 import { ChevronLeft, ChevronRight, Search, ChevronDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -29,22 +30,26 @@ type Task = {
   location: string;
   supervisor: string;
   startTime: Date;
-  duration: 3 | 4; // in hours
+  duration: number; 
 };
 
 type CalendarProps = {
   tasks: Task[];
 };
 
-const ALL_WORKERS = "all-workers";
-const ALL_LOCATIONS = "all-locations";
+const ALL_OPTION = "all";
 
 const Calendar: React.FC<CalendarProps> = ({ tasks }) => {
   const [currentDate, setCurrentDate] = useState(new Date());
   const [view, setView] = useState<"daily" | "weekly" | "monthly">("monthly");
   const [searchTerm, setSearchTerm] = useState("");
-  const [workerFilter, setWorkerFilter] = useState(ALL_WORKERS);
-  const [locationFilter, setLocationFilter] = useState(ALL_LOCATIONS);
+  const [workerFilter, setWorkerFilter] = useState(ALL_OPTION);
+  const [locationFilter, setLocationFilter] = useState(ALL_OPTION);
+  const [supervisorFilter, setSupervisorFilter] = useState(ALL_OPTION);
+
+  const uniqueWorkers = useMemo(() => Array.from(new Set(tasks.map(task => task.worker))), [tasks]);
+  const uniqueLocations = useMemo(() => [...new Set(tasks.map(task => task.location))], [tasks]);
+  const uniqueSupervisors = useMemo(() => [...new Set(tasks.map(task => task.supervisor))], [tasks]);
 
   const filteredTasks = useMemo(() => {
     return tasks.filter(
@@ -52,27 +57,21 @@ const Calendar: React.FC<CalendarProps> = ({ tasks }) => {
         (task.worker.toLowerCase().includes(searchTerm.toLowerCase()) ||
           task.location.toLowerCase().includes(searchTerm.toLowerCase()) ||
           task.supervisor.toLowerCase().includes(searchTerm.toLowerCase())) &&
-        (workerFilter === ALL_WORKERS || task.worker === workerFilter) &&
-        (locationFilter === ALL_LOCATIONS || task.location === locationFilter)
+        (workerFilter === ALL_OPTION || task.worker === workerFilter) &&
+        (locationFilter === ALL_OPTION || task.location === locationFilter) &&
+        (supervisorFilter === ALL_OPTION || task.supervisor === supervisorFilter)
     );
-  }, [tasks, searchTerm, workerFilter, locationFilter]);
+  }, [tasks, searchTerm, workerFilter, locationFilter, supervisorFilter]);
 
-
-  const renderHeader = () => {
-    const dateFormat = view === "monthly" ? "MMMM yyyy" : "MMMM d, yyyy";
-    return (
-      <div className="flex items-center justify-between mb-4">
-        <Button variant="outline" onClick={prevDate}>
-          <ChevronLeft className="h-4 w-4" />
-        </Button>
-        <h2 className="text-xl font-semibold">
-          {format(currentDate, dateFormat)}
-        </h2>
-        <Button variant="outline" onClick={nextDate}>
-          <ChevronRight className="h-4 w-4" />
-        </Button>
+  const renderTasks = (day: Date) => {
+    const dayTasks = filteredTasks.filter((task) =>
+      isSameDay(task.startTime, day)
+    );
+    return dayTasks.map((task) => (
+      <div key={task.id} className="text-xs bg-blue-200 p-1 mt-1 rounded">
+        {task.worker} - {task.location}
       </div>
-    );
+    ));
   };
 
   const renderDays = () => {
@@ -127,15 +126,21 @@ const Calendar: React.FC<CalendarProps> = ({ tasks }) => {
     return rows;
   };
 
-  const renderTasks = (day: Date) => {
-    const dayTasks = filteredTasks.filter((task) =>
-      isSameDay(task.startTime, day)
-    );
-    return dayTasks.map((task) => (
-      <div key={task.id} className="text-xs bg-blue-200 p-1 mt-1 rounded">
-        {task.worker} - {task.location}
+  const renderHeader = () => {
+    const dateFormat = view === "monthly" ? "MMMM yyyy" : "MMMM d, yyyy";
+    return (
+      <div className="flex items-center justify-between mb-4">
+        <Button variant="outline" onClick={prevDate}>
+          <ChevronLeft className="h-4 w-4" />
+        </Button>
+        <h2 className="text-xl font-semibold">
+          {format(currentDate, dateFormat)}
+        </h2>
+        <Button variant="outline" onClick={nextDate}>
+          <ChevronRight className="h-4 w-4" />
+        </Button>
       </div>
-    ));
+    );
   };
 
   const renderWeeklyView = () => {
@@ -160,45 +165,39 @@ const Calendar: React.FC<CalendarProps> = ({ tasks }) => {
             </div>
             {days.map((day) => {
               const dayTasks = filteredTasks.filter(
-                (task) =>
-                  isSameDay(task.startTime, day) &&
-                  task.startTime.getHours() <= hour &&
-                  task.startTime.getHours() + task.duration > hour
+                (task) => isSameDay(task.startTime, day)
               );
 
               return (
                 <div key={day.toString()} className="border relative h-20">
-                  {dayTasks.map((task, i) => {
-                    const taskStart =
-                      task.startTime.getHours() +
-                      task.startTime.getMinutes() / 60;
-                    const topOffset =
-                      taskStart > hour
-                        ? 0
-                        : ((hour - taskStart) / task.duration) * 100;
-                    const height = Math.min(
-                      100 - topOffset,
-                      ((task.duration - (hour - taskStart)) / task.duration) *
-                        100
-                    );
-                    const leftOffset = `${i * 15}px`; 
+                  {dayTasks.map((task) => {
+                    const taskStart = task.startTime;
+                    const taskEnd = addHours(taskStart, task.duration / 60);
+                    const cellStart = addHours(day, hour);
+                    const cellEnd = addHours(cellStart, 1);
 
-                    return (
-                      <div
-                        key={task.id}
-                        className="absolute bg-blue-200 p-1 text-xs overflow-hidden"
-                        style={{
-                          top: `${topOffset}%`,
-                          height: `${height}%`,
-                          left: leftOffset,
-                          width: `calc(100% - ${i * 15}px)`, 
-                        }}
-                      >
-                        <div>{task.worker}</div>
-                        <div>{task.location}</div>
-                        <div>Supervisor: {task.supervisor}</div>
-                      </div>
-                    );
+                    if (taskStart < cellEnd && taskEnd > cellStart) {
+                      const top = Math.max(0, differenceInMinutes(taskStart, cellStart) / 60) * 100;
+                      const height = Math.min(100, (Math.min(60, differenceInMinutes(taskEnd, cellStart)) / 60) * 100);
+
+                      return (
+                        <div
+                          key={task.id}
+                      className="absolute bg-blue-200 p-1 text-xs overflow-hidden h-50"
+                          style={{
+                            top: `${top}%`,
+                            left: 0,
+                            right: 0,
+                            opacity: 0.8,
+                          }}
+                        >
+                          <div>{task.worker}</div>
+                          <div>{task.location}</div>
+                          <div>Supervisor: {task.supervisor}</div>
+                        </div>
+                      );
+                    }
+                    return null;
                   })}
                 </div>
               );
@@ -216,8 +215,6 @@ const Calendar: React.FC<CalendarProps> = ({ tasks }) => {
       (task) => task.startTime >= dayStart && task.startTime < dayEnd
     );
 
-    const taskGroups = groupTasksByStartTime(dayTasks);
-
     return (
       <div className="relative" style={{ height: "600px" }}>
         {Array.from({ length: 24 }, (_, hour) => (
@@ -232,57 +229,31 @@ const Calendar: React.FC<CalendarProps> = ({ tasks }) => {
             <div className="absolute left-16 right-0 border-t border-gray-200"></div>
           </div>
         ))}
-        {taskGroups.map((group) => {
-          const groupSize = group.tasks.length;
+        {dayTasks.map((task) => {
+          const startHour = task.startTime.getHours();
+          const startMinute = task.startTime.getMinutes();
+          const topPosition = `${((startHour + startMinute / 60) / 24) * 100}%`;
+          const height = `${(task.duration / 1440) * 100}%`; // 1440 minutes in a day
 
-          return group.tasks.map((task, i) => {
-            const startHour = task.startTime.getHours();
-            const startMinute = task.startTime.getMinutes();
-            const topPosition = `${
-              ((startHour + startMinute / 60) / 24) * 100
-            }%`;
-            const height = `${(task.duration / 24) * 100}%`;
-            const taskWidth = `calc(50% / ${groupSize})`;
-            const leftOffset = `calc(${i} * (50% / ${groupSize}))`;
-
-            return (
-              <div
-                key={task.id}
-                className="absolute bg-blue-200 text-xs p-1"
-                style={{
-                  top: topPosition,
-                  left: leftOffset,
-                  width: taskWidth,
-                  height,
-                }}
-              >
-                <div>{task.worker}</div>
-                <div>{task.location}</div>
-                <div>Supervisor: {task.supervisor}</div>
-              </div>
-            );
-          });
+          return (
+            <div
+              key={task.id}
+          className="absolute bg-blue-200 text-xs p-1 h-50"
+              style={{
+                top: topPosition,
+                left: '16px',
+                right: '0',
+                opacity: 0.8,
+              }}
+            >
+              <div>{task.worker}</div>
+              <div>{task.location}</div>
+              <div>Supervisor: {task.supervisor}</div>
+            </div>
+          );
         })}
       </div>
     );
-  };
-
-  const groupTasksByStartTime = (tasks: Task[]) => {
-    const groupedTasks: { startTime: Date; tasks: Task[] }[] = [];
-
-    tasks.forEach((task) => {
-      const startTime = task.startTime;
-      const existingGroup = groupedTasks.find((group) =>
-        isSameDay(group.startTime, startTime)
-      );
-      if (existingGroup) {
-        existingGroup.tasks.push(task);
-      } else {
-        groupedTasks.push({ startTime, tasks: [task] });
-      }
-    });
-
-    return groupedTasks;
   };
 
   const prevDate = () => {
@@ -310,7 +281,7 @@ const Calendar: React.FC<CalendarProps> = ({ tasks }) => {
       setCurrentDate(new Date());
       setView("daily");
     } else {
-      setView(view);
+      setView(view as "daily" | "weekly" | "monthly");
     }
   };
 
@@ -326,6 +297,39 @@ const Calendar: React.FC<CalendarProps> = ({ tasks }) => {
           icon={Search}
         />
         <div className="flex items-center space-x-4">
+          <Select value={workerFilter} onValueChange={setWorkerFilter}>
+            <SelectTrigger>
+              <SelectValue placeholder="Worker" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value={ALL_OPTION}>All Workers</SelectItem>
+              {uniqueWorkers.map(worker => (
+                <SelectItem key={worker} value={worker}>{worker}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <Select value={locationFilter} onValueChange={setLocationFilter}>
+            <SelectTrigger>
+              <SelectValue placeholder="Location" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value={ALL_OPTION}>All Locations</SelectItem>
+              {uniqueLocations.map(location => (
+                <SelectItem key={location} value={location}>{location}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <Select value={supervisorFilter} onValueChange={setSupervisorFilter}>
+            <SelectTrigger>
+              <SelectValue placeholder="Supervisor" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value={ALL_OPTION}>All Supervisors</SelectItem>
+              {uniqueSupervisors.map(supervisor => (
+                <SelectItem key={supervisor} value={supervisor}>{supervisor}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
           <Select
             value={view}
             onValueChange={handleViewChange}
