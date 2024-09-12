@@ -6,6 +6,7 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 import java.time.DayOfWeek;
+import java.time.LocalDate;
 import java.time.LocalTime;
 
 @Embeddable
@@ -14,9 +15,9 @@ import java.time.LocalTime;
 @Setter
 public class Shift {
 
-    @Enumerated(EnumType.STRING)
+
     @Column(nullable = false)
-    private DayOfWeek dayOfWeek;
+    private LocalDate date;
 
     @Column(nullable = false)
     private LocalTime startTime;
@@ -24,8 +25,8 @@ public class Shift {
     @Column(nullable = false)
     private LocalTime endTime;
 
-    public Shift(DayOfWeek dayOfWeek, LocalTime startTime, LocalTime endTime) {
-        this.dayOfWeek = dayOfWeek;
+    public Shift(LocalDate date, LocalTime startTime, LocalTime endTime) {
+        this.date = date;
         this.startTime = startTime;
         this.endTime = endTime;
     }
@@ -37,6 +38,6 @@ public class Shift {
 
     @Override
     public String toString() {
-        return String.format("%s: %s - %s", dayOfWeek, startTime, endTime);
+        return String.format("%s: %s - %s", date, startTime, endTime);
     }
 }

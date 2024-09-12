@@ -10,7 +10,9 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
 import java.time.DayOfWeek;
+import java.time.LocalDate;
 import java.time.LocalTime;
+import java.time.Month;
 
 @Configuration
 public class DataInitializer {
@@ -27,19 +29,19 @@ public class DataInitializer {
             // Create and save Workers
             Worker worker1 = new Worker("Mati", "1234567890", "eg bio 1");
             worker1.setSupervisor(admin1);
-            worker1.addShift(new Shift(DayOfWeek.MONDAY, LocalTime.of(9, 0), LocalTime.of(17, 0)));
-            worker1.addShift(new Shift(DayOfWeek.WEDNESDAY, LocalTime.of(9, 0), LocalTime.of(17, 0)));
+            worker1.addShift(new Shift(LocalDate.of(2024, Month.SEPTEMBER, 12), LocalTime.of(9, 0), LocalTime.of(17, 0)));
+            worker1.addShift(new Shift(LocalDate.of(2024, Month.SEPTEMBER, 16), LocalTime.of(9, 0), LocalTime.of(17, 0)));
             workerRepository.save(worker1);
 
             Worker worker2 = new Worker("Yati", "0987654321", "eg bio 2");
             worker2.setSupervisor(admin1);
-            worker2.addShift(new Shift(DayOfWeek.TUESDAY, LocalTime.of(8, 0), LocalTime.of(16, 0)));
-            worker2.addShift(new Shift(DayOfWeek.THURSDAY, LocalTime.of(8, 0), LocalTime.of(16, 0)));
+            worker2.addShift(new Shift(LocalDate.of(2024, Month.SEPTEMBER, 13), LocalTime.of(8, 0), LocalTime.of(16, 0)));
+            worker2.addShift(new Shift(LocalDate.of(2024, Month.SEPTEMBER, 16), LocalTime.of(8, 0), LocalTime.of(16, 0)));
             workerRepository.save(worker2);
 
             Worker worker3 = new Worker("Wati", "1122334455", "eg bio 3");
             worker3.setSupervisor(admin2);
-            worker3.addShift(new Shift(DayOfWeek.FRIDAY, LocalTime.of(10, 0), LocalTime.of(14, 0)));
+            worker3.addShift(new Shift(LocalDate.of(2024, Month.SEPTEMBER, 22), LocalTime.of(10, 0), LocalTime.of(14, 0)));
             workerRepository.save(worker3);
 
         };
