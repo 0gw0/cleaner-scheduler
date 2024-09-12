@@ -22,9 +22,6 @@ public class Worker {
     @Column(nullable = false)
     private String name;
 
-    @Column(nullable = false, unique = true)
-    private String employeeId;
-
     @ElementCollection
     @CollectionTable(name = "worker_shifts", joinColumns = @JoinColumn(name = "worker_id"))
     private List<Shift> workingHours = new ArrayList<>();
@@ -39,9 +36,8 @@ public class Worker {
     @Column(columnDefinition = "TEXT")
     private String bio;
 
-    public Worker(String name, String employeeId, String phoneNumber, String bio) {
+    public Worker(String name, String phoneNumber, String bio) {
         this.name = name;
-        this.employeeId = employeeId;
         this.phoneNumber = phoneNumber;
         this.bio = bio;
     }

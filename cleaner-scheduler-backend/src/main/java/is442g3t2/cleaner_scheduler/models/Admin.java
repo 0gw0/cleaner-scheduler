@@ -22,15 +22,11 @@ public class Admin {
     @Column(nullable = false)
     private String name;
 
-    @Column(nullable = false, unique = true)
-    private String employeeId;
-
     @OneToMany(mappedBy = "supervisor", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<Worker> workers = new ArrayList<>();
 
-    public Admin(String name, String employeeId) {
+    public Admin(String name) {
         this.name = name;
-        this.employeeId = employeeId;
     }
 
     public void addWorker(Worker worker) {
