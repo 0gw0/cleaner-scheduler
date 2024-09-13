@@ -15,6 +15,7 @@ import java.util.List;
 @Table(name = "workers")
 public class Worker {
 
+    @Getter
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
@@ -40,6 +41,10 @@ public class Worker {
         this.name = name;
         this.phoneNumber = phoneNumber;
         this.bio = bio;
+    }
+
+    public Long getSupervisor() {
+        return supervisor.getId();
     }
 
     public void addShift(Shift shift) {

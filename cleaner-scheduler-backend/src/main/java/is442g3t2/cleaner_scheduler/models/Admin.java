@@ -29,6 +29,14 @@ public class Admin {
         this.name = name;
     }
 
+    public List<Long> getWorkers() {
+        List<Long> result = new ArrayList<>();
+        for (Worker worker : workers) {
+            result.add(worker.getId());
+        }
+        return result;
+    }
+
     public void addWorker(Worker worker) {
         workers.add(worker);
         worker.setSupervisor(this);
