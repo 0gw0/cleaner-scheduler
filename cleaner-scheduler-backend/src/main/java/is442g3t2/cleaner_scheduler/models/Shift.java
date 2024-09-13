@@ -9,12 +9,20 @@ import java.time.DayOfWeek;
 import java.time.LocalDate;
 import java.time.LocalTime;
 
-@Embeddable
+@Entity
 @NoArgsConstructor
 @Getter
 @Setter
 public class Shift {
 
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
+
+    @ManyToOne
+    @JoinColumn(name = "worker_id")
+    private Worker worker;
 
     @Column(nullable = false)
     private LocalDate date;
@@ -31,7 +39,7 @@ public class Shift {
         this.endTime = endTime;
     }
 
-    // TODO: defos need updating, just checks if start > end for now
+    // just checks if start > end
     public boolean isValid() {
         return startTime != null && endTime != null && startTime.isBefore(endTime);
     }

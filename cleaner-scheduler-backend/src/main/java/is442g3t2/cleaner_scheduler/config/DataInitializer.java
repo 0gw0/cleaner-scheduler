@@ -1,5 +1,7 @@
 package is442g3t2.cleaner_scheduler.config;
 
+import aj.org.objectweb.asm.commons.TryCatchBlockSorter;
+import is442g3t2.cleaner_scheduler.exceptions.ShiftsOverlapException;
 import is442g3t2.cleaner_scheduler.models.*;
 import is442g3t2.cleaner_scheduler.repositories.AdminRepository;
 import is442g3t2.cleaner_scheduler.repositories.ClientRepository;
@@ -42,6 +44,11 @@ public class DataInitializer {
             Worker worker3 = new Worker("Wati", "1122334455", "eg bio 3");
             worker3.setSupervisor(admin2);
             worker3.addShift(new Shift(LocalDate.of(2024, Month.SEPTEMBER, 22), LocalTime.of(10, 0), LocalTime.of(14, 0)));
+            try {
+                worker3.addShift(new Shift(LocalDate.of(2024, Month.SEPTEMBER, 22), LocalTime.of(10, 0), LocalTime.of(14, 0)));
+            } catch (ShiftsOverlapException e) {
+                System.out.println(e.getMessage());
+            }
             workerRepository.save(worker3);
 
             // Create and save clients with properties
