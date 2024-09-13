@@ -24,6 +24,10 @@ public class Property {
     @Column(nullable = false)
     private String postalCode;
 
+    public Long getClient() {
+        return client.getId();
+    }
+
     @ManyToOne
     @JoinColumn(name = "client_id")
     private Client client;
@@ -32,5 +36,6 @@ public class Property {
         this.address = address;
         this.postalCode = postalCode;
     }
+
 
 }
