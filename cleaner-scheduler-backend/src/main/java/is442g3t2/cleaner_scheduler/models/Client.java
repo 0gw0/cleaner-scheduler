@@ -29,4 +29,15 @@ public class Client {
     public Client(String name) {
         this.name = name;
     }
+
+
+    public void addProperty(Property property) {
+        properties.add(property);
+        property.setClient(this);
+    }
+
+    public void removeProperty(Property property) {
+        properties.remove(property);
+        property.setClient(null);
+    }
 }

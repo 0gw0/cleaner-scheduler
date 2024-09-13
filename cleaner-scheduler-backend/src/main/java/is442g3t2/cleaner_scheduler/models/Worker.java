@@ -25,7 +25,7 @@ public class Worker {
 
     @ElementCollection
     @CollectionTable(name = "worker_shifts", joinColumns = @JoinColumn(name = "worker_id"))
-    private List<Shift> workingHours = new ArrayList<>();
+    private List<Shift> shifts = new ArrayList<>();
 
     @Column(nullable = false)
     private String phoneNumber;
@@ -48,10 +48,10 @@ public class Worker {
     }
 
     public void addShift(Shift shift) {
-        workingHours.add(shift);
+        shifts.add(shift);
     }
 
     public void removeShift(Shift shift) {
-        workingHours.remove(shift);
+        shifts.remove(shift);
     }
 }

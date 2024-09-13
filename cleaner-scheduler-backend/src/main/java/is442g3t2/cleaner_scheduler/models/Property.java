@@ -2,6 +2,7 @@ package is442g3t2.cleaner_scheduler.models;
 
 
 import jakarta.persistence.*;
+import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
@@ -26,5 +27,10 @@ public class Property {
     @ManyToOne
     @JoinColumn(name = "client_id")
     private Client client;
+
+    public Property(String address, String postalCode) {
+        this.address = address;
+        this.postalCode = postalCode;
+    }
 
 }
