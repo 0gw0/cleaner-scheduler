@@ -48,8 +48,8 @@ const Calendar: React.FC<CalendarProps> = ({ tasks }) => {
   const [supervisorFilter, setSupervisorFilter] = useState(ALL_OPTION);
 
   const uniqueWorkers = useMemo(() => Array.from(new Set(tasks.map(task => task.worker))), [tasks]);
-  const uniqueLocations = useMemo(() => [...new Set(tasks.map(task => task.location))], [tasks]);
-  const uniqueSupervisors = useMemo(() => [...new Set(tasks.map(task => task.supervisor))], [tasks]);
+  const uniqueLocations = useMemo(() => Array.from(new Set(tasks.map(task => task.location))), [tasks]);
+  const uniqueSupervisors = useMemo(() => Array.from(new Set(tasks.map(task => task.supervisor))), [tasks]);
 
   const filteredTasks = useMemo(() => {
     return tasks.filter(
