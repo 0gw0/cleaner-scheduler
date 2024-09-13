@@ -13,15 +13,11 @@ import {
 } from "@/components/ui/select";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useAuth } from '../../contexts/AuthContext';
-import local from "next/font/local";
 
 // Example user credentials
 const userCredentials = {
-  senior_management: { email: "ceo@example.com", password: "ceo123" },
-  hr: { email: "hr@example.com", password: "hr123" },
-  director: { email: "director@example.com", password: "director123" },
-  manager: { email: "manager@example.com", password: "manager123" },
-  staff: { email: "staff@example.com", password: "staff123" },
+  admin: { email: "admin@example.com", password: "admin123" },
+  worker: { email: "worker@example.com", password: "worker123" },
 };
 
 export default function LoginPage() {
@@ -43,9 +39,9 @@ export default function LoginPage() {
         const user = {
           id: `${userType}-id`, //  this would be a unique user ID
           name: `${userType.charAt(0).toUpperCase() + userType.slice(1)} User`,
-          role: userType as 'staff' | 'manager' | 'director' | 'hr' | 'senior_management'
+          role: userType as 'admin' | 'worker' 
         };
-        localStorage.setItem('user', JSON.stringify(user));
+        // localStorage.setItem('user', JSON.stringify(user));
         login(user);
         router.push("/dashboard");
       } else {
@@ -73,11 +69,8 @@ export default function LoginPage() {
                   <SelectValue placeholder="Select user type" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="senior_management">Senior Management</SelectItem>
-                  <SelectItem value="hr">HR</SelectItem>
-                  <SelectItem value="director">Director</SelectItem>
-                  <SelectItem value="manager">Manager</SelectItem>
-                  <SelectItem value="staff">Staff</SelectItem>
+                  <SelectItem value="admin">Admin</SelectItem>
+                  <SelectItem value="worker">Worker</SelectItem>
                 </SelectContent>
               </Select>
             </div>

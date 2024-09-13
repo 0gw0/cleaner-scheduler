@@ -27,18 +27,19 @@ const Navbar = () => {
   }
 
   const navLinks = [
-    { href: "/teamschedule", label: "Team Schedule", roles: ["staff", "manager", "director", "hr", "senior_management"] },
-    { href: "/application", label: "WFH Applications", roles: ["staff", "manager", "director"] },
-    { href: "/manage-arrangements", label: "Manage Arrangements", roles: ["staff", "manager", "director"] },
-    { href: "/manage-requests", label: "Manage WFH Requests", roles: ["manager", "director"] },
-    { href: "/profile", label: "My Profile", roles: ["staff", "manager", "director", "hr", "senior_management"] },
+    { href: "/schedule", label: "Schedule", roles: ["worker", "admin"] },
+    { href: "/clientprofile", label: "Client Profiles", roles: ["admin"] },
+    { href: "/workerprofiles", label: "Worker Profiles", roles: ["admin"] },
+    { href: "/payrolls", label: "Manage Payrolls Requests", roles: ["admin"] },
+    { href: "/managetasks", label: "Manage Tasks", roles: ["admin"] },
+    { href: "/profile", label: "Profile", roles: ["admin","worker"] },
   ];
 
   const filteredNavLinks = navLinks.filter(link => link.roles.includes(user?.role || ''));
 
   return (
     <nav className="bg-white shadow-sm">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div className="max-w-10xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between h-16">
           <div className="flex">
             <div className="flex-shrink-0 flex items-center">
@@ -46,7 +47,7 @@ const Navbar = () => {
                 <Image src="/egg.png" width={70} height={50} alt="Logos" />
               </Link>
             </div>
-            <div className="hidden sm:ml-6 sm:flex sm:space-x-8">
+            <div className="hidden md:ml-6 md:flex md:space-x-8">
               {filteredNavLinks.map((link) => (
                 <Link
                   key={link.href}
@@ -58,19 +59,19 @@ const Navbar = () => {
               ))}
             </div>
           </div>
-          <div className="hidden sm:ml-6 sm:flex sm:items-center">
+          <div className="hidden md:ml-6 md:flex md:items-center">
             <Button variant="outline" onClick={handleLogout}>
               Logout
             </Button>
           </div>
-          <div className="sm:hidden flex items-center">
+          <div className="md:hidden flex items-center">
             <button onClick={toggleMenu} className="p-2 rounded-md hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500">
               {isMenuOpen ? <X /> : <Menu />}
             </button>
           </div>
         </div>
         {isMenuOpen && (
-          <div className="sm:hidden py-4 space-y-1">
+          <div className="md:hidden py-4 space-y-1">
             {filteredNavLinks.map((link) => (
               <Link
                 key={link.href}

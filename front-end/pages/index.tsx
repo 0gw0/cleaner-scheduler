@@ -29,14 +29,14 @@ export default function LandingPage() {
       <div className="max-h-screen p-8">
         <header className="mb-8 text-center">
           <h1 className="text-4xl font-bold text-gray-800">
-            Welcome to Soft Eggos Scheduler
+            Welcome to the Future of Worker Management
           </h1>
           <p className="text-gray-600 mt-2">
             Efficient scheduling for your workplace
           </p>
         </header>
 
-        <main className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 max-w-4xl mx-auto">
+        <main className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 max-w-6xl mx-auto">
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">
@@ -46,7 +46,7 @@ export default function LandingPage() {
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">
-                Manage Work From Home schedules
+                Manage Worker's Schedule with ease
               </div>
             </CardContent>
           </Card>
@@ -54,12 +54,12 @@ export default function LandingPage() {
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">
-                Team Management
+                Worker Management
               </CardTitle>
               <Users className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">Organize your staff</div>
+              <div className="text-2xl font-bold">Organize your workers and tasks</div>
             </CardContent>
           </Card>
 
@@ -71,7 +71,7 @@ export default function LandingPage() {
               <CheckSquare className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">Plan leaves with ease</div>
+              <div className="text-2xl font-bold">Plan tasks with ease</div>
             </CardContent>
           </Card>
 
@@ -104,7 +104,7 @@ export default function LandingPage() {
         
 
         <footer className="mt-12 text-center text-gray-600">
-          © 2024 SBE Scheduler. All rights reserved.
+          © 2024 Worker Bee. All rights reserved.
         </footer>
       </div>
     </div>
