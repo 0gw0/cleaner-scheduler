@@ -12,6 +12,17 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { useAuth } from '../../contexts/AuthContext';
+import local from "next/font/local";
+
+// Example user credentials
+const userCredentials = {
+  senior_management: { email: "ceo@example.com", password: "ceo123" },
+  hr: { email: "hr@example.com", password: "hr123" },
+  director: { email: "director@example.com", password: "director123" },
+  manager: { email: "manager@example.com", password: "manager123" },
+  staff: { email: "staff@example.com", password: "staff123" },
+};
 
 export default function LoginPage() {
   const [userType, setUserType] = useState<string>("");
@@ -19,38 +30,24 @@ export default function LoginPage() {
   const [password, setPassword] = useState<string>("");
   const [error, setError] = useState<string>("");
   const router = useRouter();
+  const { login } = useAuth();
 
   const handleLogin = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setError("");
-    //  API call to authenticate the user
+
     if (email && password && userType) {
-      if (
-        userType === "admin" &&
-        email === "admin@gmail.com" &&
-        password === "admin123"
-      ) {
-        localStorage.setItem('isAuthenticated', 'true');
-        localStorage.setItem('userType', 'admin');
+      const credentials = userCredentials[userType as keyof typeof userCredentials];
+      if (credentials && email === credentials.email && password === credentials.password) {
+        // Simulate successful login
+        const user = {
+          id: `${userType}-id`, //  this would be a unique user ID
+          name: `${userType.charAt(0).toUpperCase() + userType.slice(1)} User`,
+          role: userType as 'staff' | 'manager' | 'director' | 'hr' | 'senior_management'
+        };
+        localStorage.setItem('user', JSON.stringify(user));
+        login(user);
         router.push("/dashboard");
-        router.push('/dashboard').then(() => {
-          if (router.pathname !== '/dashboard') {
-            window.location.href = '/dashboard';
-          }
-        });
-      } else if (
-        userType === "maid" &&
-        email === "maid@gmail.com" &&
-        password === "maid123"
-      ) {
-        localStorage.setItem('isAuthenticated', 'true');
-        localStorage.setItem('userType', 'maid');
-        router.push("/dashboard");
-        router.push('/dashboard').then(() => {
-          if (router.pathname !== '/dashboard') {
-            window.location.href = '/dashboard';
-          }
-        });
       } else {
         setError("Invalid credentials");
       }
@@ -68,10 +65,7 @@ export default function LoginPage() {
         <CardContent>
           <form onSubmit={handleLogin} className="space-y-4">
             <div>
-              <label
-                htmlFor="userType"
-                className="block text-sm font-medium text-gray-700"
-              >
+              <label htmlFor="userType" className="block text-sm font-medium text-gray-700">
                 User Type
               </label>
               <Select onValueChange={(value: string) => setUserType(value)} required>
@@ -79,16 +73,16 @@ export default function LoginPage() {
                   <SelectValue placeholder="Select user type" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="admin">Admin</SelectItem>
-                  <SelectItem value="maid">Maid</SelectItem>
+                  <SelectItem value="senior_management">Senior Management</SelectItem>
+                  <SelectItem value="hr">HR</SelectItem>
+                  <SelectItem value="director">Director</SelectItem>
+                  <SelectItem value="manager">Manager</SelectItem>
+                  <SelectItem value="staff">Staff</SelectItem>
                 </SelectContent>
               </Select>
             </div>
             <div>
-              <label
-                htmlFor="email"
-                className="block text-sm font-medium text-gray-700"
-              >
+              <label htmlFor="email" className="block text-sm font-medium text-gray-700">
                 Email
               </label>
               <Input
@@ -101,10 +95,7 @@ export default function LoginPage() {
               />
             </div>
             <div>
-              <label
-                htmlFor="password"
-                className="block text-sm font-medium text-gray-700"
-              >
+              <label htmlFor="password" className="block text-sm font-medium text-gray-700">
                 Password
               </label>
               <Input
@@ -124,11 +115,11 @@ export default function LoginPage() {
             <Button type="submit" className="w-full">
               Login
             </Button>
-            <Button type="button" className="w-full">
-              <Link href="/signup">
-                Register here
+            <div className="text-center">
+              <Link href="/signup" className="text-blue-600 hover:underline">
+                Dont have an account? Register here
               </Link>
-            </Button>
+            </div>
           </form>
         </CardContent>
       </Card>

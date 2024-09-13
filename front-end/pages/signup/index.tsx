@@ -13,7 +13,6 @@ export default function Signup() {
   };
   return (
     <div
-    
     style={{
       display: 'flex',
       justifyContent: 'center',
@@ -23,10 +22,10 @@ export default function Signup() {
   > 
     <div className="max-w-md w-full mx-auto rounded-none md:rounded-2xl p-4 md:p-8 shadow-input bg-white ">
       <h2 className="font-bold text-xl text-neutral-800 dark:text-neutral-200">
-        Welcome to Cleaner Scheduler
+        Welcome to Egg Scheduler
       </h2>
       <p className="text-neutral-600 text-sm max-w-sm mt-2 dark:text-neutral-300">
-        Register to Cleaner Scheduler 
+        Register to Egg Scheduler 
       </p>
 
       <form className="my-8" onSubmit={handleSubmit}>
@@ -40,10 +39,21 @@ export default function Signup() {
             <Input id="lastname" placeholder="Lynn" type="text" />
           </LabelInputContainer>
         </div>
+        <div className="flex flex-col md:flex-row space-y-2 md:space-y-0 md:space-x-2 mb-4">
+          <LabelInputContainer>
+            <Label htmlFor="firstname">Department</Label>
+            <Input id="Department" placeholder="Finance" type="text" />
+          </LabelInputContainer>
+          <LabelInputContainer>
+            <Label htmlFor="lastname">Role</Label>
+            <Input id="Role" placeholder="Director" type="text" />
+          </LabelInputContainer>
+        </div>
         <LabelInputContainer className="mb-4">
           <Label htmlFor="email">Email Address</Label>
-          <Input id="email" placeholder="AlphaLynnAwoo@wolfgang.com" type="email" />
+          <Input id="email" placeholder="Fraserchua@wolfgang.com" type="email" />
         </LabelInputContainer>
+       
         <LabelInputContainer className="mb-4">
           <Label htmlFor="password">Password</Label>
           <Input id="password" placeholder="••••••••" type="password" />
