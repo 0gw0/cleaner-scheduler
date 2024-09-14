@@ -1,7 +1,5 @@
-// src/components/AdminDashboard.tsx
-
 import React from 'react';
-import { MonthlyData, Client, Workers } from '../types/dashboard';
+import { MonthlyData, Client, Workers } from '@/types/dashboard';
 import StatusCard from './StatusCard';
 import JobsChart from './JobsChart';
 import ClientsTable from './ClientsTable';

@@ -1,6 +1,6 @@
 import React from 'react';
 import { Card, CardHeader, CardContent, CardTitle } from '@/components/ui/card';
-import { ScheduleItem } from '../types/dashboard';
+import { ScheduleItem } from '@/types/dashboard';
 
 interface WorkerScheduleProps {
 	schedule: ScheduleItem[];

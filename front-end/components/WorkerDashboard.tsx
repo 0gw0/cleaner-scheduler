@@ -1,5 +1,5 @@
 import React from 'react';
-import { WorkerData } from '../types/dashboard';
+import { WorkerData } from '@/types/dashboard';
 import StatusCard from './StatusCard';
 import WorkerSchedule from './WorkerSchedule';
 import WorkerCalendar from './WorkerCalendar';

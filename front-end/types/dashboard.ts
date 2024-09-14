@@ -1,5 +1,3 @@
-// src/types/dashboard.ts
-
 import { LucideIcon } from 'lucide-react';
 
 export interface StatusCardProps {

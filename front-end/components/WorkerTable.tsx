@@ -1,7 +1,7 @@
 import React from 'react';
 import { Card, CardHeader, CardContent, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Workers } from '../types/dashboard';
+import { Workers } from '@/types/dashboard';
 
 interface WorkerTableProps {
 	workers: Workers[];
