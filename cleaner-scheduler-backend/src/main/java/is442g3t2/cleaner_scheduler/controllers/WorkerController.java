@@ -2,6 +2,7 @@ package is442g3t2.cleaner_scheduler.controllers;
 
 import is442g3t2.cleaner_scheduler.dto.LeaveRequest;
 import is442g3t2.cleaner_scheduler.dto.ShiftCountResponse;
+import is442g3t2.cleaner_scheduler.models.AnnualLeave;
 import is442g3t2.cleaner_scheduler.models.Worker;
 import is442g3t2.cleaner_scheduler.repositories.WorkerRepository;
 import org.springframework.http.HttpStatus;
@@ -84,6 +85,31 @@ public class WorkerController {
         worker.takeLeave(startDate, endDate);
         workerRepository.save(worker);
         return ResponseEntity.ok(worker);
+    }
+
+    @GetMapping("/workers/{id}/leaves")
+    public ResponseEntity<List<AnnualLeave>> getWorkerLeaves(@PathVariable Long id) {
+        Worker worker = workerRepository.findById(id).orElseThrow(
+                () -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Worker not found")
+        );
+        return ResponseEntity.ok(worker.getAnnualLeaves());
+    }
+
+    @GetMapping("/workers/{id}/leaves/{year}")
+    public ResponseEntity<List<AnnualLeave>> getWorkerLeavesByYear(@PathVariable Long id, @PathVariable int year) {
+        Worker worker = workerRepository.findById(id).orElseThrow(
+                () -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Worker not found")
+        );
+        return ResponseEntity.ok(worker.getLeavesByYear(year));
+    }
+
+
+    @GetMapping("/workers/{id}/leave-days/{year}")
+    public ResponseEntity<Long> getWorkerLeaveDaysByYear(@PathVariable Long id, @PathVariable int year) {
+        Worker worker = workerRepository.findById(id).orElseThrow(
+                () -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Worker not found")
+        );
+        return ResponseEntity.ok(worker.getTotalAnnualLeavesTakenByYear(year));
     }
 
 }

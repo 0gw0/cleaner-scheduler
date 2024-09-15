@@ -51,6 +51,8 @@ public class DataInitializer {
                     LocalTime.of(9, 0),
                     LocalTime.of(17, 0),
                     property2));
+            worker1.takeLeave(LocalDate.of(2024, Month.SEPTEMBER, 10), LocalDate.of(2024, Month.SEPTEMBER, 10));
+            worker1.takeLeave(LocalDate.of(2023, Month.SEPTEMBER, 10), LocalDate.of(2024, Month.SEPTEMBER, 10));
             workerRepository.save(worker1);
 
             Worker worker2 = new Worker("Yati", "0987654321", "eg bio 2");

@@ -8,7 +8,9 @@ import lombok.Setter;
 
 import java.time.LocalDate;
 import java.time.Period;
+import java.time.Year;
 import java.time.YearMonth;
+import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -39,9 +41,8 @@ public class Worker {
     @Column(columnDefinition = "TEXT")
     private String bio;
 
-    //    If we know how many they start with, can possibly change to annualLeavesRemaining
-    @Column
-    private Integer annualLeavesTaken = 0;
+    @OneToMany(mappedBy = "worker", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<AnnualLeave> annualLeaves = new ArrayList<>();
 
     //    If we know how many they start with, can possibly change to medicalCertificatesRemaining
     @Column
@@ -104,10 +105,31 @@ public class Worker {
     }
 
     public void takeLeave(LocalDate startDate, LocalDate endDate) {
-        Period period = Period.between(startDate, endDate);
-        int numOfLeaveDays = period.getDays();
-        annualLeavesTaken += numOfLeaveDays;
+        AnnualLeave leave = new AnnualLeave(this, startDate, endDate);
+        annualLeaves.add(leave);
     }
+
+    public int getTotalAnnualLeavesTaken() {
+        return annualLeaves.size();
+    }
+
+    public List<AnnualLeave> getLeavesByYear(int year) {
+        return annualLeaves.stream().filter(
+                leave -> leave.getStartDate().getYear() == year || leave.getEndDate().getYear() == year)
+                .toList();
+    }
+
+    public Long getTotalAnnualLeavesTakenByYear(int year) {
+        return getLeavesByYear(year).stream()
+                .mapToLong(leave -> {
+                    LocalDate start = leave.getStartDate().getYear() == year ? leave.getStartDate() : LocalDate.of(year, 1, 1);
+                    LocalDate end = leave.getEndDate().getYear() == year ? leave.getEndDate() : LocalDate.of(year, 12, 31);
+                    return ChronoUnit.DAYS.between(start, end) + 1; // +1 to include both start and end dates
+                })
+                .sum();
+    }
+
+
 
 
 }
