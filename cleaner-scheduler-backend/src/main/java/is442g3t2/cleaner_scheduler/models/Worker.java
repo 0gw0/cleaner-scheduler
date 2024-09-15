@@ -6,6 +6,8 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
+import java.time.LocalDate;
+import java.time.Period;
 import java.time.YearMonth;
 import java.util.ArrayList;
 import java.util.List;
@@ -17,7 +19,6 @@ import java.util.List;
 @Table(name = "workers")
 public class Worker {
 
-    @Getter
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
@@ -37,6 +38,14 @@ public class Worker {
 
     @Column(columnDefinition = "TEXT")
     private String bio;
+
+    //    If we know how many they start with, can possibly change to annualLeavesRemaining
+    @Column
+    private Integer annualLeavesTaken = 0;
+
+    //    If we know how many they start with, can possibly change to medicalCertificatesRemaining
+    @Column
+    private Integer medicalCertificatesTaken = 0;
 
 
     public Worker(String name, String phoneNumber, String bio) {
@@ -92,6 +101,12 @@ public class Worker {
 
     public void removeShift(Shift shift) {
         shifts.remove(shift);
+    }
+
+    public void takeLeave(LocalDate startDate, LocalDate endDate) {
+        Period period = Period.between(startDate, endDate);
+        int numOfLeaveDays = period.getDays();
+        annualLeavesTaken += numOfLeaveDays;
     }
 
 

@@ -1,17 +1,16 @@
 package is442g3t2.cleaner_scheduler.config;
 
-import aj.org.objectweb.asm.commons.TryCatchBlockSorter;
 import is442g3t2.cleaner_scheduler.exceptions.ShiftsOverlapException;
 import is442g3t2.cleaner_scheduler.models.*;
 import is442g3t2.cleaner_scheduler.repositories.AdminRepository;
 import is442g3t2.cleaner_scheduler.repositories.ClientRepository;
-import is442g3t2.cleaner_scheduler.repositories.PropertyRepository;
+
 import is442g3t2.cleaner_scheduler.repositories.WorkerRepository;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
-import java.time.DayOfWeek;
+
 import java.time.LocalDate;
 import java.time.LocalTime;
 import java.time.Month;
