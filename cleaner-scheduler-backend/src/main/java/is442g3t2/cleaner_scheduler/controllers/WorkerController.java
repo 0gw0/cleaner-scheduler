@@ -3,6 +3,7 @@ package is442g3t2.cleaner_scheduler.controllers;
 import is442g3t2.cleaner_scheduler.dto.LeaveRequest;
 import is442g3t2.cleaner_scheduler.dto.ShiftCountResponse;
 import is442g3t2.cleaner_scheduler.models.AnnualLeave;
+import is442g3t2.cleaner_scheduler.models.MedicalLeave;
 import is442g3t2.cleaner_scheduler.models.Worker;
 import is442g3t2.cleaner_scheduler.repositories.WorkerRepository;
 import org.springframework.http.HttpStatus;
@@ -13,7 +14,6 @@ import org.springframework.web.server.ResponseStatusException;
 import java.time.LocalDate;
 import java.time.YearMonth;
 import java.util.List;
-import java.util.NoSuchElementException;
 
 @RestController()
 @RequestMapping(path = "/workers")
@@ -74,9 +74,9 @@ public class WorkerController {
         }
     }
 
-    @PostMapping("/{id}/leaves")
-    public ResponseEntity<Worker> leave(@PathVariable Long id,
-                                        @RequestBody LeaveRequest leaveRequest) {
+    @PostMapping("/{id}/annual-leaves")
+    public ResponseEntity<Worker> takeLeave(@PathVariable Long id,
+                                            @RequestBody LeaveRequest leaveRequest) {
         LocalDate startDate = LocalDate.parse(leaveRequest.getStartDate());
         LocalDate endDate = LocalDate.parse(leaveRequest.getEndDate());
         Worker worker = workerRepository.findById(id).orElseThrow(
@@ -88,7 +88,7 @@ public class WorkerController {
         return ResponseEntity.ok(worker);
     }
 
-    @GetMapping("/{id}/leaves")
+    @GetMapping("/{id}/annual-leaves")
     public ResponseEntity<List<AnnualLeave>> getWorkerLeaves(@PathVariable Long id) {
         Worker worker = workerRepository.findById(id).orElseThrow(
                 () -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Worker not found")
@@ -96,21 +96,61 @@ public class WorkerController {
         return ResponseEntity.ok(worker.getAnnualLeaves());
     }
 
-    @GetMapping("/{id}/leaves/{year}")
+    @GetMapping("/{id}/annual-leaves/{year}")
     public ResponseEntity<List<AnnualLeave>> getWorkerLeavesByYear(@PathVariable Long id, @PathVariable int year) {
         Worker worker = workerRepository.findById(id).orElseThrow(
                 () -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Worker not found")
         );
-        return ResponseEntity.ok(worker.getLeavesByYear(year));
+        return ResponseEntity.ok(worker.getAnnualLeavesByYear(year));
     }
 
 
-    @GetMapping("/{id}/leave-days/{year}")
+    @GetMapping("/{id}/annual-leaves-days/{year}")
     public ResponseEntity<Long> getWorkerLeaveDaysByYear(@PathVariable Long id, @PathVariable int year) {
         Worker worker = workerRepository.findById(id).orElseThrow(
                 () -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Worker not found")
         );
         return ResponseEntity.ok(worker.getTotalAnnualLeavesTakenByYear(year));
     }
+
+    @PostMapping("/{id}/medical-leaves")
+    public ResponseEntity<Worker> takeMedicalLeave(@PathVariable Long id,
+                                                   @RequestBody LeaveRequest leaveRequest) {
+        LocalDate startDate = LocalDate.parse(leaveRequest.getStartDate());
+        LocalDate endDate = LocalDate.parse(leaveRequest.getEndDate());
+        Worker worker = workerRepository.findById(id).orElseThrow(
+                () -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Worker not found")
+        );
+
+        worker.takeMedicalLeave(startDate, endDate);
+        workerRepository.save(worker);
+        return ResponseEntity.ok(worker);
+    }
+
+    @GetMapping("/{id}/medical-leaves")
+    public ResponseEntity<List<MedicalLeave>> getWorkerMedicalLeaves(@PathVariable Long id) {
+        Worker worker = workerRepository.findById(id).orElseThrow(
+                () -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Worker not found")
+        );
+        return ResponseEntity.ok(worker.getMedicalLeaves());
+    }
+
+    @GetMapping("/{id}/medical-leaves/{year}")
+    public ResponseEntity<List<MedicalLeave>> getWorkerMedicalLeavesByYear(@PathVariable Long id, @PathVariable int year) {
+        Worker worker = workerRepository.findById(id).orElseThrow(
+                () -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Worker not found")
+        );
+        return ResponseEntity.ok(worker.getMedicalLeavesByYear(year));
+    }
+
+
+    @GetMapping("/{id}/medical-leaves-days/{year}")
+    public ResponseEntity<Long> getWorkerMedicalLeaveDaysByYear(@PathVariable Long id, @PathVariable int year) {
+        Worker worker = workerRepository.findById(id).orElseThrow(
+                () -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Worker not found")
+        );
+        return ResponseEntity.ok(worker.getTotalMedicalLeavesTakenByYear(year));
+    }
+
 
 }

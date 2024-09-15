@@ -7,12 +7,11 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 import java.time.LocalDate;
-import java.time.Period;
-import java.time.Year;
 import java.time.YearMonth;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.Collectors;
 
 @NoArgsConstructor
 @Getter
@@ -44,10 +43,8 @@ public class Worker {
     @OneToMany(mappedBy = "worker", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<AnnualLeave> annualLeaves = new ArrayList<>();
 
-    //    If we know how many they start with, can possibly change to medicalCertificatesRemaining
-    @Column
-    private Integer medicalCertificatesTaken = 0;
-
+    @OneToMany(mappedBy = "worker", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<MedicalLeave> medicalLeaves = new ArrayList<>();
 
     public Worker(String name, String phoneNumber, String bio) {
         this.name = name;
@@ -60,33 +57,17 @@ public class Worker {
     }
 
     public int getNumShiftsInMonth(YearMonth yearMonth) {
-        int res = 0;
-        for (Shift shift : shifts) {
-            if (YearMonth.from(shift.getDate()).equals(yearMonth)) {
-                res++;
-            }
-        }
-
-        return res;
+        return (int) shifts.stream()
+                .filter(shift -> YearMonth.from(shift.getDate()).equals(yearMonth))
+                .count();
     }
 
     private boolean isNewShiftValid(Shift newShift) {
-
-        for (Shift existingShift : shifts) {
-            // Check if they are on the same date first
-            if (newShift.getDate().equals(existingShift.getDate())) {
-                // Check if new shift overlaps with existing shift
-                if (shiftsOverlap(newShift, existingShift)) {
-                    return false;
-                }
-            }
-        }
-        return true;
+        return shifts.stream()
+                .noneMatch(existingShift -> existingShift.getDate().equals(newShift.getDate()) && shiftsOverlap(newShift, existingShift));
     }
 
     private boolean shiftsOverlap(Shift shift1, Shift shift2) {
-//                1. The new shift should end before the existing shift starts, OR
-//                2. The existing shift should end before the new shift starts
         return !(shift1.getEndTime().isBefore(shift2.getStartTime()) ||
                 shift2.getEndTime().isBefore(shift1.getStartTime()));
     }
@@ -96,7 +77,7 @@ public class Worker {
             shifts.add(shift);
             shift.setWorker(this);
         } else {
-            throw new ShiftsOverlapException("The new shift overlaps with an existing shift. OR ends before it starts");
+            throw new ShiftsOverlapException("The new shift overlaps with an existing shift or ends before it starts");
         }
     }
 
@@ -109,27 +90,54 @@ public class Worker {
         annualLeaves.add(leave);
     }
 
-    public int getTotalAnnualLeavesTaken() {
-        return annualLeaves.size();
+    private <T extends Leave> List<T> getLeavesByYear(List<T> leaves, int year) {
+        return leaves.stream()
+                .filter(leave -> isLeaveInYear(leave, year))
+                .collect(Collectors.toList());
     }
 
-    public List<AnnualLeave> getLeavesByYear(int year) {
-        return annualLeaves.stream().filter(
-                leave -> leave.getStartDate().getYear() == year || leave.getEndDate().getYear() == year)
-                .toList();
+    private boolean isLeaveInYear(Leave leave, int year) {
+        return leave.getStartDate().getYear() == year || leave.getEndDate().getYear() == year;
     }
 
-    public Long getTotalAnnualLeavesTakenByYear(int year) {
-        return getLeavesByYear(year).stream()
-                .mapToLong(leave -> {
-                    LocalDate start = leave.getStartDate().getYear() == year ? leave.getStartDate() : LocalDate.of(year, 1, 1);
-                    LocalDate end = leave.getEndDate().getYear() == year ? leave.getEndDate() : LocalDate.of(year, 12, 31);
-                    return ChronoUnit.DAYS.between(start, end) + 1; // +1 to include both start and end dates
-                })
+    private long calculateTotalLeaveDays(List<? extends Leave> leaves, int year) {
+        return leaves.stream()
+                .mapToLong(leave -> calculateLeaveDuration(leave, year))
                 .sum();
     }
 
+    private long calculateLeaveDuration(Leave leave, int year) {
+        LocalDate start = getYearAdjustedDate(leave.getStartDate(), year, true);
+        LocalDate end = getYearAdjustedDate(leave.getEndDate(), year, false);
+        return ChronoUnit.DAYS.between(start, end) + 1; // +1 to include both start and end dates
+    }
+
+    private LocalDate getYearAdjustedDate(LocalDate date, int year, boolean isStartDate) {
+        if (date.getYear() == year) {
+            return date;
+        }
+        return isStartDate ? LocalDate.of(year, 1, 1) : LocalDate.of(year, 12, 31);
+    }
+
+    public List<AnnualLeave> getAnnualLeavesByYear(int year) {
+        return getLeavesByYear(annualLeaves, year);
+    }
+
+    public Long getTotalAnnualLeavesTakenByYear(int year) {
+        return calculateTotalLeaveDays(getAnnualLeavesByYear(year), year);
+    }
 
 
+    public List<MedicalLeave> getMedicalLeavesByYear(int year) {
+        return getLeavesByYear(medicalLeaves, year);
+    }
 
+    public Long getTotalMedicalLeavesTakenByYear(int year) {
+        return calculateTotalLeaveDays(getMedicalLeavesByYear(year), year);
+    }
+
+    public void takeMedicalLeave(LocalDate startDate, LocalDate endDate) {
+        MedicalLeave leave = new MedicalLeave(this, startDate, endDate);
+        medicalLeaves.add(leave);
+    }
 }
