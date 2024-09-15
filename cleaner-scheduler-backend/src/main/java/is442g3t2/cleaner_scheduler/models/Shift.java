@@ -1,11 +1,12 @@
 package is442g3t2.cleaner_scheduler.models;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import is442g3t2.cleaner_scheduler.exceptions.InvalidShiftException;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
-import java.time.DayOfWeek;
 import java.time.LocalDate;
 import java.time.LocalTime;
 
@@ -24,6 +25,10 @@ public class Shift {
     @JoinColumn(name = "worker_id")
     private Worker worker;
 
+    @ManyToOne
+    @JoinColumn(name = "property_id")
+    private Property property;
+
     @Column(nullable = false)
     private LocalDate date;
 
@@ -33,19 +38,35 @@ public class Shift {
     @Column(nullable = false)
     private LocalTime endTime;
 
-    public Shift(LocalDate date, LocalTime startTime, LocalTime endTime) {
+    public Shift(LocalDate date, LocalTime startTime, LocalTime endTime, Property property) throws InvalidShiftException {
         this.date = date;
         this.startTime = startTime;
         this.endTime = endTime;
+        this.property = property;
+
+        if (!isValid()) {
+            throw new InvalidShiftException("Invalid shift: start time must be before end time and neither can be null");
+        }
+    }
+
+    public Long getWorker() {
+        return worker.getId();
+    }
+
+
+    public PropertyInfo getProperty() {
+        return new PropertyInfo(property.getId(), property.getClient());
     }
 
     // just checks if start > end
-    public boolean isValid() {
+    private boolean isValid() {
         return startTime != null && endTime != null && startTime.isBefore(endTime);
     }
+
 
     @Override
     public String toString() {
         return String.format("%s: %s - %s", date, startTime, endTime);
     }
+
 }

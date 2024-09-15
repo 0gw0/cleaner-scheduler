@@ -1,5 +1,6 @@
 package is442g3t2.cleaner_scheduler.controllers;
 
+import is442g3t2.cleaner_scheduler.dto.ShiftCountResponse;
 import is442g3t2.cleaner_scheduler.models.Worker;
 import is442g3t2.cleaner_scheduler.repositories.WorkerRepository;
 import org.springframework.http.HttpStatus;
@@ -10,6 +11,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.server.ResponseStatusException;
 
+import java.time.YearMonth;
 import java.util.List;
 import java.util.NoSuchElementException;
 
@@ -48,5 +50,27 @@ public class WorkerController {
                         HttpStatus.NOT_FOUND, "Worker with id " + id + " not found"));
     }
 
+    @GetMapping("/workers/{id}/shifts")
+    public ResponseEntity<ShiftCountResponse> getShiftCount(
+            @PathVariable Long id,
+            @RequestParam(required = false, name = "year") Integer year,
+            @RequestParam(required = false, name = "month") Integer month) {
+
+        Worker worker = workerRepository.findById(id)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Worker not found"));
+
+        if (year != null && month != null) {
+            YearMonth yearMonth = YearMonth.of(year, month);
+            int shiftCount = worker.getNumShiftsInMonth(yearMonth);
+            return ResponseEntity.ok(new ShiftCountResponse(id, shiftCount, yearMonth));
+        } else if (year != null) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Year provided without month");
+        } else if (month != null) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Month provided without year");
+        } else {
+            int shiftCount = worker.getShifts().size();
+            return ResponseEntity.ok(new ShiftCountResponse(id, shiftCount));
+        }
+    }
 
 }

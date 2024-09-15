@@ -6,6 +6,7 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
+import java.time.YearMonth;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -37,6 +38,7 @@ public class Worker {
     @Column(columnDefinition = "TEXT")
     private String bio;
 
+
     public Worker(String name, String phoneNumber, String bio) {
         this.name = name;
         this.phoneNumber = phoneNumber;
@@ -47,19 +49,24 @@ public class Worker {
         return supervisor.getId();
     }
 
-    private boolean isNewShiftValid(Shift newShift) {
-        if (!newShift.isValid()) {
-            return false;
+    public int getNumShiftsInMonth(YearMonth yearMonth) {
+        int res = 0;
+        for (Shift shift : shifts) {
+            if (YearMonth.from(shift.getDate()).equals(yearMonth)) {
+                res++;
+            }
         }
+
+        return res;
+    }
+
+    private boolean isNewShiftValid(Shift newShift) {
 
         for (Shift existingShift : shifts) {
             // Check if they are on the same date first
             if (newShift.getDate().equals(existingShift.getDate())) {
                 // Check if new shift overlaps with existing shift
-//                1. The new shift should end before the existing shift starts, OR
-//                2. The existing shift should end before the new shift starts
-                if (!(newShift.getEndTime().isBefore(existingShift.getStartTime()) ||
-                        existingShift.getEndTime().isBefore(newShift.getStartTime()))) {
+                if (shiftsOverlap(newShift, existingShift)) {
                     return false;
                 }
             }
@@ -67,16 +74,25 @@ public class Worker {
         return true;
     }
 
+    private boolean shiftsOverlap(Shift shift1, Shift shift2) {
+//                1. The new shift should end before the existing shift starts, OR
+//                2. The existing shift should end before the new shift starts
+        return !(shift1.getEndTime().isBefore(shift2.getStartTime()) ||
+                shift2.getEndTime().isBefore(shift1.getStartTime()));
+    }
+
     public void addShift(Shift shift) throws ShiftsOverlapException {
         if (isNewShiftValid(shift)) {
             shifts.add(shift);
             shift.setWorker(this);
         } else {
-            throw new ShiftsOverlapException("The new shift overlaps with an existing shift.");
+            throw new ShiftsOverlapException("The new shift overlaps with an existing shift. OR ends before it starts");
         }
     }
 
     public void removeShift(Shift shift) {
         shifts.remove(shift);
     }
+
+
 }
