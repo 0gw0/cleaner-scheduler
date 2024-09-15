@@ -2,8 +2,8 @@ package is442g3t2.cleaner_scheduler.controllers;
 
 import is442g3t2.cleaner_scheduler.dto.LeaveRequest;
 import is442g3t2.cleaner_scheduler.dto.ShiftCountResponse;
-import is442g3t2.cleaner_scheduler.models.AnnualLeave;
-import is442g3t2.cleaner_scheduler.models.MedicalLeave;
+import is442g3t2.cleaner_scheduler.models.leave.AnnualLeave;
+import is442g3t2.cleaner_scheduler.models.leave.MedicalLeave;
 import is442g3t2.cleaner_scheduler.models.Worker;
 import is442g3t2.cleaner_scheduler.repositories.WorkerRepository;
 import org.springframework.http.HttpStatus;

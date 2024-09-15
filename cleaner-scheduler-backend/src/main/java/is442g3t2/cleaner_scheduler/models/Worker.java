@@ -1,6 +1,9 @@
 package is442g3t2.cleaner_scheduler.models;
 
 import is442g3t2.cleaner_scheduler.exceptions.ShiftsOverlapException;
+import is442g3t2.cleaner_scheduler.models.leave.AnnualLeave;
+import is442g3t2.cleaner_scheduler.models.leave.Leave;
+import is442g3t2.cleaner_scheduler.models.leave.MedicalLeave;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.NoArgsConstructor;

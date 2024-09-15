@@ -1,6 +1,7 @@
-package is442g3t2.cleaner_scheduler.models;
+package is442g3t2.cleaner_scheduler.models.leave;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import is442g3t2.cleaner_scheduler.models.Worker;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -10,10 +11,10 @@ import java.time.LocalDate;
 
 @Getter
 @Setter
-@Entity
 @NoArgsConstructor
-@Table(name = "annual_leaves")
-public class AnnualLeave implements Leave{
+@Entity
+@Table(name = "medical_leaves")
+public class MedicalLeave implements Leave {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -30,7 +31,7 @@ public class AnnualLeave implements Leave{
     @Column(nullable = false)
     private LocalDate endDate;
 
-    public AnnualLeave(Worker worker, LocalDate startDate, LocalDate endDate) {
+    public MedicalLeave(Worker worker, LocalDate startDate, LocalDate endDate) {
         this.worker = worker;
         this.startDate = startDate;
         this.endDate = endDate;
