@@ -26,7 +26,6 @@ public class WorkerController {
     }
 
 
-
     @GetMapping("")
     public ResponseEntity<List<Worker>> getWorkers(@RequestParam(name = "supervisorId", required = false) Long supervisorId) {
         List<Worker> workers;
@@ -75,7 +74,7 @@ public class WorkerController {
         }
     }
 
-    @PostMapping("/{id}/leave")
+    @PostMapping("/{id}/leaves")
     public ResponseEntity<Worker> leave(@PathVariable Long id,
                                         @RequestBody LeaveRequest leaveRequest) {
         LocalDate startDate = LocalDate.parse(leaveRequest.getStartDate());
