@@ -16,6 +16,7 @@ import java.util.List;
 import java.util.NoSuchElementException;
 
 @RestController()
+@RequestMapping(path = "/workers")
 public class WorkerController {
 
     private final WorkerRepository workerRepository;
@@ -25,7 +26,8 @@ public class WorkerController {
     }
 
 
-    @GetMapping("/workers")
+
+    @GetMapping("")
     public ResponseEntity<List<Worker>> getWorkers(@RequestParam(name = "supervisorId", required = false) Long supervisorId) {
         List<Worker> workers;
 
@@ -42,7 +44,7 @@ public class WorkerController {
         return ResponseEntity.ok(workers);
     }
 
-    @GetMapping("/workers/{id}")
+    @GetMapping("/{id}")
     public ResponseEntity<Worker> getWorkerById(@PathVariable Long id) {
         return workerRepository.findById(id)
                 .map(worker -> ResponseEntity.ok().body(worker))
@@ -50,7 +52,7 @@ public class WorkerController {
                         HttpStatus.NOT_FOUND, "Worker with id " + id + " not found"));
     }
 
-    @GetMapping("/workers/{id}/shifts")
+    @GetMapping("/{id}/shifts")
     public ResponseEntity<ShiftCountResponse> getShiftCount(
             @PathVariable Long id,
             @RequestParam(required = false, name = "year") Integer year,
@@ -73,7 +75,7 @@ public class WorkerController {
         }
     }
 
-    @PostMapping("/workers/{id}/leave")
+    @PostMapping("/{id}/leave")
     public ResponseEntity<Worker> leave(@PathVariable Long id,
                                         @RequestBody LeaveRequest leaveRequest) {
         LocalDate startDate = LocalDate.parse(leaveRequest.getStartDate());
@@ -87,7 +89,7 @@ public class WorkerController {
         return ResponseEntity.ok(worker);
     }
 
-    @GetMapping("/workers/{id}/leaves")
+    @GetMapping("/{id}/leaves")
     public ResponseEntity<List<AnnualLeave>> getWorkerLeaves(@PathVariable Long id) {
         Worker worker = workerRepository.findById(id).orElseThrow(
                 () -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Worker not found")
@@ -95,7 +97,7 @@ public class WorkerController {
         return ResponseEntity.ok(worker.getAnnualLeaves());
     }
 
-    @GetMapping("/workers/{id}/leaves/{year}")
+    @GetMapping("/{id}/leaves/{year}")
     public ResponseEntity<List<AnnualLeave>> getWorkerLeavesByYear(@PathVariable Long id, @PathVariable int year) {
         Worker worker = workerRepository.findById(id).orElseThrow(
                 () -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Worker not found")
@@ -104,7 +106,7 @@ public class WorkerController {
     }
 
 
-    @GetMapping("/workers/{id}/leave-days/{year}")
+    @GetMapping("/{id}/leave-days/{year}")
     public ResponseEntity<Long> getWorkerLeaveDaysByYear(@PathVariable Long id, @PathVariable int year) {
         Worker worker = workerRepository.findById(id).orElseThrow(
                 () -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Worker not found")
