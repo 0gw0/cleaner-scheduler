@@ -12,6 +12,9 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.util.List;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+
 
 @RestController
 public class AdminController {
@@ -37,6 +40,15 @@ public class AdminController {
                         HttpStatus.NOT_FOUND, "Admin with id " + id + " not found"
                 ));
     }
+
+    @PostMapping("/createAdmin")
+    public ResponseEntity<Admin> createAdmin(@RequestBody Admin admin) {
+        // worker under admin must be represented by an object not int
+        Admin newAdmin = adminRepository.save(admin);
+        return ResponseEntity.status(HttpStatus.CREATED).body(newAdmin);
+    }
+    
+    
 
 
 }
