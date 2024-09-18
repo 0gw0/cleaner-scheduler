@@ -9,6 +9,9 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+
 
 @RestController
 @RequestMapping("/properties")
@@ -37,6 +40,14 @@ public class PropertyController {
 
         return ResponseEntity.ok(properties);
     }
+
+    // @PostMapping("path")
+    // public ResponseEntity<Property> createClientProperty(@RequestBody PostClientRequest clientPropertyCreateDTO) {
+        
+        
+    //     return entity;
+    // }
+    
 
 
 }

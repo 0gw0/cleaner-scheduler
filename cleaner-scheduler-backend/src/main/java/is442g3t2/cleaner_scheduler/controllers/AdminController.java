@@ -1,5 +1,6 @@
 package is442g3t2.cleaner_scheduler.controllers;
 
+import is442g3t2.cleaner_scheduler.dto.admin.PostAdminRequest;
 import is442g3t2.cleaner_scheduler.models.Admin;
 
 import is442g3t2.cleaner_scheduler.repositories.AdminRepository;
@@ -43,14 +44,10 @@ public class AdminController {
                 ));
     }
 
-    @PostMapping("/createAdmin")
-    public ResponseEntity<Admin> createAdmin(@RequestBody Admin admin) {
-        // worker under admin must be represented by an object not int
+    @PostMapping("")
+    public ResponseEntity<Admin> createAdmin(@RequestBody PostAdminRequest adminCreateDTO) {
+        Admin admin = new Admin(adminCreateDTO.getName());
         Admin newAdmin = adminRepository.save(admin);
         return ResponseEntity.status(HttpStatus.CREATED).body(newAdmin);
     }
-    
-    
-
-
 }
