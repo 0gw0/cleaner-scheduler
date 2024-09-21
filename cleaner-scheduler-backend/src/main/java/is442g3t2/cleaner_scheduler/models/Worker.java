@@ -4,12 +4,15 @@ import is442g3t2.cleaner_scheduler.exceptions.ShiftsOverlapException;
 import is442g3t2.cleaner_scheduler.models.leave.AnnualLeave;
 import is442g3t2.cleaner_scheduler.models.leave.Leave;
 import is442g3t2.cleaner_scheduler.models.leave.MedicalLeave;
+import is442g3t2.cleaner_scheduler.models.shift.Frequency;
+import is442g3t2.cleaner_scheduler.models.shift.Shift;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 import java.time.LocalDate;
+import java.time.LocalTime;
 import java.time.YearMonth;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
@@ -142,5 +145,15 @@ public class Worker {
     public void takeMedicalLeave(LocalDate startDate, LocalDate endDate) {
         MedicalLeave leave = new MedicalLeave(this, startDate, endDate);
         medicalLeaves.add(leave);
+    }
+
+    public void addRecurringShifts(LocalDate startDate, LocalDate endDate, LocalTime startTime, LocalTime endTime, Property property, Frequency frequency) throws ShiftsOverlapException {
+        LocalDate currentDate = startDate;
+
+        while (!currentDate.isAfter(endDate)) {
+            Shift shift = new Shift(currentDate, startTime, endTime, property);
+            addShift(shift);
+            currentDate = currentDate.plus(frequency.getInterval(), frequency.getUnit());
+        }
     }
 }
