@@ -1,8 +1,9 @@
 package is442g3t2.cleaner_scheduler.controllers;
 
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import is442g3t2.cleaner_scheduler.models.Client;
 import is442g3t2.cleaner_scheduler.repositories.ClientRepository;
-import org.apache.coyote.Response;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -23,12 +24,16 @@ public class ClientController {
         this.clientRepository = clientRepository;
     }
 
+    @Tag(name = "clients")
+    @Operation(description = "GET ALL clients", summary = "GET ALL clients")
     @GetMapping("")
     public ResponseEntity<List<Client>> getClients() {
         List<Client> clients = clientRepository.findAll();
         return ResponseEntity.ok(clients);
     }
 
+    @Tag(name = "clients")
+    @Operation( description = "GET client by client id", summary = "GET client by client id")
     @GetMapping("/{id}")
     public ResponseEntity<Client> getClient(@PathVariable Long id) {
         return clientRepository.findById(id).map(client -> ResponseEntity.ok().body(client))

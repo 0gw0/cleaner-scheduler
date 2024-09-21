@@ -1,5 +1,7 @@
 package is442g3t2.cleaner_scheduler.controllers;
 
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import is442g3t2.cleaner_scheduler.dto.AddShiftRequest;
 import is442g3t2.cleaner_scheduler.dto.AddShiftResponse;
 import is442g3t2.cleaner_scheduler.dto.GetShiftCountResponse;
@@ -37,6 +39,8 @@ public class WorkerController {
     }
 
 
+    @Tag(name = "workers")
+    @Operation(description = "get ALL workers or ALL workers under a superviser using their supervisor id", summary = "get ALL workers or ALL workers under a superviser using their supervisor id")
     @GetMapping("")
     public ResponseEntity<List<Worker>> getWorkers(@RequestParam(name = "supervisorId", required = false) Long supervisorId) {
         List<Worker> workers;
@@ -54,6 +58,8 @@ public class WorkerController {
         return ResponseEntity.ok(workers);
     }
 
+    @Tag(name = "workers")
+    @Operation(description = "get worker by worker id", summary = "get worker by worker id")
     @GetMapping("/{id}")
     public ResponseEntity<Worker> getWorkerById(@PathVariable Long id) {
         return workerRepository.findById(id)
@@ -62,6 +68,8 @@ public class WorkerController {
                         HttpStatus.NOT_FOUND, "Worker with id " + id + " not found"));
     }
 
+    @Tag(name = "workers - shifts")
+    @Operation(description = "get ALL shifts of a worker by worker id or with the specific YEAR AND MONTH", summary = "get ALL shifts of a worker by worker id or with the specific YEAR AND MONTH")
     @GetMapping("/{id}/shifts")
     public ResponseEntity<GetShiftCountResponse> getShiftCount(
             @PathVariable Long id,
@@ -85,6 +93,8 @@ public class WorkerController {
         }
     }
 
+    @Tag(name = "workers - shifts")
+    @Operation(description = "add shift(s) to a worker", summary = "add shift(s) to a worker")
     @PostMapping("/{id}/shifts")
     public ResponseEntity<AddShiftResponse> addShifts(@Valid @RequestBody AddShiftRequest addShiftRequest, @PathVariable Long id) {
 
@@ -110,8 +120,8 @@ public class WorkerController {
                 Shift shift = new Shift(startDate, startTime, endTime, property);
                 worker.addShift(shift);
                 workerRepository.save(worker);
-                return ResponseEntity.ok(new AddShiftResponse(true, String.format("ONE Shift Added for %s from %s to %s", startDate, startTime, endTime)));
 
+                return ResponseEntity.ok(new AddShiftResponse(true, String.format("ONE Shift Added for %s from %s to %s", startDate, startTime, endTime)));
             } else {
                 System.out.println(frequency);
                 worker.addRecurringShifts(startDate, endDate, startTime, endTime, property, frequency);
@@ -128,6 +138,8 @@ public class WorkerController {
     }
 
 
+    @Tag(name = "workers - annual leaves")
+    @Operation(description = "take annual leave for a worker with worker id with START DATE AND END DATE", summary = "take annual leave for a worker with worker id with START DATE AND END DATE")
     @PostMapping("/{id}/annual-leaves")
     public ResponseEntity<Worker> takeLeave(@PathVariable Long id,
                                             @RequestBody TakeLeaveRequest takeLeaveRequest) {
@@ -142,6 +154,8 @@ public class WorkerController {
         return ResponseEntity.ok(worker);
     }
 
+    @Tag(name = "workers - annual leaves")
+    @Operation(description = "get ALL annual leaves for a worker with worker id", summary = "get ALL annual leaves for a worker with worker id")
     @GetMapping("/{id}/annual-leaves")
     public ResponseEntity<List<AnnualLeave>> getWorkerLeaves(@PathVariable Long id) {
         Worker worker = workerRepository.findById(id).orElseThrow(
@@ -150,6 +164,8 @@ public class WorkerController {
         return ResponseEntity.ok(worker.getAnnualLeaves());
     }
 
+    @Tag(name = "workers - annual leaves")
+    @Operation(description = "get ALL annual leaves for a worker with worker id in A SPECIFIC YEAR", summary = "get ALL annual leaves for a worker with worker id in A SPECIFIC YEAR")
     @GetMapping("/{id}/annual-leaves/{year}")
     public ResponseEntity<List<AnnualLeave>> getWorkerLeavesByYear(@PathVariable Long id, @PathVariable int year) {
         Worker worker = workerRepository.findById(id).orElseThrow(
@@ -159,6 +175,8 @@ public class WorkerController {
     }
 
 
+    @Tag(name = "workers - annual leaves")
+    @Operation(description = "get NUMBER OF DAYS of annual leaves taken for a worker with worker id in A SPECIFIC YEAR", summary = "get NUMBER OF DAYS of annual leaves taken for a worker with worker id in A SPECIFIC YEAR")
     @GetMapping("/{id}/annual-leaves-days/{year}")
     public ResponseEntity<Long> getWorkerLeaveDaysByYear(@PathVariable Long id, @PathVariable int year) {
         Worker worker = workerRepository.findById(id).orElseThrow(
@@ -167,6 +185,8 @@ public class WorkerController {
         return ResponseEntity.ok(worker.getTotalAnnualLeavesTakenByYear(year));
     }
 
+    @Tag(name = "workers - medical leaves")
+    @Operation(description = "take medical leave for a worker with worker id with START DATE AND END DATE", summary = "take medical leave for a worker with worker id with START DATE AND END DATE")
     @PostMapping("/{id}/medical-leaves")
     public ResponseEntity<Worker> takeMedicalLeave(@PathVariable Long id,
                                                    @RequestBody TakeLeaveRequest takeLeaveRequest) {
@@ -181,6 +201,8 @@ public class WorkerController {
         return ResponseEntity.ok(worker);
     }
 
+    @Tag(name = "workers - medical leaves")
+    @Operation(description = "get ALL medical leaves for a worker with worker id", summary = "get ALL medical leaves for a worker with worker id")
     @GetMapping("/{id}/medical-leaves")
     public ResponseEntity<List<MedicalLeave>> getWorkerMedicalLeaves(@PathVariable Long id) {
         Worker worker = workerRepository.findById(id).orElseThrow(
@@ -189,6 +211,8 @@ public class WorkerController {
         return ResponseEntity.ok(worker.getMedicalLeaves());
     }
 
+    @Tag(name = "workers - medical leaves")
+    @Operation(description = "get ALL medical leaves for a worker with worker id in A SPECIFIC YEAR", summary = "get ALL medical leaves for a worker with worker id in A SPECIFIC YEAR")
     @GetMapping("/{id}/medical-leaves/{year}")
     public ResponseEntity<List<MedicalLeave>> getWorkerMedicalLeavesByYear(@PathVariable Long id, @PathVariable int year) {
         Worker worker = workerRepository.findById(id).orElseThrow(
@@ -198,6 +222,8 @@ public class WorkerController {
     }
 
 
+    @Tag(name = "workers - medical leaves")
+    @Operation(description = "get NUMBER OF DAYS of medical leaves taken for a worker with worker id in A SPECIFIC YEAR", summary = "get NUMBER OF DAYS of medical leaves taken for a worker with worker id in A SPECIFIC YEAR")
     @GetMapping("/{id}/medical-leaves-days/{year}")
     public ResponseEntity<Long> getWorkerMedicalLeaveDaysByYear(@PathVariable Long id, @PathVariable int year) {
         Worker worker = workerRepository.findById(id).orElseThrow(

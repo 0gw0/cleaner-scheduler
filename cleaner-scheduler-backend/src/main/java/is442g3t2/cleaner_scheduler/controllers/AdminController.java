@@ -1,5 +1,7 @@
 package is442g3t2.cleaner_scheduler.controllers;
 
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import is442g3t2.cleaner_scheduler.models.Admin;
 
 import is442g3t2.cleaner_scheduler.repositories.AdminRepository;
@@ -25,6 +27,8 @@ public class AdminController {
         this.adminRepository = adminRepository;
     }
 
+    @Tag(name = "admins")
+    @Operation(description = "GET ALL admins", summary = "GET ALL admins")
     @GetMapping("")
     public ResponseEntity<List<Admin>> getAdmins() {
         List<Admin> admins = adminRepository.findAll();
@@ -32,6 +36,8 @@ public class AdminController {
         return ResponseEntity.ok(admins);
     }
 
+    @Tag(name = "admins")
+    @Operation(description = "GET admin by admin id", summary = "GET admin by admin id")
     @GetMapping("/{id}")
     public ResponseEntity<Admin> getAdminById(@PathVariable Long id) {
         return adminRepository.findById(id).map(admin -> ResponseEntity.ok().body(admin))
