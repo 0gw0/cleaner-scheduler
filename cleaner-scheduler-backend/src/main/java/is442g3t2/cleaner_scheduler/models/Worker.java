@@ -10,6 +10,7 @@ import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
+import lombok.ToString;
 
 import java.time.LocalDate;
 import java.time.LocalTime;
@@ -23,6 +24,7 @@ import java.util.stream.Collectors;
 @Getter
 @Setter
 @Entity
+@ToString
 @Table(name = "workers")
 public class Worker {
 
@@ -155,5 +157,9 @@ public class Worker {
             addShift(shift);
             currentDate = currentDate.plus(frequency.getInterval(), frequency.getUnit());
         }
+    }
+
+    public String getHomePostalCode() {
+        return "188065";
     }
 }

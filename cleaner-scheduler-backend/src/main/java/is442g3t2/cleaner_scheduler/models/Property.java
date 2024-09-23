@@ -1,6 +1,9 @@
 package is442g3t2.cleaner_scheduler.models;
 
 
+import com.google.maps.GeocodingApi;
+import com.google.maps.model.GeocodingResult;
+import com.google.maps.model.LatLng;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
@@ -35,6 +38,23 @@ public class Property {
     public Property(String address, String postalCode) {
         this.address = address;
         this.postalCode = postalCode;
+    }
+
+    public static LatLng getCoordinatesFromPostalCode(String postalCode) {
+        try {
+            GeocodingResult[] results = GeocodingApi.newRequest(WorkerLocationFinder.context)
+                    .region("sg")
+                    .address(postalCode)
+                    .await();
+
+            if (results != null && results.length > 0) {
+                return results[0].geometry.location;
+            } else {
+                throw new IllegalArgumentException("Invalid postal code for Singapore: " + postalCode);
+            }
+        } catch (Exception e) {
+            throw new RuntimeException("Error geocoding postal code: " + postalCode, e);
+        }
     }
 
 

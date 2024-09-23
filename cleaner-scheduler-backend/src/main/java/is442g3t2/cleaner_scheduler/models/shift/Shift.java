@@ -57,7 +57,7 @@ public class Shift {
 
 
     public PropertyInfo getProperty() {
-        return new PropertyInfo(property.getId(), property.getClient());
+        return new PropertyInfo(property.getId(), property.getClient(), property.getAddress(), property.getPostalCode());
     }
 
     // just checks if start > end
