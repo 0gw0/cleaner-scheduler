@@ -6,21 +6,33 @@ import lombok.Getter;
 
 @Getter
 public class WorkerWithTravelTime implements Comparable<WorkerWithTravelTime> {
-    private Worker worker;
-    private long travelTimeToTarget;
-    private Shift shift;
-    private LatLng originLocation;
+    private final Worker worker;
+    private final TravelTime travelTimeResult;
+    private final Shift shift;
+    private final LatLng originLocation;
 
-    public WorkerWithTravelTime(Worker worker, long travelTimeToTarget, Shift shift, LatLng originLocation) {
+    public WorkerWithTravelTime(Worker worker, TravelTime travelTimeResult, Shift shift, LatLng originLocation) {
         this.worker = worker;
-        this.travelTimeToTarget = travelTimeToTarget;
+        this.travelTimeResult = travelTimeResult;
         this.shift = shift;
         this.originLocation = originLocation;
     }
 
     @Override
     public int compareTo(WorkerWithTravelTime other) {
-        return Long.compare(this.travelTimeToTarget, other.travelTimeToTarget);
+        return Long.compare(this.travelTimeResult.getTotalTravelTime(), other.travelTimeResult.getTotalTravelTime());
+    }
+
+    // Convenience methods to access travel time information
+    public long getTotalTravelTimeToTarget() {
+        return travelTimeResult.getTotalTravelTime();
+    }
+
+    public long getTravelTimeInTraffic() {
+        return travelTimeResult.getTravelTimeInTraffic();
+    }
+
+    public long getTravelTimeWithoutTraffic() {
+        return travelTimeResult.getTravelTimeWithoutTraffic();
     }
 }
-

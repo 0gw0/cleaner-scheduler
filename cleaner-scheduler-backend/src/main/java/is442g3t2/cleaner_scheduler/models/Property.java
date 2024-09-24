@@ -42,8 +42,10 @@ public class Property {
 
     public static LatLng getCoordinatesFromPostalCode(String postalCode) {
         try {
+
             GeocodingResult[] results = GeocodingApi.newRequest(WorkerLocationFinder.context)
                     .region("sg")
+                    .bounds(new LatLng(1.1304753, 103.6920359), new LatLng(1.4504753, 104.0920359))
                     .address(postalCode)
                     .await();
 

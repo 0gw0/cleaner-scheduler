@@ -57,8 +57,13 @@ public class Shift {
 
 
     public PropertyInfo getProperty() {
-        return new PropertyInfo(property.getId(), property.getClient(), property.getAddress(), property.getPostalCode());
+        if (property != null) {
+            return new PropertyInfo(property.getId(), property.getClient(), property.getAddress(), property.getPostalCode());
+        } else {
+            return null; // Or you can throw an exception, or return a default value, depending on your use case.
+        }
     }
+
 
     // just checks if start > end
     private boolean isValid() {
