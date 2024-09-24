@@ -1,4 +1,4 @@
-package is442g3t2.cleaner_scheduler.dto;
+package is442g3t2.cleaner_scheduler.dto.worker;
 
 import lombok.*;
 

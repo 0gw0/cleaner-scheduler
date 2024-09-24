@@ -1,4 +1,4 @@
-package is442g3t2.cleaner_scheduler.models;
+package is442g3t2.cleaner_scheduler.models.worker;
 
 import com.google.maps.DistanceMatrixApi;
 import com.google.maps.GeoApiContext;
@@ -6,12 +6,13 @@ import com.google.maps.GeocodingApi;
 import com.google.maps.errors.ApiException;
 import com.google.maps.model.*;
 import is442g3t2.cleaner_scheduler.models.shift.Shift;
+import is442g3t2.cleaner_scheduler.models.shift.TravelTime;
 
 import java.io.IOException;
 import java.time.*;
 import java.util.*;
 
-import static is442g3t2.cleaner_scheduler.models.Property.getCoordinatesFromPostalCode;
+import static is442g3t2.cleaner_scheduler.models.property.Property.getCoordinatesFromPostalCode;
 
 public class WorkerLocationFinder {
     private static final String API_KEY = System.getenv("GOOGLE_API_KEY");

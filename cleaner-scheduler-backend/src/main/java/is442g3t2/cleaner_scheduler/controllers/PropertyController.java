@@ -2,7 +2,7 @@ package is442g3t2.cleaner_scheduler.controllers;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
-import is442g3t2.cleaner_scheduler.models.Property;
+import is442g3t2.cleaner_scheduler.models.property.Property;
 import is442g3t2.cleaner_scheduler.repositories.PropertyRepository;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;

@@ -1,9 +1,11 @@
-package is442g3t2.cleaner_scheduler.models;
+package is442g3t2.cleaner_scheduler.models.worker;
 
 import is442g3t2.cleaner_scheduler.exceptions.ShiftsOverlapException;
+import is442g3t2.cleaner_scheduler.models.Admin;
 import is442g3t2.cleaner_scheduler.models.leave.AnnualLeave;
 import is442g3t2.cleaner_scheduler.models.leave.Leave;
 import is442g3t2.cleaner_scheduler.models.leave.MedicalLeave;
+import is442g3t2.cleaner_scheduler.models.property.Property;
 import is442g3t2.cleaner_scheduler.models.shift.Frequency;
 import is442g3t2.cleaner_scheduler.models.shift.Shift;
 import jakarta.persistence.*;

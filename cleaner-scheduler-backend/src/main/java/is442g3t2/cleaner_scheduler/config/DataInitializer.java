@@ -2,7 +2,9 @@ package is442g3t2.cleaner_scheduler.config;
 
 import is442g3t2.cleaner_scheduler.exceptions.ShiftsOverlapException;
 import is442g3t2.cleaner_scheduler.models.*;
+import is442g3t2.cleaner_scheduler.models.property.Property;
 import is442g3t2.cleaner_scheduler.models.shift.Shift;
+import is442g3t2.cleaner_scheduler.models.worker.Worker;
 import is442g3t2.cleaner_scheduler.repositories.AdminRepository;
 import is442g3t2.cleaner_scheduler.repositories.ClientRepository;
 

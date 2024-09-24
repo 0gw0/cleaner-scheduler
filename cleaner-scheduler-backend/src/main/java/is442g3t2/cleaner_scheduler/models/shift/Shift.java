@@ -1,9 +1,9 @@
 package is442g3t2.cleaner_scheduler.models.shift;
 
 import is442g3t2.cleaner_scheduler.exceptions.InvalidShiftException;
-import is442g3t2.cleaner_scheduler.models.Property;
-import is442g3t2.cleaner_scheduler.models.PropertyInfo;
-import is442g3t2.cleaner_scheduler.models.Worker;
+import is442g3t2.cleaner_scheduler.models.property.Property;
+import is442g3t2.cleaner_scheduler.models.property.PropertyInfo;
+import is442g3t2.cleaner_scheduler.models.worker.Worker;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.NoArgsConstructor;

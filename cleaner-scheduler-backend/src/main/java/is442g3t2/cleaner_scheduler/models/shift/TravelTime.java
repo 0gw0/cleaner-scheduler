@@ -1,4 +1,4 @@
-package is442g3t2.cleaner_scheduler.models;
+package is442g3t2.cleaner_scheduler.models.shift;
 
 import lombok.Getter;
 import lombok.Setter;

@@ -1,7 +1,7 @@
 package is442g3t2.cleaner_scheduler.models.leave;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
-import is442g3t2.cleaner_scheduler.models.Worker;
+import is442g3t2.cleaner_scheduler.models.worker.Worker;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.NoArgsConstructor;

@@ -1,6 +1,5 @@
-package is442g3t2.cleaner_scheduler.dto;
+package is442g3t2.cleaner_scheduler.dto.shift;
 
-import is442g3t2.cleaner_scheduler.models.Property;
 import is442g3t2.cleaner_scheduler.models.shift.Frequency;
 import jakarta.validation.constraints.NotNull;
 import lombok.AllArgsConstructor;

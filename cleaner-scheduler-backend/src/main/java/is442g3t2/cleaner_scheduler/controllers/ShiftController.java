@@ -3,10 +3,10 @@ package is442g3t2.cleaner_scheduler.controllers;
 import com.google.maps.model.LatLng;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
-import is442g3t2.cleaner_scheduler.dto.FindClosestAvailableWorkersRequest;
-import is442g3t2.cleaner_scheduler.dto.FindClosestAvailableWorkersResponse;
-import is442g3t2.cleaner_scheduler.models.Worker;
-import is442g3t2.cleaner_scheduler.models.WorkerWithTravelTime;
+import is442g3t2.cleaner_scheduler.dto.worker.FindClosestAvailableWorkersRequest;
+import is442g3t2.cleaner_scheduler.dto.worker.FindClosestAvailableWorkersResponse;
+import is442g3t2.cleaner_scheduler.models.worker.Worker;
+import is442g3t2.cleaner_scheduler.models.worker.WorkerWithTravelTime;
 import is442g3t2.cleaner_scheduler.models.shift.Shift;
 import is442g3t2.cleaner_scheduler.repositories.WorkerRepository;
 import org.springframework.http.ResponseEntity;
@@ -19,9 +19,9 @@ import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
 
-import static is442g3t2.cleaner_scheduler.models.Property.getCoordinatesFromPostalCode;
-import static is442g3t2.cleaner_scheduler.models.WorkerLocationFinder.findTopFiveClosestWorkers;
-import static is442g3t2.cleaner_scheduler.models.WorkerLocationFinder.getPostalCodeFromLocation;
+import static is442g3t2.cleaner_scheduler.models.property.Property.getCoordinatesFromPostalCode;
+import static is442g3t2.cleaner_scheduler.models.worker.WorkerLocationFinder.findTopFiveClosestWorkers;
+import static is442g3t2.cleaner_scheduler.models.worker.WorkerLocationFinder.getPostalCodeFromLocation;
 
 @RestController
 @RequestMapping(path = "/shifts")

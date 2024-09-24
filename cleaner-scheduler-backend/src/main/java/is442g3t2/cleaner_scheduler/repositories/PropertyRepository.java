@@ -1,6 +1,6 @@
 package is442g3t2.cleaner_scheduler.repositories;
 
-import is442g3t2.cleaner_scheduler.models.Property;
+import is442g3t2.cleaner_scheduler.models.property.Property;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.util.List;

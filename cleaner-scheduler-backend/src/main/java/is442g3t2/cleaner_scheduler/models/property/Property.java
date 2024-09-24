@@ -1,11 +1,12 @@
-package is442g3t2.cleaner_scheduler.models;
+package is442g3t2.cleaner_scheduler.models.property;
 
 
 import com.google.maps.GeocodingApi;
 import com.google.maps.model.GeocodingResult;
 import com.google.maps.model.LatLng;
+import is442g3t2.cleaner_scheduler.models.Client;
+import is442g3t2.cleaner_scheduler.models.worker.WorkerLocationFinder;
 import jakarta.persistence.*;
-import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;

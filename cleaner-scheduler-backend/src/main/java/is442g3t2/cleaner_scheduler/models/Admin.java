@@ -1,5 +1,6 @@
 package is442g3t2.cleaner_scheduler.models;
 
+import is442g3t2.cleaner_scheduler.models.worker.Worker;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.NoArgsConstructor;

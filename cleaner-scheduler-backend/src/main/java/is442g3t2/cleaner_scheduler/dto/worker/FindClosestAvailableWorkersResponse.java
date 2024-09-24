@@ -1,6 +1,6 @@
-package is442g3t2.cleaner_scheduler.dto;
+package is442g3t2.cleaner_scheduler.dto.worker;
 
-import is442g3t2.cleaner_scheduler.models.TravelTime;
+import is442g3t2.cleaner_scheduler.models.shift.TravelTime;
 import lombok.*;
 
 import java.time.LocalDate;
