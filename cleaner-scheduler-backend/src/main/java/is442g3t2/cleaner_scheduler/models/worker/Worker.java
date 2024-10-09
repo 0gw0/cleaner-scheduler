@@ -1,15 +1,21 @@
-package is442g3t2.cleaner_scheduler.models;
+package is442g3t2.cleaner_scheduler.models.worker;
 
 import is442g3t2.cleaner_scheduler.exceptions.ShiftsOverlapException;
+import is442g3t2.cleaner_scheduler.models.Admin;
 import is442g3t2.cleaner_scheduler.models.leave.AnnualLeave;
 import is442g3t2.cleaner_scheduler.models.leave.Leave;
 import is442g3t2.cleaner_scheduler.models.leave.MedicalLeave;
+import is442g3t2.cleaner_scheduler.models.property.Property;
+import is442g3t2.cleaner_scheduler.models.shift.Frequency;
+import is442g3t2.cleaner_scheduler.models.shift.Shift;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
+import lombok.ToString;
 
 import java.time.LocalDate;
+import java.time.LocalTime;
 import java.time.YearMonth;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
@@ -20,6 +26,7 @@ import java.util.stream.Collectors;
 @Getter
 @Setter
 @Entity
+@ToString
 @Table(name = "workers")
 public class Worker {
 
@@ -142,5 +149,19 @@ public class Worker {
     public void takeMedicalLeave(LocalDate startDate, LocalDate endDate) {
         MedicalLeave leave = new MedicalLeave(this, startDate, endDate);
         medicalLeaves.add(leave);
+    }
+
+    public void addRecurringShifts(LocalDate startDate, LocalDate endDate, LocalTime startTime, LocalTime endTime, Property property, Frequency frequency) throws ShiftsOverlapException {
+        LocalDate currentDate = startDate;
+
+        while (!currentDate.isAfter(endDate)) {
+            Shift shift = new Shift(currentDate, startTime, endTime, property);
+            addShift(shift);
+            currentDate = currentDate.plus(frequency.getInterval(), frequency.getUnit());
+        }
+    }
+
+    public String getHomePostalCode() {
+        return "188065";
     }
 }

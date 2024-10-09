@@ -1,7 +1,9 @@
-package is442g3t2.cleaner_scheduler.models;
+package is442g3t2.cleaner_scheduler.models.shift;
 
-import com.fasterxml.jackson.annotation.JsonIgnore;
 import is442g3t2.cleaner_scheduler.exceptions.InvalidShiftException;
+import is442g3t2.cleaner_scheduler.models.property.Property;
+import is442g3t2.cleaner_scheduler.models.property.PropertyInfo;
+import is442g3t2.cleaner_scheduler.models.worker.Worker;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -55,8 +57,13 @@ public class Shift {
 
 
     public PropertyInfo getProperty() {
-        return new PropertyInfo(property.getId(), property.getClient());
+        if (property != null) {
+            return new PropertyInfo(property.getId(), property.getClient(), property.getAddress(), property.getPostalCode());
+        } else {
+            return null; // Or you can throw an exception, or return a default value, depending on your use case.
+        }
     }
+
 
     // just checks if start > end
     private boolean isValid() {

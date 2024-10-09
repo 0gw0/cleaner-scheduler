@@ -1,4 +1,4 @@
-package is442g3t2.cleaner_scheduler.dto;
+package is442g3t2.cleaner_scheduler.dto.worker;
 
 import lombok.AllArgsConstructor;
 import lombok.Getter;
@@ -9,7 +9,7 @@ import lombok.Setter;
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
-public class LeaveRequest {
+public class TakeLeaveRequest {
     private String startDate;
     private String endDate;
 
