@@ -35,19 +35,27 @@ export interface Shift {
 
 export interface ScheduleItem extends Shift {
 	location: string;
-	client_id: number;
+	client_id: string;
+	status: 'completed' | 'upcoming' | 'cancelled';
+	cancelReason?: string;
+	id: string;
 }
 
 export interface WorkerData {
 	id: number;
 	name: string;
-	shifts: Shift[];
+	shifts: Array<{
+	  date: string;
+	  startTime: string;
+	  endTime: string;
+	  valid: boolean;
+	}>;
 	schedule: ScheduleItem[];
 	phoneNumber: string;
 	supervisor: number;
 	supervisor_number: string;
 	bio: string;
-}
+  }
 
 export interface UserData {
 	role: 'worker' | 'admin';

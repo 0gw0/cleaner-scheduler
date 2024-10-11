@@ -9,49 +9,73 @@ import {
 import AdminDashboard from "@/components/AdminDashboard";
 import WorkerDashboard from "@/components/WorkerDashboard";
 
-const mockWorkerData: WorkerData = {
-  id: 1,
-  name: "Mati",
-  shifts: [
-    {
-      date: "2024-09-12",
-      startTime: "09:00:00",
-      endTime: "17:00:00",
-      valid: true,
-    },
-    {
-      date: "2024-09-16",
-      startTime: "09:00:00",
-      endTime: "17:00:00",
-      valid: true,
-    },
-  ],
-  schedule: [
-    {
-      date: "2024-09-14",
-      startTime: "09:00:00",
-      endTime: "12:00:00",
-      location: "123 Main St",
-      client_id: 1,
-      valid: true,
-    },
-    {
-      date: "2024-09-14",
-      startTime: "13:00:00",
-      endTime: "17:00:00",
-      location: "456 Elm",
-      client_id: 2,
-      valid: true,
-    },
-  ],
-  phoneNumber: "1234567890",
-  supervisor: 1,
-  supervisor_number: "0987654321",
-  bio: "eg bio 1",
-};
-
 const Dashboard: React.FC = () => {
   const [userData, setUserData] = useState<UserData | null>(null);
+  const [workerData, setWorkerData] = useState<WorkerData>({
+    id: 1,
+    name: "Mati",
+    shifts: [
+      {
+        date: "2024-09-12",
+        startTime: "09:00:00",
+        endTime: "17:00:00",
+        valid: true,
+      },
+      {
+        date: "2024-09-16",
+        startTime: "09:00:00",
+        endTime: "17:00:00",
+        valid: true,
+      },
+    ],
+    schedule: [
+      {
+        date: "2024-09-14",
+        startTime: "09:00:00",
+        endTime: "12:00:00",
+        location: "123 Main St",
+        client_id: "1",
+        valid: true,
+        status: "completed",
+        id: "1",
+      },
+      {
+        date: "2024-09-14",
+        startTime: "13:00:00",
+        endTime: "17:00:00",
+        location: "456 Elm",
+        client_id: "2",
+        valid: true,
+        status: "completed",
+        id: "2",
+      },
+      {
+        date: "2024-10-11",
+        startTime: "13:00:00",
+        endTime: "17:00:00",
+        location: "456 Elm",
+        client_id: "2",
+        valid: true,
+        status: "upcoming",
+        id: "3",
+      },
+      {
+        date: "2024-10-12",
+        startTime: "13:00:00",
+        endTime: "17:00:00",
+        location: "456 Elm",
+        client_id: "2",
+        valid: true,
+        status: "upcoming",
+        id: "4",
+      },
+    ],
+    phoneNumber: "1234567890",
+    supervisor: 1,
+    supervisor_number: "0987654321",
+    bio: "eg bio 1",
+  });
+
   // mock monthly data
   const [monthlyData] = useState<MonthlyData[]>([
     {
@@ -162,6 +186,19 @@ const Dashboard: React.FC = () => {
     { name: "Worker C", jobs: 3 },
   ]);
 
+  const handleCancelShift = (shiftId: string, reason: string) => {
+    console.log(`Cancelling shift ${shiftId} with reason: ${reason}`);
+    
+    setWorkerData(prevData => ({
+      ...prevData,
+      schedule: prevData.schedule.map(shift =>
+        shift.id === shiftId
+          ? { ...shift, status: 'cancelled', cancelReason: reason }
+          : shift
+      )
+    }));
+  };
+
   useEffect(() => {
     const storedUser = localStorage.getItem("user");
     if (storedUser) {
@@ -174,7 +211,10 @@ const Dashboard: React.FC = () => {
   }
 
   if (userData.role === "worker") {
-    return <WorkerDashboard workerData={mockWorkerData} />;
+    return <WorkerDashboard 
+      workerData={workerData}
+      onCancelShift={handleCancelShift}
+    />;
   }
 
   if (userData.role === "admin") {
