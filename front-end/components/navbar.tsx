@@ -1,21 +1,21 @@
-import React, { useState } from 'react';
-import Link from 'next/link';
-import { useRouter } from 'next/router';
+import React, { useState } from "react";
+import Image from "next/image";
+import Link from "next/link";
+import { useRouter } from "next/router";
 import { Button } from "@/components/ui/button";
-import { Menu, X } from 'lucide-react';
-import Image from 'next/image';
-import { useAuth } from '../contexts/AuthContext';
+import { Menu, X } from "lucide-react";
+import { useAuth } from "../contexts/AuthContext";
 
 const Navbar = () => {
   const router = useRouter();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const { user, logout } = useAuth();
 
-  const hiddenPaths = ['/', '/login', '/signup'];
+  const hiddenPaths = ["/", "/login", "/signup"];
 
   const handleLogout = () => {
     logout();
-    router.push('/login');
+    router.push("/login");
   };
 
   const toggleMenu = () => {
@@ -29,13 +29,15 @@ const Navbar = () => {
   const navLinks = [
     { href: "/schedule", label: "Schedule", roles: ["worker", "admin"] },
     { href: "/clientprofile", label: "Client Profiles", roles: ["admin"] },
-    { href: "/workerprofiles", label: "Worker Profiles", roles: ["admin"] },
+    { href: "/workerprofile", label: "Worker Profiles", roles: ["admin"] },
     { href: "/payrolls", label: "Manage Payrolls Requests", roles: ["admin"] },
     { href: "/managetasks", label: "Manage Tasks", roles: ["admin"] },
-    { href: "/profile", label: "Profile", roles: ["admin","worker"] },
+    { href: "/profile", label: "Profile", roles: ["admin", "worker"] },
   ];
 
-  const filteredNavLinks = navLinks.filter(link => link.roles.includes(user?.role || ''));
+  const filteredNavLinks = navLinks.filter((link) =>
+    link.roles.includes(user?.role || "")
+  );
 
   return (
     <nav className="bg-white shadow-sm">
@@ -44,7 +46,13 @@ const Navbar = () => {
           <div className="flex">
             <div className="flex-shrink-0 flex items-center">
               <Link href="/dashboard">
-                <Image src="/egg.png" width={70} height={50} alt="Logos" />
+                <Image
+                  src="/logo.png"
+                  alt="fraser"
+                  width={40}
+                  height={40}
+                  className="h-10 w-auto"
+                />
               </Link>
             </div>
             <div className="hidden md:ml-6 md:flex md:space-x-8">
@@ -65,7 +73,10 @@ const Navbar = () => {
             </Button>
           </div>
           <div className="md:hidden flex items-center">
-            <button onClick={toggleMenu} className="p-2 rounded-md hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500">
+            <button
+              onClick={toggleMenu}
+              className="p-2 rounded-md hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500"
+            >
               {isMenuOpen ? <X /> : <Menu />}
             </button>
           </div>
