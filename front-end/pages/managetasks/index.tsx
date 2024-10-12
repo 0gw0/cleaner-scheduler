@@ -211,16 +211,17 @@ export const fakeShiftData: ShiftData[] = [
     const [selectedTask, setSelectedTask] = useState<ShiftData | null>(null)
 
   
-    // Filter logic based on search term
-    const filteredWorkers = fakeWorkerTravelData.filter((worker) =>
-      worker.name.toLowerCase().includes(searchTerm.toLowerCase())
-    );
+    const filteredWorkers = fakeWorkerTravelData
+    .filter((worker) =>
+        worker.name.toLowerCase().includes(searchTerm.toLowerCase())
+    )
+    .sort((a, b) => a.travelTimeToTarget.totalTravelTime - b.travelTimeToTarget.totalTravelTime);
+
   
     const filteredTasks = fakeShiftData.filter((task) =>
       task.property.address.toLowerCase().includes(searchTerm.toLowerCase())
     );
   
-    // Sort tasks based on date and sortOrder
     const sortedTasks = filteredTasks.sort((a, b) => {
       if (sortOrder === "asc") {
         return new Date(a.date).getTime() - new Date(b.date).getTime(); // Ascending
@@ -241,7 +242,6 @@ export const fakeShiftData: ShiftData[] = [
     
       const handleConfirmWorker = (workerId: number) => {
         console.log(`Worker ${workerId} confirmed for task ${selectedTask?.id}`)
-        // Here you would typically update your state or make an API call
         handleCloseModal()
       }
   
@@ -265,7 +265,7 @@ export const fakeShiftData: ShiftData[] = [
           {/* Sort Button */}
           <button
             className="ml-4 px-4 py-2 bg-gray-200 hover:bg-gray-300 rounded-md flex items-center"
-            style={{ height: "44px" }} // Ensure same height as search bar
+            style={{ height: "44px" }} 
             onClick={handleSortToggle}
           >
             <Filter className="mr-2 h-5 w-5" />
@@ -291,7 +291,7 @@ export const fakeShiftData: ShiftData[] = [
         {selectedTask && (
           <TaskDetailModal
             ShiftData={selectedTask}
-            WorkerTravelData={fakeWorkerTravelData}
+            WorkerTravelData={filteredWorkers}
             onConfirm={handleConfirmWorker}
           />
         )}
