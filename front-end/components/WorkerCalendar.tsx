@@ -7,39 +7,56 @@ import {
 } from "react-big-calendar";
 import moment from "moment";
 import "react-big-calendar/lib/css/react-big-calendar.css";
-import { WorkerData, ScheduleItem, Shift } from "../types/dashboard";
+import { WorkerData } from "../types/dashboard";
 import { Card, CardHeader, CardContent, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 
-// Setup the localizer for react-big-calendar
 const localizer = momentLocalizer(moment);
 
 interface WorkerCalendarProps {
   workerData: WorkerData;
 }
 
+interface CalendarEvent {
+  title: string;
+  start: Date;
+  end: Date;
+  allDay: boolean;
+  type: 'shift' | 'annualLeave' | 'medicalLeave';
+}
+
 const WorkerCalendar: React.FC<WorkerCalendarProps> = ({ workerData }) => {
   const [view, setView] = useState<View>("month");
   const [date, setDate] = useState(new Date());
 
-  // Convert shifts and schedule to events for the calendar
   const events = useMemo(() => {
-    const shiftEvents = workerData.shifts.map((shift: Shift) => ({
-      title: "Shift",
+    const shiftEvents: CalendarEvent[] = workerData.shifts.map((shift) => ({
+      title: `Shift at ${shift.property.address}`,
       start: new Date(`${shift.date}T${shift.startTime}`),
       end: new Date(`${shift.date}T${shift.endTime}`),
       allDay: false,
+      type: 'shift',
     }));
 
-    const scheduleEvents = workerData.schedule.map((item: ScheduleItem) => ({
-      title: `Work at ${item.location}`,
-      start: new Date(`${item.date}T${item.startTime}`),
-      end: new Date(`${item.date}T${item.endTime}`),
-      allDay: false,
+    const annualLeaveEvents: CalendarEvent[] = workerData.annualLeaves.map((leave) => ({
+      title: "Annual Leave",
+      start: new Date(leave.startDate),
+      end: new Date(leave.endDate),
+      allDay: true,
+      type: 'annualLeave',
     }));
 
-    return [...shiftEvents, ...scheduleEvents];
+    const medicalLeaveEvents: CalendarEvent[] = workerData.medicalLeaves.map((leave) => ({
+      title: "Medical Leave",
+      start: new Date(leave.startDate),
+      end: new Date(leave.endDate),
+      allDay: true,
+      type: 'medicalLeave',
+    }));
+
+
+    return [...shiftEvents, ...medicalLeaveEvents, ...annualLeaveEvents];
   }, [workerData]);
 
   const handleViewChange = (newView: View) => {
@@ -53,8 +70,6 @@ const WorkerCalendar: React.FC<WorkerCalendarProps> = ({ workerData }) => {
   ) => {
     switch (action) {
       case "PREV":
-        setDate(moment(newDate).toDate());
-        break;
       case "NEXT":
         setDate(moment(newDate).toDate());
         break;
@@ -66,7 +81,6 @@ const WorkerCalendar: React.FC<WorkerCalendarProps> = ({ workerData }) => {
     }
   };
 
-  // Format the current date based on the view
   const getHeaderText = () => {
     switch (view) {
       case "month":
@@ -82,8 +96,43 @@ const WorkerCalendar: React.FC<WorkerCalendarProps> = ({ workerData }) => {
     }
   };
 
-  // Custom toolbar component
   const CustomToolbar = () => null;
+  const eventStyleGetter = (event: CalendarEvent) => {
+    let style: React.CSSProperties = {
+      borderRadius: '5px',
+      border: '0px',
+      display: 'block'
+    };
+
+    switch (event.type) {
+      case 'shift':
+        style = {
+          ...style,
+          backgroundColor: '#3174ad',
+          color: 'white',
+          opacity: 1,
+        };
+        break;
+      case 'annualLeave':
+        style = {
+          ...style,
+          backgroundColor: '#4CAF50',
+          color: 'white',
+  opacity: 0.8,
+        };
+        break;
+      case 'medicalLeave':
+        style = {
+          ...style,
+          backgroundColor: '#FF5722',
+          color: 'white',
+          opacity: 0.8,
+        };
+        break;
+    }
+
+    return { style };
+  };
 
   return (
     <Card>
@@ -156,6 +205,7 @@ const WorkerCalendar: React.FC<WorkerCalendarProps> = ({ workerData }) => {
             components={{
               toolbar: CustomToolbar,
             }}
+            eventPropGetter={eventStyleGetter}
           />
         </div>
       </CardContent>

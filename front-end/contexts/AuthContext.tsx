@@ -5,6 +5,14 @@ interface User {
   id: string;
   name: string;
   role: 'admin' | 'worker';
+  workers?: string[];
+  shifts?: Array<object>;
+  phoneNumber?: string;
+  supervisor?: number;
+  bio?: string;
+  annualLeaves?: Array<object>;
+  medicalLeaves?: Array<object>;
+  homePostalCode?: string;
 }
 
 interface AuthContextType {

@@ -1,19 +1,5 @@
 import React from 'react';
-
-// Define the ScheduleItem type
-interface ScheduleItem {
-  id: string;
-  date: string;
-  startTime: string;
-  endTime: string;
-  location: string;
-  client_id: string;
-  status: 'completed' | 'upcoming' | 'cancelled';
-  cancelReason?: string;
-}
 import { Card, CardHeader, CardContent, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -26,15 +12,29 @@ import {
 } from '@/components/ui/alert-dialog';
 import { Textarea } from '@/components/ui/textarea';
 
+// Update the ScheduleItem interface to match the new data structure
+interface ScheduleItem {
+  id: number;
+  worker: number;
+  property: {
+    propertyId: number;
+    clientId: number;
+    address: string;
+    postalCode: string;
+  };
+  date: string;
+  startTime: string;
+  endTime: string;
+}
 
 interface WorkerScheduleProps {
   schedule: ScheduleItem[];
-  onCancelShift: (shiftId: string, reason: string) => void;
+  onCancelShift: (shiftId: number, reason: string) => void;
 }
 
 const WorkerSchedule: React.FC<WorkerScheduleProps> = ({ schedule, onCancelShift }) => {
   const [cancelReason, setCancelReason] = React.useState<string>('');
-  const [selectedShiftId, setSelectedShiftId] = React.useState<string | null>(null);
+  const [selectedShiftId, setSelectedShiftId] = React.useState<number | null>(null);
   const [isDialogOpen, setIsDialogOpen] = React.useState(false);
 
   const now = new Date();
@@ -70,29 +70,10 @@ const WorkerSchedule: React.FC<WorkerScheduleProps> = ({ schedule, onCancelShift
     }
   };
 
-  const handleOpenDialog = (shiftId: string) => {
-    setSelectedShiftId(shiftId);
-    setIsDialogOpen(true);
-  };
-
   const handleCloseDialog = () => {
     setSelectedShiftId(null);
     setCancelReason('');
     setIsDialogOpen(false);
-  };
-
-  const getStatusBadge = (status: ScheduleItem['status']) => {
-    const statusStyles = {
-      completed: 'bg-green-500',
-      upcoming: 'bg-blue-500',
-      cancelled: 'bg-red-500'
-    };
-    
-    return (
-      <Badge className={`${statusStyles[status]} text-white`}>
-        {status.charAt(0).toUpperCase() + status.slice(1)}
-      </Badge>
-    );
   };
 
   const ScheduleSection = ({ title, items }: { title: string; items: ScheduleItem[] }) => (
@@ -109,27 +90,12 @@ const WorkerSchedule: React.FC<WorkerScheduleProps> = ({ schedule, onCancelShift
                   <p className="font-semibold">
                     {new Date(item.date).toLocaleDateString()}
                   </p>
-                  {getStatusBadge(item.status)}
                 </div>
                 <p>{`${item.startTime} - ${item.endTime}`}</p>
-                <p>{`Location: ${item.location}`}</p>
-                <p>{`Client ID: ${item.client_id}`}</p>
-                {item.status === 'cancelled' && item.cancelReason && (
-                  <div className="mt-4 p-2 bg-red-100 dark:bg-red-900 rounded">
-                    <p className="font-semibold">Cancellation Reason:</p>
-                    <p>{item.cancelReason}</p>
-                  </div>
-                )}
-                {item.status === 'upcoming' && (
-                  <div className="mt-4">
-                    <Button 
-                      variant="destructive" 
-                      onClick={() => handleOpenDialog(item.id)}
-                    >
-                      Cancel Shift
-                    </Button>
-                  </div>
-                )}
+                <p>{`Address: ${item.property.address}`}</p>
+                <p>{`Postal Code: ${item.property.postalCode}`}</p>
+                <p>{`Property ID: ${item.property.propertyId}`}</p>
+                <p>{`Client ID: ${item.property.clientId}`}</p>
               </CardContent>
             </Card>
           ))}

@@ -3,10 +3,10 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import Link from "next/link";
-import { Client } from "@/types/dashboard";
+import { ClientData } from "@/types/dashboard";
 
 interface ClientsTableProps {
-  clients: Client[];
+  clients: ClientData[];
 }
 
 const ClientsTable: React.FC<ClientsTableProps> = ({ clients }) => (
@@ -21,6 +21,7 @@ const ClientsTable: React.FC<ClientsTableProps> = ({ clients }) => (
             <tr>
               <th className="text-left p-2">Name</th>
               <th className="text-left p-2">Address</th>
+              <th className="text-left p-2">Postal Code</th>
               <th className="text-left p-2">Status</th>
               <th className="text-left p-2">Total Jobs</th>
               <th className="text-left p-2">Preferred Cleaner</th>
@@ -31,6 +32,7 @@ const ClientsTable: React.FC<ClientsTableProps> = ({ clients }) => (
               <tr key={client.id}>
                 <td className="p-2">{client.name}</td>
                 <td className="p-2">{client.address}</td>
+                <td className="p-2">{client.postalCode}</td>
                 <td className="p-2">
                   <Badge
                     variant={

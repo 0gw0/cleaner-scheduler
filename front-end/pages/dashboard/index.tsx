@@ -2,80 +2,20 @@ import React, { useState, useEffect } from "react";
 import {
   UserData,
   MonthlyData,
-  Client,
+  ClientData,
   WorkerData,
 } from "@/types/dashboard";
 import AdminDashboard from "@/components/AdminDashboard";
 import WorkerDashboard from "@/components/WorkerDashboard";
 
+
 const Dashboard: React.FC = () => {
   const [userData, setUserData] = useState<UserData | null>(null);
+  const [clients, setClients] = useState<ClientData[]>([]);
   const [workerData, setWorkerData] = useState<WorkerData>({
-    id: 1,
-    name: "Mati",
-    shifts: [
-      {
-        date: "2024-09-12",
-        startTime: "09:00:00",
-        endTime: "17:00:00",
-        valid: true,
-      },
-      {
-        date: "2024-09-16",
-        startTime: "09:00:00",
-        endTime: "17:00:00",
-        valid: true,
-      },
-    ],
-    schedule: [
-      {
-        date: "2024-09-14",
-        startTime: "09:00:00",
-        endTime: "12:00:00",
-        location: "123 Main St",
-        client_id: 1,
-        valid: true,
-        status: "completed",
-        id: "1",
-      },
-      {
-        date: "2024-09-14",
-        startTime: "13:00:00",
-        endTime: "17:00:00",
-        location: "456 Elm",
-        client_id: 2,
-        valid: true,
-        status: "completed",
-        id: "2",
-      },
-      {
-        date: "2024-10-11",
-        startTime: "13:00:00",
-        endTime: "17:00:00",
-        location: "456 Elm",
-        client_id: 2,
-        valid: true,
-        status: "upcoming",
-        id: "3",
-      },
-      {
-        date: "2024-10-12",
-        startTime: "13:00:00",
-        endTime: "17:00:00",
-        location: "456 Elm",
-        client_id: 2,
-        valid: true,
-        status: "upcoming",
-        id: "4",
-      },
-    ],
-    phoneNumber: "1234567890",
-    supervisor: 1,
-    supervisor_number: "0987654321",
-    bio: "eg bio 1",
+    ...JSON.parse(localStorage.getItem('user') || '{}'),
   });
 
-  // mock monthly data
   const [monthlyData] = useState<MonthlyData[]>([
     {
       month: "Jan",
@@ -174,88 +114,7 @@ const Dashboard: React.FC = () => {
       cancellations: 12,
     },
   ]);
-  const mockClients: Client[] = [
-    {
-      id: 1,
-      name: "Fraser Chua",
-      address: "Kovan S549610 Mansion",
-      status: "Active",
-      cleaningJobs: [
-        {
-          id: 1,
-          type: "Deep Cleaning",
-          date: "2024-03-15",
-          status: "Completed",
-          price: 200,
-        },
-        {
-          id: 2,
-          type: "Regular Cleaning",
-          date: "2024-03-22",
-          status: "Scheduled",
-          price: 120,
-        },
-        {
-          id: 3,
-          type: "Window Cleaning",
-          date: "2024-03-29",
-          status: "Pending",
-          price: 150,
-        },
-      ],
-      preferredCleaner: "Maria Rodriguez",
-      jobs: 3,
-    },
-    {
-      id: 2,
-      name: "Glen Wang",
-      address: "Botanic Garden S549120 Mansion",
-      status: "Active",
-      cleaningJobs: [
-        {
-          id: 4,
-          type: "Move-out Cleaning",
-          date: "2024-03-18",
-          status: "Scheduled",
-          price: 300,
-        },
-        {
-          id: 5,
-          type: "Regular Cleaning",
-          date: "2024-03-25",
-          status: "Pending",
-          price: 120,
-        },
-      ],
-      preferredCleaner: "Maria Arpit",
-      jobs: 2,
-    },
-    {
-      id: 3,
-      name: "Sasha Grey",
-      address: "789 Pine Road, Queens, NY 11375",
-      status: "Active",
-      cleaningJobs: [
-        {
-      id: 6,
-          type: "Deep Cleaning",
-          date: "2024-03-20",
-          status: "Completed",
-          price: 200,
-        },
-        {
-          id: 7,
-          type: "Regular Cleaning",
-          date: "2024-03-27",
-          status: "Scheduled",
-          price: 120,
-        },
-      ],
-      preferredCleaner: "Fatzilla Gorloc",
-      jobs: 2,
-    },
-  ];
-  const [clients] = useState(mockClients);
+  
 
   const mockWorkers: WorkerData[] = [
     {
@@ -495,25 +354,58 @@ const Dashboard: React.FC = () => {
 
   const [workers] = useState(mockWorkers);
 
-  const handleCancelShift = (shiftId: string, reason: string) => {
-    console.log(`Cancelling shift ${shiftId} with reason: ${reason}`);
-    
-    setWorkerData(prevData => ({
-      ...prevData,
-      schedule: prevData.schedule.map(shift =>
-        shift.id === shiftId
-          ? { ...shift, status: 'cancelled', cancelReason: reason }
-          : shift
-      )
-    }));
-  };
+
+
+  
 
   useEffect(() => {
     const storedUser = localStorage.getItem("user");
     if (storedUser) {
       setUserData(JSON.parse(storedUser));
     }
+
+    // Fetch clients data
+    const fetchClients = async () => {
+      try {
+        const response = await fetch('http://localhost:8080/clients');
+        if (!response.ok) {
+          throw new Error('Failed to fetch clients');
+        }
+        const clientsData: ClientData[] = await response.json();
+        
+        // Transform the data to match the Client interface
+        const transformedClients: ClientData[] = clientsData.map(client => ({
+          id: client.id,
+          name: client.name,
+          address: client.properties[0]?.address || '',
+          postalCode: client.properties[0]?.postalCode || '',
+          status: 'Active', 
+          cleaningJobs: [], 
+          preferredCleaner: 'Fake Halimah', 
+          jobs: 0, 
+        }));
+
+        setClients(transformedClients);
+      } catch (error) {
+        console.error('Error fetching clients:', error);
+      }
+    };
+
+    fetchClients();
   }, []);
+
+  const handleCancelShift = (shiftId: string, reason: string) => {
+    console.log(`Cancelling shift ${shiftId} with reason: ${reason}`);
+    
+    setWorkerData(prevData => ({
+      ...prevData,
+      schedule: prevData.shifts.map(shift =>
+        shift.id === shiftId
+          ? { ...shift, status: 'cancelled', cancelReason: reason }
+          : shift
+      )
+    }));
+  };
 
   if (!userData) {
     return <div>Loading...</div>;
