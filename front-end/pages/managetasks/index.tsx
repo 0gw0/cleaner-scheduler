@@ -2,7 +2,8 @@ import { TaskCardProps, WorkerTravelData, ShiftData } from '@/types/task';
 import TaskCard from '@/components/TaskCard';
 import React, { useEffect, useState } from 'react';
 import { Filter } from 'lucide-react'; 
-
+import Modal from '@/components/ui/modal';
+import TaskDetailModal from '@/components/TaskDetailModal';
 
 const fakeWorkerTravelData: WorkerTravelData[] = [
   {
@@ -174,34 +175,11 @@ export const fakeShiftData: ShiftData[] = [
 
   
   const ManageTasks: React.FC = () => {
-    const [searchTerm, setSearchTerm] = useState<string>("");
-    const [expandedCardId, setExpandedCardId] = useState<number | null>(null);
-    const [sortOrder, setSortOrder] = useState<"asc" | "desc">("asc");
-    const [columns, setColumns] = useState(3);
+    const [searchTerm, setSearchTerm] = useState<string>("")
+    const [sortOrder, setSortOrder] = useState<"asc" | "desc">("asc")
+    const [isModalOpen, setIsModalOpen] = useState(false)
+    const [selectedTask, setSelectedTask] = useState<ShiftData | null>(null)
 
-    useEffect(() => {
-    const handleResize = () => {
-      if (window.innerWidth < 640) {
-        setColumns(1);
-      } else if (window.innerWidth < 1024) {
-        setColumns(2);
-      } else {
-        setColumns(3);
-      }
-    };
-
-    handleResize();
-    window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
-  }, []);
-
-    const distributeCards = () => {
-    const distributed: ShiftData[][] = Array.from({ length: columns }, () => []);
-    sortedTasks.forEach((task, index) => {
-        distributed[index % columns].push(task);
-    });
-    return distributed;
-  };
   
     // Filter logic based on search term
     const filteredWorkers = fakeWorkerTravelData.filter((worker) =>
@@ -220,11 +198,24 @@ export const fakeShiftData: ShiftData[] = [
         return new Date(b.date).getTime() - new Date(a.date).getTime(); // Descending
       }
     });
+
+    const handleCardClick = (task: ShiftData) => {
+        setSelectedTask(task)
+        setIsModalOpen(true)
+      }
+    
+      const handleCloseModal = () => {
+        setIsModalOpen(false)
+        setSelectedTask(null)
+      }
+    
+      const handleConfirmWorker = (workerId: number) => {
+        console.log(`Worker ${workerId} confirmed for task ${selectedTask?.id}`)
+        // Here you would typically update your state or make an API call
+        handleCloseModal()
+      }
   
-    const handleToggleExpand = (taskId: number) => {
-      setExpandedCardId((prevId) => (prevId === taskId ? null : taskId));
-    };
-  
+
     const handleSortToggle = () => {
       setSortOrder(sortOrder === "asc" ? "desc" : "asc");
     };
@@ -252,25 +243,29 @@ export const fakeShiftData: ShiftData[] = [
           </button>
         </div>
   
-        <div className="flex flex-wrap -mx-2">
-        {distributeCards().map((column, columnIndex) => (
-          <div key={columnIndex} className="w-full sm:w-1/2 lg:w-1/3 px-2">
-            {column.map((task) => (
-              <TaskCard
-                key={task.id}
-                ShiftData={task}
-                WorkerTravelData={filteredWorkers}
-                isExpanded={expandedCardId === task.id}
-                onToggleExpand={() => handleToggleExpand(task.id)}
-              />
-            ))}
-          </div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        {sortedTasks.map((task) => (
+          <TaskCard
+            key={task.id}
+            ShiftData={task}
+            onCardClick={() => handleCardClick(task)}
+          />
         ))}
       </div>
 
       {sortedTasks.length === 0 && (
-        <p className="text-gray-500">No tasks or workers match the search term.</p>
+        <p className="text-gray-500">No tasks match the search term.</p>
       )}
+
+      <Modal isOpen={isModalOpen} onClose={handleCloseModal}>
+        {selectedTask && (
+          <TaskDetailModal
+            ShiftData={selectedTask}
+            WorkerTravelData={fakeWorkerTravelData}
+            onConfirm={handleConfirmWorker}
+          />
+        )}
+      </Modal>
     </div>
   
     );
