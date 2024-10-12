@@ -14,11 +14,22 @@ export interface MonthlyData {
 	terminatedClients: number;
 	cancellations: number;
 }
-
+export interface CleaningJob {
+	id: number;
+	type: string;
+	date: string;
+	status: string;
+	price: number;
+  }
 export interface Client {
 	name: string;
 	status: string;
 	jobs: number;
+	id: number;
+	address: string;
+	preferredCleaner: string;
+	cleaningJobs: CleaningJob[];
+	
 }
 
 export interface Workers {
@@ -35,7 +46,7 @@ export interface Shift {
 
 export interface ScheduleItem extends Shift {
 	location: string;
-	client_id: string;
+	client_id: number;
 	status: 'completed' | 'upcoming' | 'cancelled';
 	cancelReason?: string;
 	id: string;
