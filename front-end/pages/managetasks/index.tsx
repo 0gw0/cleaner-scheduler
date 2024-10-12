@@ -88,6 +88,7 @@ export const fakeShiftData: ShiftData[] = [
     {
       id: 101,
       worker: 1,
+      status: "upcoming",
       property: {
         propertyId: 1001,
         clientId: 201,
@@ -111,6 +112,7 @@ export const fakeShiftData: ShiftData[] = [
     {
       id: 102,
       worker: 2,
+      status: "upcoming",
       property: {
         propertyId: 1002,
         clientId: 202,
@@ -134,6 +136,7 @@ export const fakeShiftData: ShiftData[] = [
     {
       id: 103,
       worker: 3,
+      status: "upcoming",
       property: {
         propertyId: 1003,
         clientId: 203,
@@ -157,6 +160,7 @@ export const fakeShiftData: ShiftData[] = [
     {
       id: 104,
       worker: 4,
+      status: "upcoming",
       property: {
         propertyId: 1004,
         clientId: 204,
@@ -180,6 +184,7 @@ export const fakeShiftData: ShiftData[] = [
     {
       id: 105,
       worker: 5,
+      status: "upcoming",
       property: {
         propertyId: 1005,
         clientId: 205,
@@ -209,7 +214,7 @@ export const fakeShiftData: ShiftData[] = [
     const [sortOrder, setSortOrder] = useState<"asc" | "desc">("asc")
     const [isModalOpen, setIsModalOpen] = useState(false)
     const [selectedTask, setSelectedTask] = useState<ShiftData | null>(null)
-
+    const [shiftData, setShiftData] = useState<ShiftData[]>(fakeShiftData);
   
     const filteredWorkers = fakeWorkerTravelData
     .filter((worker) =>
@@ -235,15 +240,24 @@ export const fakeShiftData: ShiftData[] = [
         setIsModalOpen(true)
       }
     
-      const handleCloseModal = () => {
-        setIsModalOpen(false)
-        setSelectedTask(null)
-      }
-    
-      const handleConfirmWorker = (workerId: number) => {
-        console.log(`Worker ${workerId} confirmed for task ${selectedTask?.id}`)
-        handleCloseModal()
-      }
+    const handleCloseModal = () => {
+    setIsModalOpen(false)
+    setSelectedTask(null)
+    }
+
+    const handleConfirmWorker = (workerId: number) => {
+    console.log(`Worker ${workerId} confirmed for task ${selectedTask?.id}`)
+    setShiftData((prevShiftData) =>
+    prevShiftData.map((task) =>
+    task.id === selectedTask?.id ? { ...task, status: 'assigned' } : task
+    // TO DO: API call to update status to assigned
+    // TO DO: API call to update schedules of the worker
+    )
+);
+    handleCloseModal()
+    }
+
+    const upcomingTasks = shiftData.filter((task) => task.status === 'upcoming');
   
 
     const handleSortToggle = () => {
@@ -274,7 +288,7 @@ export const fakeShiftData: ShiftData[] = [
         </div>
   
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-        {sortedTasks.map((task) => (
+        {upcomingTasks.map((task) => (
           <TaskCard
             key={task.id}
             ShiftData={task}

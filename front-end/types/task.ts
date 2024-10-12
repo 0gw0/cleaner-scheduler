@@ -1,15 +1,15 @@
 export interface Property{
-    propertyId : Number;
-    clientId : Number;
+    propertyId : number;
+    clientId : number;
     address : String;
     postalCode : String;
 }
 
 export interface time{
-    hour: Number;
-    minute: Number;
-    second: Number;
-    nano: Number;
+    hour: number;
+    minute: number;
+    second: number;
+    nano: number;
 }
 
 export interface TravelTime {
@@ -37,6 +37,7 @@ export interface WorkerTravelData {
 export interface ShiftData {
 	id: number;
 	worker: number;
+    status: string;
 	property: Property
     date: Date;
     startTime: time;

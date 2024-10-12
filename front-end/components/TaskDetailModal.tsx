@@ -5,7 +5,7 @@ import { WorkerTravelData, ShiftData } from '@/types/task'
 interface TaskDetailModalProps {
   ShiftData: ShiftData
   WorkerTravelData: WorkerTravelData[]
-  onConfirm: (workerId: number) => void
+  onConfirm: (workerId: number, shiftId: number) => void
 }
 
 const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ ShiftData, WorkerTravelData, onConfirm }) => {
@@ -17,7 +17,7 @@ const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ ShiftData, WorkerTrav
 
   const handleConfirm = () => {
     if (selectedWorker) {
-      onConfirm(selectedWorker.id)
+      onConfirm(selectedWorker.id, ShiftData.id)
     }
   }
 
