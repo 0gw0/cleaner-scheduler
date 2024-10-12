@@ -29,10 +29,9 @@ interface ScheduleItem {
 
 interface WorkerScheduleProps {
   schedule: ScheduleItem[];
-  onCancelShift: (shiftId: number, reason: string) => void;
 }
 
-const WorkerSchedule: React.FC<WorkerScheduleProps> = ({ schedule, onCancelShift }) => {
+const WorkerSchedule: React.FC<WorkerScheduleProps> = ({ schedule }) => {
   const [cancelReason, setCancelReason] = React.useState<string>('');
   const [selectedShiftId, setSelectedShiftId] = React.useState<number | null>(null);
   const [isDialogOpen, setIsDialogOpen] = React.useState(false);
@@ -63,7 +62,6 @@ const WorkerSchedule: React.FC<WorkerScheduleProps> = ({ schedule, onCancelShift
 
   const handleConfirmCancel = () => {
     if (selectedShiftId && cancelReason.trim()) {
-      onCancelShift(selectedShiftId, cancelReason.trim());
       setCancelReason('');
       setSelectedShiftId(null);
       setIsDialogOpen(false);

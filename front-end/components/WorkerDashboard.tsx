@@ -8,14 +8,11 @@ import { Users, Home } from "lucide-react";
 
 interface WorkerDashboardProps {
   workerData: WorkerData;
-  onCancelShift: (shiftId: string, reason: string) => void;
 }
-
-
 const WorkerDashboard: React.FC<WorkerDashboardProps> = ({
   workerData,
-  onCancelShift,
 }) => {
+  console.log(workerData);
   const getUpcomingShiftsCount = (shifts: WorkerData['shifts']): number => {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
@@ -65,7 +62,6 @@ const WorkerDashboard: React.FC<WorkerDashboardProps> = ({
       <div className="mt-6">
         <WorkerSchedule
           schedule={workerData.shifts}
-          onCancelShift={onCancelShift}
         />
       </div>
     </div>

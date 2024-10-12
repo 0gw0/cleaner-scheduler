@@ -25,6 +25,22 @@ export interface ClientData {
     id: number;
     name: string;
     properties: Property[];
+    status: 'Active' | 'Inactive';
+    cleaningJobs?: Array<{
+        id: number;
+        property: {
+            propertyId: number;
+            clientId: number;
+            address: string;
+            postalCode: string;
+        };
+        date: string;
+        startTime: string;
+        endTime: string;
+        worker: number;
+    }>;
+    preferredCleaner: string;
+    jobs: number;
   }
 
 export interface Workers {
@@ -93,4 +109,5 @@ export interface UserData {
 	role: 'worker' | 'admin';
 	id: string;
 	name: string;
+    workers?: string[];
 }

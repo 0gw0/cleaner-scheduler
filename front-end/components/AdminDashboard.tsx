@@ -1,5 +1,5 @@
 import React from 'react';
-import { MonthlyData, ClientData, Workers } from '@/types/dashboard';
+import { MonthlyData, ClientData, WorkerData } from '@/types/dashboard';
 import StatusCard from './StatusCard';
 import JobsChart from './JobsChart';
 import ClientsTable from './ClientsTable';
@@ -9,13 +9,13 @@ import { Users, Briefcase, UserPlus, UserMinus, XCircle } from 'lucide-react';
 interface AdminDashboardProps {
 	monthlyData: MonthlyData[];
 	clients: ClientData[];
-	workers: Workers[];
+	workerData: WorkerData[];
 }
 
 const AdminDashboard: React.FC<AdminDashboardProps> = ({
 	monthlyData,
 	clients,
-	workers,
+	workerData,
 }) => {
 	const currentMonth = monthlyData[monthlyData.length - 1];
 
@@ -59,7 +59,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
 			</div>
 			<div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
 				<ClientsTable clients={clients} />
-				<WorkerTable workers={workers} />
+				<WorkerTable workerData={workerData} />
 			</div>
 		</div>
 	);
