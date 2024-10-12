@@ -51,6 +51,36 @@ const fakeWorkerTravelData: WorkerTravelData[] = [
     },
     originLocation: "789 Some Blvd, Singapore",
   },
+  {
+    id: 4,
+    name: "Bobby",
+    travelTimeToTarget: {
+      totalTravelTime: 60,
+      travelTimeWithoutTraffic: 50,
+      travelTimeInTraffic: 10,
+    },
+    relevantShift: {
+      date: "2024-10-15",
+      startTime: "08:00:00",
+      endTime: "16:00:00",
+    },
+    originLocation: "700 DingDong Blvd, Singapore",
+  },
+  {
+    id: 5,
+    name: "Kevin",
+    travelTimeToTarget: {
+      totalTravelTime: 60,
+      travelTimeWithoutTraffic: 50,
+      travelTimeInTraffic: 10,
+    },
+    relevantShift: {
+      date: "2024-10-15",
+      startTime: "08:00:00",
+      endTime: "16:00:00",
+    },
+    originLocation: "750 Dingus Blvd, Singapore",
+  },
 ];
 
 
