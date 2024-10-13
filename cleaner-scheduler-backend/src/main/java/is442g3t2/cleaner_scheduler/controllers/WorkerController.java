@@ -5,7 +5,7 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import is442g3t2.cleaner_scheduler.dto.shift.AddShiftRequest;
 import is442g3t2.cleaner_scheduler.dto.shift.AddShiftResponse;
 import is442g3t2.cleaner_scheduler.dto.shift.GetShiftCountResponse;
-import is442g3t2.cleaner_scheduler.dto.worker.WorkerDTO;
+import is442g3t2.cleaner_scheduler.dto.worker.PostWorkerRequest;
 import is442g3t2.cleaner_scheduler.dto.worker.TakeLeaveRequest;
 import is442g3t2.cleaner_scheduler.exceptions.ShiftsOverlapException;
 import is442g3t2.cleaner_scheduler.models.property.Property;
@@ -60,14 +60,6 @@ public class WorkerController {
         if (workers.isEmpty()) {
             return ResponseEntity.noContent().build();
         }
-        List<WorkerDTO> workerDTOs = workers.stream()
-            .map(worker -> new WorkerDTO(
-                worker.getId(),
-                worker.getName(),
-                worker.getPhoneNumber(),
-                worker.getBio(),
-                worker.getSupervisorId()))
-            .collect(Collectors.toList());
 
         return ResponseEntity.ok(workers);
     }
@@ -249,7 +241,7 @@ public class WorkerController {
     @Tag(name = "workers")
     @Operation(description = "Create a new worker", summary = "Create a new worker")
     @PostMapping("")
-    public ResponseEntity<Worker> createWorker(@RequestBody WorkerDTO postWorkerRequest) {
+    public ResponseEntity<Worker> createWorker(@RequestBody PostWorkerRequest postWorkerRequest) {
         Worker worker = new Worker(
             postWorkerRequest.getName(),
             postWorkerRequest.getPhoneNumber(),

@@ -22,8 +22,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 
-import com.fasterxml.jackson.annotation.JsonIgnore;
-import com.fasterxml.jackson.annotation.JsonProperty;
+
 
 @NoArgsConstructor
 @Getter
@@ -48,7 +47,6 @@ public class Worker {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "supervisor_id")
-    @JsonIgnore
     private Admin supervisor;
 
     @Column(columnDefinition = "TEXT")
@@ -66,9 +64,8 @@ public class Worker {
         this.bio = bio;
     }
 
-    @JsonProperty("supervisorId")
-    public Long getSupervisorId() {
-        return supervisor != null ? supervisor.getId() : null;
+    public Long getSupervisor() {
+        return supervisor.getId();
     }
 
     public int getNumShiftsInMonth(YearMonth yearMonth) {
