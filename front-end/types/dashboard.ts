@@ -14,12 +14,34 @@ export interface MonthlyData {
 	terminatedClients: number;
 	cancellations: number;
 }
-
-export interface Client {
-	name: string;
-	status: string;
-	jobs: number;
-}
+export interface Property {
+    id: number;
+    address: string;
+    postalCode: string;
+    client: number;
+  }
+  
+export interface ClientData {
+    id: number;
+    name: string;
+    properties: Property[];
+    status: 'Active' | 'Inactive';
+    cleaningJobs?: Array<{
+        id: number;
+        property: {
+            propertyId: number;
+            clientId: number;
+            address: string;
+            postalCode: string;
+        };
+        date: string;
+        startTime: string;
+        endTime: string;
+        worker: number;
+    }>;
+    preferredCleaner: string;
+    jobs: number;
+  }
 
 export interface Workers {
 	name: string;
@@ -27,38 +49,65 @@ export interface Workers {
 }
 
 export interface Shift {
-	date: string;
-	startTime: string;
-	endTime: string;
-	valid: boolean;
+	shifts: Array<{
+        id: number;
+        worker: number;
+        property: {
+            propertyId: number;
+            clientId: number;
+            address: string;
+            postalCode: string;
+        };
+        date: string;
+        startTime: string;
+        endTime: string;
+    }>;
 }
 
 export interface ScheduleItem extends Shift {
 	location: string;
-	client_id: string;
+	client_id: number;
 	status: 'completed' | 'upcoming' | 'cancelled';
 	cancelReason?: string;
 	id: string;
 }
 
 export interface WorkerData {
-	id: number;
-	name: string;
-	shifts: Array<{
-	  date: string;
-	  startTime: string;
-	  endTime: string;
-	  valid: boolean;
-	}>;
-	schedule: ScheduleItem[];
-	phoneNumber: string;
-	supervisor: number;
-	supervisor_number: string;
-	bio: string;
-  }
+    id: number;
+    name: string;
+    role: string;
+    shifts: Array<{
+        id: number;
+        worker: number;
+        property: {
+            propertyId: number;
+            clientId: number;
+            address: string;
+            postalCode: string;
+        };
+        date: string;
+        startTime: string;
+        endTime: string;
+    }>;
+    phoneNumber: number;
+    supervisor: string;
+    bio: string;
+    annualLeaves: Array<{
+        id: number;
+        startDate: string;
+        endDate: string;
+    }>;
+    medicalLeaves: Array<{
+        id: number;
+        startDate: string;
+        endDate: string;
+    }>;
+    homePostalCode: string;
+}
 
 export interface UserData {
 	role: 'worker' | 'admin';
 	id: string;
 	name: string;
+    workers?: string[];
 }

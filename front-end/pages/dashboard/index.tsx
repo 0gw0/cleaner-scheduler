@@ -2,81 +2,19 @@ import React, { useState, useEffect } from "react";
 import {
   UserData,
   MonthlyData,
-  Client,
-  Workers,
+  ClientData,
   WorkerData,
 } from "@/types/dashboard";
 import AdminDashboard from "@/components/AdminDashboard";
 import WorkerDashboard from "@/components/WorkerDashboard";
+import axios from "axios";
 
 const Dashboard: React.FC = () => {
   const [userData, setUserData] = useState<UserData | null>(null);
-  const [workerData, setWorkerData] = useState<WorkerData>({
-    id: 1,
-    name: "Mati",
-    shifts: [
-      {
-        date: "2024-09-12",
-        startTime: "09:00:00",
-        endTime: "17:00:00",
-        valid: true,
-      },
-      {
-        date: "2024-09-16",
-        startTime: "09:00:00",
-        endTime: "17:00:00",
-        valid: true,
-      },
-    ],
-    schedule: [
-      {
-        date: "2024-09-14",
-        startTime: "09:00:00",
-        endTime: "12:00:00",
-        location: "123 Main St",
-        client_id: "1",
-        valid: true,
-        status: "completed",
-        id: "1",
-      },
-      {
-        date: "2024-09-14",
-        startTime: "13:00:00",
-        endTime: "17:00:00",
-        location: "456 Elm",
-        client_id: "2",
-        valid: true,
-        status: "completed",
-        id: "2",
-      },
-      {
-        date: "2024-10-11",
-        startTime: "13:00:00",
-        endTime: "17:00:00",
-        location: "456 Elm",
-        client_id: "2",
-        valid: true,
-        status: "upcoming",
-        id: "3",
-      },
-      {
-        date: "2024-10-12",
-        startTime: "13:00:00",
-        endTime: "17:00:00",
-        location: "456 Elm",
-        client_id: "2",
-        valid: true,
-        status: "upcoming",
-        id: "4",
-      },
-    ],
-    phoneNumber: "1234567890",
-    supervisor: 1,
-    supervisor_number: "0987654321",
-    bio: "eg bio 1",
-  });
+  const [clients, setClients] = useState<ClientData[]>([]);
+  const [workerData, setWorkerData] = useState<WorkerData[]>([]);
+  const [worker] = useState<WorkerData[]>({...JSON.parse(localStorage.getItem('user') || '{}'),});
 
-  // mock monthly data
   const [monthlyData] = useState<MonthlyData[]>([
     {
       month: "Jan",
@@ -175,46 +113,73 @@ const Dashboard: React.FC = () => {
       cancellations: 12,
     },
   ]);
-  const [clients] = useState<Client[]>([
-    { name: "Client A", status: "Active", jobs: 5 },
-    { name: "Client B", status: "Inactive", jobs: 0 },
-    { name: "Client C", status: "Active", jobs: 3 },
-  ]);
-  const [workers] = useState<Workers[]>([
-    { name: "Worker A", jobs: 2 },
-    { name: "Worker B", jobs: 1 },
-    { name: "Worker C", jobs: 3 },
-  ]);
-
-  const handleCancelShift = (shiftId: string, reason: string) => {
-    console.log(`Cancelling shift ${shiftId} with reason: ${reason}`);
-    
-    setWorkerData(prevData => ({
-      ...prevData,
-      schedule: prevData.schedule.map(shift =>
-        shift.id === shiftId
-          ? { ...shift, status: 'cancelled', cancelReason: reason }
-          : shift
-      )
-    }));
-  };
 
   useEffect(() => {
     const storedUser = localStorage.getItem("user");
     if (storedUser) {
-      setUserData(JSON.parse(storedUser));
+      const parsedUser = JSON.parse(storedUser);
+      setUserData(parsedUser);
     }
   }, []);
+
+  useEffect(() => {
+    const fetchClients = async () => {
+      try {
+        const response = await fetch("http://localhost:8080/clients");
+        if (!response.ok) {
+          throw new Error("Failed to fetch clients");
+        }
+        const clientsData: ClientData[] = await response.json();
+
+        const transformedClients: ClientData[] = clientsData.map((client) => ({
+          id: client.id,
+          name: client.name,
+          properties: client.properties,
+          address: client.properties[0]?.address || "",
+          postalCode: client.properties[0]?.postalCode || "",
+          status: "Active",
+          cleaningJobs: [],
+          preferredCleaner: "Fake Halimah",
+          jobs: 0,
+        }));
+
+        setClients(transformedClients);
+      } catch (error) {
+        console.error("Error fetching clients:", error);
+      }
+    };
+
+    const fetchWorkers = async () => {
+      if (!userData || userData.role !== "admin") return;
+
+      try {
+        const workerIds = userData.workers || [];
+        const workerPromises = workerIds.map((id) =>
+          axios
+            .get(`http://localhost:8080/workers/${id}`)
+            .then((res) => res.data)
+        );
+        const workerArray = await Promise.all(workerPromises);
+        setWorkerData(workerArray);
+      } catch (error) {
+        console.error("Error fetching worker data:", error);
+      }
+    };
+
+    if (userData) {
+      fetchClients();
+      if (userData.role === "admin") {
+        fetchWorkers();
+      }
+    }
+  }, [userData]);
 
   if (!userData) {
     return <div>Loading...</div>;
   }
 
   if (userData.role === "worker") {
-    return <WorkerDashboard 
-      workerData={workerData}
-      onCancelShift={handleCancelShift}
-    />;
+    return <WorkerDashboard workerData={worker} />;
   }
 
   if (userData.role === "admin") {
@@ -222,7 +187,7 @@ const Dashboard: React.FC = () => {
       <AdminDashboard
         monthlyData={monthlyData}
         clients={clients}
-        workers={workers}
+        workerData={workerData}
       />
     );
   }

@@ -1,9 +1,10 @@
 import React, { useState, FormEvent } from "react";
 import { useRouter } from "next/router";
-import Link from 'next/link';
+import Link from "next/link";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import axios from "axios";
 import {
   Select,
   SelectContent,
@@ -12,18 +13,12 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { useAuth } from '../../contexts/AuthContext';
-
-// Example user credentials
-const userCredentials = {
-  admin: { email: "admin@example.com", password: "admin123" },
-  worker: { email: "worker@example.com", password: "worker123" },
-};
+import { useAuth } from "../../contexts/AuthContext";
 
 export default function LoginPage() {
   const [userType, setUserType] = useState<string>("");
-  const [email, setEmail] = useState<string>("");
-  const [password, setPassword] = useState<string>("");
+  const [ID, setID] = useState<string>("");
+  // const [password, setPassword] = useState<string>("");
   const [error, setError] = useState<string>("");
   const router = useRouter();
   const { login } = useAuth();
@@ -32,39 +27,81 @@ export default function LoginPage() {
     e.preventDefault();
     setError("");
 
-    if (email && password && userType) {
-      const credentials = userCredentials[userType as keyof typeof userCredentials];
-      if (credentials && email === credentials.email && password === credentials.password) {
-        // Simulate successful login
-        const user = {
-          id: `${userType}-id`, //  this would be a unique user ID
-          name: `${userType.charAt(0).toUpperCase() + userType.slice(1)} User`,
-          role: userType as 'admin' | 'worker' 
-        };
-        // localStorage.setItem('user', JSON.stringify(user));
-        login(user);
-        router.push("/dashboard");
+    if (ID && userType) {
+      if (userType === "admin") {
+        axios
+          .get("http://localhost:8080/admins/" + ID)
+          .then((res) => {
+            console.log(res.data);
+            if (res.status === 200) {
+              const user = {
+                id: res.data.id,
+                name: res.data.name,
+                role: userType as "admin" | "worker",
+                workers: res.data.workers,
+              };
+              login(user);
+              router.push("/dashboard");
+            } else {
+              setError("Invalid credentials");
+            }
+          })
+          .catch((err) => {
+            console.log(err);
+            setError("Invalid credentials");
+          });
       } else {
-        setError("Invalid credentials");
+        axios
+          .get("http://localhost:8080/workers/" + ID)
+          .then((res) => {
+            console.log(res.data);
+            if (res.status === 200) {
+              const user = {
+                id: res.data.id,
+                name: res.data.name,
+                role: userType as "admin" | "worker",
+                shifts: res.data.shifts,
+                phoneNumber: res.data.phoneNumber,
+                supervisor: res.data.supervisor,
+                bio: res.data.bio,
+                annualLeaves: res.data.annualLeaves,
+                medicalLeaves: res.data.medicalLeaves,
+                homePostalCode: res.data.homePostalCode,
+              };
+              login(user);
+              router.push("/dashboard");
+            } else {
+              setError("Invalid credentials");
+            }
+          })
+          .catch((err) => {
+            console.log(err);
+            setError("Invalid credentials");
+          });
       }
-    } else {
-      setError("Please fill in all fields");
-    }
   };
-
+}
   return (
     <div className="min-h-screen bg-gray-100 flex items-center justify-center">
       <Card className="w-full max-w-md">
         <CardHeader>
-          <CardTitle className="text-2xl font-bold text-center">Login</CardTitle>
+          <CardTitle className="text-2xl font-bold text-center">
+            Login
+          </CardTitle>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleLogin} className="space-y-4">
             <div>
-              <label htmlFor="userType" className="block text-sm font-medium text-gray-700">
+              <label
+                htmlFor="userType"
+                className="block text-sm font-medium text-gray-700"
+              >
                 User Type
               </label>
-              <Select onValueChange={(value: string) => setUserType(value)} required>
+              <Select
+                onValueChange={(value: string) => setUserType(value)}
+                required
+              >
                 <SelectTrigger>
                   <SelectValue placeholder="Select user type" />
                 </SelectTrigger>
@@ -75,31 +112,41 @@ export default function LoginPage() {
               </Select>
             </div>
             <div>
-              <label htmlFor="email" className="block text-sm font-medium text-gray-700">
-                Email
+              <label
+                htmlFor="id"
+                className="block text-sm font-medium text-gray-700"
+              >
+                ID
               </label>
               <Input
-                type="email"
-                id="email"
-                value={email}
-                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setEmail(e.target.value)}
-                placeholder="Enter your email"
+                type="id"
+                id="id"
+                value={ID}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                  setID(e.target.value)
+                }
+                placeholder="Enter your ID"
                 required
               />
             </div>
-            <div>
-              <label htmlFor="password" className="block text-sm font-medium text-gray-700">
+            {/* <div>
+              <label
+                htmlFor="password"
+                className="block text-sm font-medium text-gray-700"
+              >
                 Password
               </label>
               <Input
                 type="password"
                 id="password"
                 value={password}
-                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setPassword(e.target.value)}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                  setPassword(e.target.value)
+                }
                 placeholder="Enter your password"
                 required
               />
-            </div>
+            </div> */}
             {error && (
               <Alert variant="destructive">
                 <AlertDescription>{error}</AlertDescription>

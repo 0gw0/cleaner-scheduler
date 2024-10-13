@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect } from 'react';
 import { Search, Phone, Calendar } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -27,138 +27,249 @@ import {
   PaginationNext,
   PaginationPrevious,
 } from "@/components/ui/pagination";
+import { WorkerData, ScheduleItem } from "@/types/dashboard";
 
-// Types
-interface Shift {
-  date: string;
-  startTime: string;
-  endTime: string;
-  valid: boolean;
-}
 
-interface Schedule {
-  date: string;
-  startTime: string;
-  endTime: string;
-  location: string;
-  client_id: number;
-  valid: boolean;
-}
-
-interface WorkerData {
-  id: number;
-  name: string;
-  shifts: Shift[];
-  schedule: Schedule[];
-  phoneNumber: string;
-  supervisor: number;
-  supervisor_number: string;
-  bio: string;
-}
-
-// Time slot configurations
-const timeSlots = [
-  { start: "07:00:00", end: "10:00:00" }, // 3 hours
-  { start: "08:00:00", end: "11:00:00" }, // 3 hours
-  { start: "09:00:00", end: "12:00:00" }, // 3 hours
-  { start: "10:00:00", end: "14:00:00" }, // 4 hours
-  { start: "11:00:00", end: "15:00:00" }, // 4 hours
-  { start: "13:00:00", end: "16:00:00" }, // 3 hours
-  { start: "14:00:00", end: "17:00:00" }, // 3 hours
-  { start: "15:00:00", end: "19:00:00" }, // 4 hours
-];
-
-// Generate random non-overlapping schedules for a worker
-const generateWorkerSchedule = (): Schedule[] => {
-  const schedule: Schedule[] = [];
-  const numAppointments = Math.floor(Math.random() * 3) + 2; // 2-4 appointments
-  const availableSlots = [...timeSlots];
-  const selectedDate = new Date(2024, Math.floor(Math.random() * 12), Math.floor(Math.random() * 28) + 1)
-    .toISOString().split('T')[0];
-
-  // Locations for mock data
-  const locations = [
-    { address: "123 Main St, Brooklyn, NY 11201", client_id: 1 },
-    { address: "456 Park Ave, Manhattan, NY 10022", client_id: 2 },
-    { address: "789 Broadway, Queens, NY 11373", client_id: 3 },
-    { address: "321 5th Ave, Manhattan, NY 10016", client_id: 4 },
-    { address: "654 Atlantic Ave, Brooklyn, NY 11217", client_id: 5 },
-    { address: "987 Northern Blvd, Queens, NY 11101", client_id: 6 },
-    { address: "147 Madison Ave, Manhattan, NY 10016", client_id: 7 },
-    { address: "258 Court St, Brooklyn, NY 11201", client_id: 8 }
-  ];
-
-  for (let i = 0; i < numAppointments && availableSlots.length > 0; i++) {
-    const randomSlotIndex = Math.floor(Math.random() * availableSlots.length);
-    const selectedSlot = availableSlots[randomSlotIndex];
-    const randomLocation = locations[Math.floor(Math.random() * locations.length)];
-
-    // Remove the selected slot and any overlapping slots
-    availableSlots.splice(randomSlotIndex, 1);
-    const startTime = parseInt(selectedSlot.start.split(':')[0]);
-    availableSlots.filter(slot => {
-      const slotStart = parseInt(slot.start.split(':')[0]);
-      return Math.abs(slotStart - startTime) >= 4;
-    });
-
-    schedule.push({
-      date: selectedDate,
-      startTime: selectedSlot.start,
-      endTime: selectedSlot.end,
-      location: randomLocation.address,
-      client_id: randomLocation.client_id,
-      valid: Math.random() > 0.1
-    });
+export const mockWorkers: WorkerData[] = [
+  {
+    id: 1,
+    name: "David Chen",
+    shifts: [
+      {
+        date: "2024-07-23",
+        startTime: "09:00:00",
+        endTime: "17:00:00",
+        valid: true
+      },
+      {
+        date: "2024-12-19",
+        startTime: "09:00:00",
+        endTime: "17:00:00",
+        valid: true
+      },
+      {
+        date: "2024-10-07",
+        startTime: "09:00:00",
+        endTime: "17:00:00",
+        valid: true
+      },
+      {
+        date: "2024-04-02",
+        startTime: "09:00:00",
+        endTime: "17:00:00",
+        valid: false
+      }
+    ],
+    schedule: [
+      {
+        id: "1a",
+        date: "2024-11-24",
+        startTime: "13:00:00",
+        endTime: "16:00:00",
+        location: "123 Main St, Brooklyn, NY 11201",
+        client_id: 1,
+        valid: true,
+        status: "upcoming"
+      },
+      {
+        id: "1b",
+        date: "2024-11-24",
+        startTime: "14:00:00",
+        endTime: "17:00:00",
+        location: "456 Park Ave, Manhattan, NY 10022",
+        client_id: 2,
+        valid: true,
+        status: "upcoming"
+      }
+    ],
+    phoneNumber: "(499) 653-2151",
+    supervisor: 1,
+    supervisor_number: "(974) 308-8994",
+    bio: "Experienced house cleaner specializing in eco-friendly cleaning solutions"
+  },
+  {
+    id: 2,
+    name: "Sarah Johnson",
+    shifts: [
+      {
+        date: "2024-08-15",
+        startTime: "08:00:00",
+        endTime: "16:00:00",
+        valid: true
+      },
+      {
+        date: "2024-09-01",
+        startTime: "09:00:00",
+        endTime: "17:00:00",
+        valid: false
+      }
+    ],
+    schedule: [
+      {
+        id: "2a",
+        date: "2024-10-05",
+        startTime: "10:00:00",
+        endTime: "14:00:00",
+        location: "789 Broadway, Queens, NY 11373",
+        client_id: 3,
+        valid: true,
+        status: "upcoming"
+      },
+      {
+        id: "2b",
+        date: "2024-10-06",
+        startTime: "09:00:00",
+        endTime: "12:00:00",
+        location: "321 5th Ave, Manhattan, NY 10016",
+        client_id: 4,
+        valid: true,
+        status: "upcoming"
+      },
+      {
+        id: "2c",
+        date: "2024-09-30",
+        startTime: "13:00:00",
+        endTime: "17:00:00",
+        location: "654 Atlantic Ave, Brooklyn, NY 11217",
+        client_id: 5,
+        valid: false,
+        status: "cancelled",
+        cancelReason: "Client rescheduled"
+      }
+    ],
+    phoneNumber: "(212) 555-1234",
+    supervisor: 3,
+    supervisor_number: "(212) 555-5678",
+    bio: "Detailed-oriented cleaner with 5+ years of experience in residential cleaning"
+  },
+  {
+    id: 3,
+    name: "Michael Rodriguez",
+    shifts: [
+      {
+        date: "2024-11-01",
+        startTime: "07:00:00",
+        endTime: "15:00:00",
+        valid: true
+      },
+      {
+        date: "2024-11-02",
+        startTime: "07:00:00",
+        endTime: "15:00:00",
+        valid: true
+      }
+    ],
+    schedule: [
+      {
+        id: "3a",
+        date: "2024-10-15",
+        startTime: "08:00:00",
+        endTime: "11:00:00",
+        location: "987 Northern Blvd, Queens, NY 11101",
+        client_id: 6,
+        valid: true,
+        status: "completed"
+      },
+      {
+        id: "3b",
+        date: "2024-10-15",
+        startTime: "13:00:00",
+        endTime: "16:00:00",
+        location: "147 Madison Ave, Manhattan, NY 10016",
+        client_id: 7,
+        valid: true,
+        status: "completed"
+      }
+    ],
+    phoneNumber: "(347) 555-9876",
+    supervisor: 2,
+    supervisor_number: "(347) 555-4321",
+    bio: "Experienced in both residential and commercial cleaning with a focus on customer satisfaction"
+  },
+  {
+    id: 4,
+    name: "Emily Nguyen",
+    shifts: [
+      {
+        date: "2024-12-01",
+        startTime: "09:00:00",
+        endTime: "17:00:00",
+        valid: true
+      },
+      {
+        date: "2024-12-02",
+        startTime: "09:00:00",
+        endTime: "17:00:00",
+        valid: true
+      }
+    ],
+    schedule: [
+      {
+        id: "4a",
+        date: "2024-11-20",
+        startTime: "10:00:00",
+        endTime: "13:00:00",
+        location: "258 Court St, Brooklyn, NY 11201",
+        client_id: 8,
+        valid: true,
+        status: "upcoming"
+      }
+    ],
+    phoneNumber: "(718) 555-3456",
+    supervisor: 1,
+    supervisor_number: "(718) 555-7890",
+    bio: "Specializes in green cleaning techniques and allergy-friendly cleaning products"
+  },
+  {
+    id: 5,
+    name: "James Wilson",
+    shifts: [
+      {
+        date: "2024-10-10",
+        startTime: "08:00:00",
+        endTime: "16:00:00",
+        valid: true
+      },
+      {
+        date: "2024-10-11",
+        startTime: "08:00:00",
+        endTime: "16:00:00",
+        valid: false
+      }
+    ],
+    schedule: [
+      {
+        id: "5a",
+        date: "2024-10-01",
+        startTime: "09:00:00",
+        endTime: "12:00:00",
+        location: "123 Main St, Brooklyn, NY 11201",
+        client_id: 1,
+        valid: true,
+        status: "completed"
+      },
+      {
+        id: "5b",
+        date: "2024-10-01",
+        startTime: "14:00:00",
+        endTime: "17:00:00",
+        location: "456 Park Ave, Manhattan, NY 10022",
+        client_id: 2,
+        valid: true,
+        status: "completed"
+      }
+    ],
+    phoneNumber: "(646) 555-2468",
+    supervisor: 3,
+    supervisor_number: "(646) 555-1357",
+    bio: "Experienced in high-end residential cleaning with attention to detail"
   }
-
-  // Sort schedule by start time
-  return schedule.sort((a, b) => 
-    a.startTime.localeCompare(b.startTime)
-  );
-};
-
-// Generate 100 mock workers with realistic schedules
-const generateMockWorkers = (): WorkerData[] => {
-  const names = [
-    "John Smith", "Maria Garcia", "David Chen", "Sarah Johnson",
-    "Michael Brown", "Emma Wilson", "James Lee", "Sofia Rodriguez",
-    "William Davis", "Olivia Taylor", "Lucas Martin", "Isabella Anderson",
-    "Alexander Kim", "Nina Patel", "Marcus Thompson", "Ana Santos"
-  ];
-
-  const bios = [
-    "Experienced house cleaner specializing in eco-friendly cleaning solutions",
-    "Professional cleaner with expertise in deep cleaning and organization",
-    "Dedicated cleaning specialist with attention to detail",
-    "Certified cleaning professional with focus on customer satisfaction",
-    "Experienced in both residential and commercial cleaning services"
-  ];
-
-  return Array.from({ length: 100 }, (_, index) => ({
-    id: index + 1,
-    name: names[Math.floor(Math.random() * names.length)],
-    shifts: Array.from({ length: Math.floor(Math.random() * 3) + 3 }, () => ({
-      date: new Date(2024, Math.floor(Math.random() * 12), Math.floor(Math.random() * 28) + 1)
-        .toISOString().split('T')[0],
-      startTime: "09:00:00",
-      endTime: "17:00:00",
-      valid: Math.random() > 0.2
-    })),
-    schedule: generateWorkerSchedule(),
-    phoneNumber: `(${Math.floor(Math.random() * 900) + 100}) ${Math.floor(Math.random() * 900) + 100}-${Math.floor(Math.random() * 9000) + 1000}`,
-    supervisor: Math.floor(Math.random() * 5) + 1,
-    supervisor_number: `(${Math.floor(Math.random() * 900) + 100}) ${Math.floor(Math.random() * 900) + 100}-${Math.floor(Math.random() * 9000) + 1000}`,
-    bio: bios[Math.floor(Math.random() * bios.length)],
-  }));
-};
-
-const mockWorkers = generateMockWorkers();
+];
 
 const WorkerProfiles = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
-  const [filteredWorkers, setFilteredWorkers] =
-    useState<WorkerData[]>(mockWorkers);
+  const [filteredWorkers, setFilteredWorkers] = useState<WorkerData[]>(mockWorkers);
   const workersPerPage = 9;
 
   useEffect(() => {
@@ -180,7 +291,7 @@ const WorkerProfiles = () => {
   );
   const totalPages = Math.ceil(filteredWorkers.length / workersPerPage);
 
-  const ScheduleDialog = ({ schedule }: { schedule: Schedule[] }) => (
+  const ScheduleDialog = ({ schedule }: { schedule: ScheduleItem[] }) => (
     <DialogContent className="max-w-3xl">
       <DialogHeader>
         <DialogTitle>Worker Schedule</DialogTitle>
@@ -196,13 +307,13 @@ const WorkerProfiles = () => {
           </TableRow>
         </TableHeader>
         <TableBody>
-          {schedule.map((appointment, idx) => {
+          {schedule.map((appointment) => {
             const startTime = new Date(`2024-01-01T${appointment.startTime}`);
             const endTime = new Date(`2024-01-01T${appointment.endTime}`);
             const duration = (endTime.getTime() - startTime.getTime()) / (1000 * 60 * 60);
             
             return (
-              <TableRow key={idx}>
+              <TableRow key={appointment.id}>
                 <TableCell>{new Date(appointment.date).toLocaleDateString()}</TableCell>
                 <TableCell>
                   {appointment.startTime.slice(0, 5)} - {appointment.endTime.slice(0, 5)}
@@ -211,9 +322,11 @@ const WorkerProfiles = () => {
                 <TableCell className="max-w-xs truncate">{appointment.location}</TableCell>
                 <TableCell>
                   <span className={`px-2 py-1 rounded-full text-xs ${
-                    appointment.valid ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+                    appointment.status === 'completed' ? 'bg-green-100 text-green-800' :
+                    appointment.status === 'upcoming' ? 'bg-blue-100 text-blue-800' :
+                    'bg-red-100 text-red-800'
                   }`}>
-                    {appointment.valid ? 'Confirmed' : 'Pending'}
+                    {appointment.status.charAt(0).toUpperCase() + appointment.status.slice(1)}
                   </span>
                 </TableCell>
               </TableRow>
@@ -272,18 +385,14 @@ const WorkerProfiles = () => {
 
                 <div className="flex justify-between text-sm text-gray-500">
                   <span>
-                    Active Shifts:{" "}
-                    {worker.shifts.filter((shift) => shift.valid).length}
+                    Active Shifts: {worker.shifts.filter((shift) => shift.valid).length}
                   </span>
                   <span>
-                    Next Shift:{" "}
-                    {worker.shifts
-                      .filter((shift) => new Date(shift.date) > new Date())
-                      .sort(
-                        (a, b) =>
-                          new Date(a.date).getTime() -
-                          new Date(b.date).getTime()
-                      )[0]?.date || "None scheduled"}
+                    Next Shift: {
+                      worker.shifts
+                        .filter((shift) => new Date(shift.date) > new Date())
+                        .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())[0]?.date || "None scheduled"
+                    }
                   </span>
                 </div>
               </div>
@@ -297,9 +406,7 @@ const WorkerProfiles = () => {
           <PaginationItem>
             <PaginationPrevious
               onClick={() => setCurrentPage((prev) => Math.max(1, prev - 1))}
-              className={
-                currentPage === 1 ? "pointer-events-none opacity-50" : ""
-              }
+              className={currentPage === 1 ? "pointer-events-none opacity-50" : ""}
             />
           </PaginationItem>
 
@@ -330,14 +437,8 @@ const WorkerProfiles = () => {
 
           <PaginationItem>
             <PaginationNext
-              onClick={() =>
-                setCurrentPage((prev) => Math.min(totalPages, prev + 1))
-              }
-              className={
-                currentPage === totalPages
-                  ? "pointer-events-none opacity-50"
-                  : ""
-              }
+              onClick={() => setCurrentPage((prev) => Math.min(totalPages, prev + 1))}
+              className={currentPage === totalPages ? "pointer-events-none opacity-50" : ""}
             />
           </PaginationItem>
         </PaginationContent>
