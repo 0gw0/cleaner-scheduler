@@ -1,67 +1,85 @@
-import React, { useState } from 'react'
-import { Button } from '@/components/ui/button'
-import { WorkerTravelData, ShiftData } from '@/types/task'
+import React from 'react';
+import { Button } from '@/components/ui/button';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
+import { ShiftData } from '@/types/task';
+import { CalendarIcon, ClockIcon, MapPinIcon, UserIcon, BuildingIcon } from 'lucide-react';
 
 interface TaskDetailModalProps {
-  ShiftData: ShiftData
-  WorkerTravelData: WorkerTravelData[]
-  onConfirm: (workerId: number, shiftId: number) => void
+  shiftData: ShiftData;
+  isOpen: boolean;
+  onClose: () => void;
 }
 
-const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ ShiftData, WorkerTravelData, onConfirm }) => {
-  const [selectedWorker, setSelectedWorker] = useState<WorkerTravelData | null>(null)
-
-  const handleWorkerSelect = (worker: WorkerTravelData) => {
-    setSelectedWorker(prevWorker => prevWorker?.id === worker.id ? null : worker)
-  }
-
-  const handleConfirm = () => {
-    if (selectedWorker) {
-      onConfirm(selectedWorker.id, ShiftData.id)
-    }
-  }
-
-  const formatTime = (time: { hour: Number; minute: Number }) => {
-    return `${time.hour.toString().padStart(2, '0')}:${time.minute.toString().padStart(2, '0')}`
-  }
+export const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ shiftData, isOpen, onClose }) => {
+  // Helper function to format time in HH:mm format
+  const formatTime = (time: { hour: number; minute: number }) => {
+    return `${time.hour.toString().padStart(2, '0')}:${time.minute.toString().padStart(2, '0')}`;
+  };
 
   return (
-    <div className="space-y-4">
-      <div>
-        <h4 className="text-lg font-semibold">Shift Details</h4>
-        <p className="text-sm"><strong>Client:</strong> {ShiftData.property.address}</p>
-        <p className="text-sm"><strong>Date:</strong> {ShiftData.date.toDateString()}</p>
-        <p className="text-sm"><strong>Time:</strong> {formatTime(ShiftData.startTime)} - {formatTime(ShiftData.endTime)}</p>
-      </div>
-      <div>
-        <h4 className="text-lg font-semibold mb-2">Available Workers</h4>
-        <div className="space-y-2">
-          {WorkerTravelData.map((worker) => (
-            <div
-              key={worker.id}
-              className={`p-2 rounded-lg text-sm cursor-pointer transition-colors ${
-                selectedWorker?.id === worker.id
-                  ? "bg-black text-white"
-                  : "bg-slate-200 hover:bg-secondary/80"
-              }`}
-              onClick={() => handleWorkerSelect(worker)}
-            >
-              <h5 className="font-semibold">{worker.name}</h5>
-              <p><strong>Previous Location:</strong> {worker.originLocation}</p>
-              <p><strong>Estimated Arrival:</strong> {worker.travelTimeToTarget.totalTravelTime} mins</p>
-            </div>
-          ))}
-        </div>
-      </div>
-      <Button 
-        className="w-full" 
-        onClick={handleConfirm} 
-        disabled={!selectedWorker}
-      >
-        {selectedWorker ? `Confirm: ${selectedWorker.name}` : 'Select a worker'}
-      </Button>
-    </div>
-  )
-}
+    <Dialog open={isOpen} onOpenChange={onClose}>
+      <DialogContent className="sm:max-w-[425px]">
+        <DialogHeader>
+          <DialogTitle>Task Details</DialogTitle>
+          <DialogDescription>Detailed information about the selected task.</DialogDescription>
+        </DialogHeader>
+        <div className="grid gap-4 py-4">
+          {/* Property Address */}
+          <div className="grid grid-cols-4 items-center gap-4">
+            <span className="font-bold col-span-1">Address:</span>
+            <span className="col-span-3 flex items-center">
+              <MapPinIcon className="w-4 h-4 mr-2" />
+              {shiftData.property.address}
+            </span>
+          </div>
 
-export default TaskDetailModal
+          {/* Postal Code */}
+          <div className="grid grid-cols-4 items-center gap-4">
+            <span className="font-bold col-span-1">Postal Code:</span>
+            <span className="col-span-3 flex items-center">
+              <BuildingIcon className="w-4 h-4 mr-2" />
+              {shiftData.property.postalCode}
+            </span>
+          </div>
+
+          {/* Date */}
+          <div className="grid grid-cols-4 items-center gap-4">
+            <span className="font-bold col-span-1">Date:</span>
+            <span className="col-span-3 flex items-center">
+              <CalendarIcon className="w-4 h-4 mr-2" />
+              {shiftData.date.toDateString()}
+            </span>
+          </div>
+
+          {/* Time */}
+          <div className="grid grid-cols-4 items-center gap-4">
+            <span className="font-bold col-span-1">Time:</span>
+            <span className="col-span-3 flex items-center">
+              <ClockIcon className="w-4 h-4 mr-2" />
+              {formatTime(shiftData.startTime)} - {formatTime(shiftData.endTime)}
+            </span>
+          </div>
+
+          {/* Worker ID */}
+          <div className="grid grid-cols-4 items-center gap-4">
+            <span className="font-bold col-span-1">Worker:</span>
+            <span className="col-span-3 flex items-center">
+              <UserIcon className="w-4 h-4 mr-2" />
+              Worker ID: {shiftData.worker}
+            </span>
+          </div>
+
+          {/* Client ID */}
+          <div className="grid grid-cols-4 items-center gap-4">
+            <span className="font-bold col-span-1">Client ID:</span>
+            <span className="col-span-3 flex items-center">
+              <UserIcon className="w-4 h-4 mr-2" />
+              Client ID: {shiftData.property.clientId}
+            </span>
+          </div>
+        </div>
+        <Button onClick={onClose}>Close</Button>
+      </DialogContent>
+    </Dialog>
+  );
+};
