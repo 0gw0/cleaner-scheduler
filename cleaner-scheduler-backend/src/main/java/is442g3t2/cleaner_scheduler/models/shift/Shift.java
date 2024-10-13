@@ -40,15 +40,31 @@ public class Shift {
     @Column(nullable = false)
     private LocalTime endTime;
 
-    public Shift(LocalDate date, LocalTime startTime, LocalTime endTime, Property property) throws InvalidShiftException {
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    private ShiftStatus status;
+
+
+
+    public Shift(LocalDate date, LocalTime startTime, LocalTime endTime, Property property, ShiftStatus status) throws InvalidShiftException {
         this.date = date;
         this.startTime = startTime;
         this.endTime = endTime;
         this.property = property;
+        this.status = status;
 
         if (!isValid()) {
             throw new InvalidShiftException("Invalid shift: start time must be before end time and neither can be null");
         }
+    }
+
+    public Shift(Shift shift) {
+    }
+
+    public Shift(LocalDate targetDate, LocalTime targetStartTime, LocalTime targetEndTime) {
+        this.date = targetDate;
+        this.startTime = targetStartTime;
+        this.endTime = targetEndTime;
     }
 
     public Long getWorker() {

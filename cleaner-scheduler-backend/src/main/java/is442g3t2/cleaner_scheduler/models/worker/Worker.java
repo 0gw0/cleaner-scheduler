@@ -8,6 +8,7 @@ import is442g3t2.cleaner_scheduler.models.leave.MedicalLeave;
 import is442g3t2.cleaner_scheduler.models.property.Property;
 import is442g3t2.cleaner_scheduler.models.shift.Frequency;
 import is442g3t2.cleaner_scheduler.models.shift.Shift;
+import is442g3t2.cleaner_scheduler.models.shift.ShiftStatus;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -155,7 +156,7 @@ public class Worker {
         LocalDate currentDate = startDate;
 
         while (!currentDate.isAfter(endDate)) {
-            Shift shift = new Shift(currentDate, startTime, endTime, property);
+            Shift shift = new Shift(currentDate, startTime, endTime, property, ShiftStatus.UPCOMING);
             addShift(shift);
             currentDate = currentDate.plus(frequency.getInterval(), frequency.getUnit());
         }

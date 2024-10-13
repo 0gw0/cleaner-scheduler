@@ -10,10 +10,7 @@ import is442g3t2.cleaner_scheduler.models.worker.WorkerWithTravelTime;
 import is442g3t2.cleaner_scheduler.models.shift.Shift;
 import is442g3t2.cleaner_scheduler.repositories.WorkerRepository;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 import java.util.Objects;
@@ -76,6 +73,40 @@ public class ShiftController {
         System.out.println("Result: " + result);
 
         return ResponseEntity.ok(result);
+    }
+
+    @Tag(name = "shifts")
+    @Operation(description = "Get all shifts across all workers with optional filtering", summary = "Get all shifts with optional filters")
+    @GetMapping
+    public ResponseEntity<List<Shift>> getAllShifts(
+            @RequestParam(required = false) String status,
+            @RequestParam(required = false) Integer year,
+            @RequestParam(required = false) Integer month) {
+
+        List<Worker> allWorkers = workerRepository.findAll();
+        List<Shift> allShifts = allWorkers.stream()
+                .flatMap(worker -> worker.getShifts().stream())
+                .toList();
+
+        List<Shift> filteredShifts = allShifts.stream()
+                .filter(shift -> filterByStatus(shift, status))
+                .filter(shift -> filterByYear(shift, year))
+                .filter(shift -> filterByMonth(shift, month))
+                .collect(Collectors.toList());
+
+        return ResponseEntity.ok(filteredShifts);
+    }
+
+    private boolean filterByStatus(Shift shift, String status) {
+        return status == null || status.isEmpty() || status.equalsIgnoreCase(String.valueOf(shift.getStatus()));
+    }
+
+    private boolean filterByYear(Shift shift, Integer year) {
+        return year == null || shift.getDate().getYear() == year;
+    }
+
+    private boolean filterByMonth(Shift shift, Integer month) {
+        return month == null || shift.getDate().getMonthValue() == month;
     }
 
 }

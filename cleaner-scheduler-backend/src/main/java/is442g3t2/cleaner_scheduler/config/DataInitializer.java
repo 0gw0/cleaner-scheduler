@@ -4,6 +4,7 @@ import is442g3t2.cleaner_scheduler.exceptions.ShiftsOverlapException;
 import is442g3t2.cleaner_scheduler.models.*;
 import is442g3t2.cleaner_scheduler.models.property.Property;
 import is442g3t2.cleaner_scheduler.models.shift.Shift;
+import is442g3t2.cleaner_scheduler.models.shift.ShiftStatus;
 import is442g3t2.cleaner_scheduler.models.worker.Worker;
 import is442g3t2.cleaner_scheduler.repositories.AdminRepository;
 import is442g3t2.cleaner_scheduler.repositories.ClientRepository;
@@ -48,12 +49,15 @@ public class DataInitializer {
                     LocalDate.of(2024, Month.SEPTEMBER, 12),
                     LocalTime.of(9, 0),
                     LocalTime.of(17, 0),
-                    property1));
+                    property1,
+                    ShiftStatus.COMPLETED
+            ));
             worker1.addShift(new Shift(
                     LocalDate.of(2024, Month.SEPTEMBER, 16),
                     LocalTime.of(9, 0),
                     LocalTime.of(17, 0),
-                    property2));
+                    property2,
+                    ShiftStatus.COMPLETED));
             worker1.takeLeave(LocalDate.of(2024, Month.SEPTEMBER, 10), LocalDate.of(2024, Month.SEPTEMBER, 10));
             worker1.takeLeave(LocalDate.of(2023, Month.SEPTEMBER, 10), LocalDate.of(2024, Month.SEPTEMBER, 10));
             workerRepository.save(worker1);
@@ -64,17 +68,20 @@ public class DataInitializer {
                     LocalDate.of(2024, Month.SEPTEMBER, 13),
                     LocalTime.of(8, 0),
                     LocalTime.of(16, 0),
-                    property1));
+                    property1,
+                    ShiftStatus.COMPLETED));
             worker2.addShift(new Shift(
                     LocalDate.of(2024, Month.SEPTEMBER, 16),
                     LocalTime.of(8, 0),
                     LocalTime.of(16, 0),
-                    property1));
+                    property1,
+                    ShiftStatus.COMPLETED));
             worker2.addShift(new Shift(
                     LocalDate.of(2024, Month.SEPTEMBER, 25),
                     LocalTime.of(8, 0),
                     LocalTime.of(12, 0),
-                    property1));
+                    property1,
+                    ShiftStatus.COMPLETED));
             workerRepository.save(worker2);
 
             Worker worker3 = new Worker("Wati", "1122334455", "eg bio 3");
@@ -83,13 +90,15 @@ public class DataInitializer {
                     LocalDate.of(2024, Month.SEPTEMBER, 26),
                     LocalTime.of(10, 0),
                     LocalTime.of(14, 0),
-                    property2));
+                    property2,
+                    ShiftStatus.COMPLETED));
             try {
                 worker3.addShift(new Shift(
-                        LocalDate.of(2024, Month.SEPTEMBER, 25),
+                        LocalDate.of(2025, Month.SEPTEMBER, 25),
                         LocalTime.of(10, 0),
                         LocalTime.of(14, 0),
-                        property2));
+                        property2,
+                        ShiftStatus.UPCOMING));
             } catch (ShiftsOverlapException e) {
                 System.out.println(e.getMessage());
             }

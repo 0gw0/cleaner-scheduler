@@ -10,6 +10,7 @@ import is442g3t2.cleaner_scheduler.exceptions.ShiftsOverlapException;
 import is442g3t2.cleaner_scheduler.models.property.Property;
 import is442g3t2.cleaner_scheduler.models.leave.AnnualLeave;
 import is442g3t2.cleaner_scheduler.models.leave.MedicalLeave;
+import is442g3t2.cleaner_scheduler.models.shift.ShiftStatus;
 import is442g3t2.cleaner_scheduler.models.worker.Worker;
 import is442g3t2.cleaner_scheduler.models.shift.Frequency;
 import is442g3t2.cleaner_scheduler.models.shift.Shift;
@@ -73,6 +74,7 @@ public class WorkerController {
     @GetMapping("/{id}/shifts")
     public ResponseEntity<GetShiftCountResponse> getShiftCount(
             @PathVariable Long id,
+            @RequestParam(required = false, name = "status") String status,
             @RequestParam(required = false, name = "year") Integer year,
             @RequestParam(required = false, name = "month") Integer month) {
 
@@ -117,7 +119,7 @@ public class WorkerController {
         try {
             if (frequency == null) {
                 // Single shift (adhoc eg when a new worker needs to takeover from another fella on leave)
-                Shift shift = new Shift(startDate, startTime, endTime, property);
+                Shift shift = new Shift(startDate, startTime, endTime, property, ShiftStatus.UPCOMING);
                 worker.addShift(shift);
                 workerRepository.save(worker);
 

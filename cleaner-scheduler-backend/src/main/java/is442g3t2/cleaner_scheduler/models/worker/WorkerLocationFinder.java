@@ -174,7 +174,7 @@ public class WorkerLocationFinder {
         Optional<Shift> previousShift = findPreviousShift(worker, targetDate, targetStartTime);
 
         if (previousShift.isEmpty() || isShiftEndedOneHourBefore(previousShift.get(), targetDate, targetStartTime)) {
-            return Optional.of(new Shift(targetDate, targetStartTime, targetEndTime, null)); // Placeholder shift
+            return Optional.of(new Shift(targetDate, targetStartTime, targetEndTime)); // Placeholder shift
         }
 
         return Optional.empty(); // Worker is not available
