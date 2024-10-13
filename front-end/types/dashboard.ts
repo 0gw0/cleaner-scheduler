@@ -9,10 +9,6 @@ export interface StatusCardProps {
 export interface MonthlyData {
 	month: string;
 	jobs: number;
-	newJobs: number;
-	newClients: number;
-	terminatedClients: number;
-	cancellations: number;
 }
 export interface Property {
     id: number;
@@ -48,29 +44,22 @@ export interface Workers {
 	jobs: number;
 }
 
-export interface Shift {
-	shifts: Array<{
-        id: number;
-        worker: number;
-        property: {
-            propertyId: number;
-            clientId: number;
-            address: string;
-            postalCode: string;
-        };
-        date: string;
-        startTime: string;
-        endTime: string;
-    }>;
-}
 
-export interface ScheduleItem extends Shift {
-	location: string;
-	client_id: number;
-	status: 'completed' | 'upcoming' | 'cancelled';
-	cancelReason?: string;
-	id: string;
-}
+export interface Shift {
+    id: number;
+    worker: number;
+    property: {
+      propertyId: number;
+      clientId: number;
+      address: string;
+      postalCode: string;
+    };
+    date: string;
+    startTime: string;
+    endTime: string;
+    status: 'COMPLETED' | 'UPCOMING' | string; 
+  }
+
 
 export interface WorkerData {
     id: number;

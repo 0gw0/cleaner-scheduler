@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { Search, MapPin, User, Calendar, Home } from "lucide-react";
+import { Search, MapPin, User, Calendar, Briefcase } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -18,8 +18,8 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { Badge } from "@/components/ui/badge";
 
-// Updated Types
 interface Property {
   id: number;
   address: string;
@@ -33,8 +33,33 @@ interface Client {
   properties: Property[];
 }
 
+interface Shift {
+  id: number;
+  worker: number;
+  property: {
+    propertyId: number;
+    clientId: number;
+    address: string;
+    postalCode: string;
+  };
+  date: string;
+  startTime: string;
+  endTime: string;
+  status: string;
+}
+
+interface Worker {
+  id: number;
+  name: string;
+  phoneNumber: string;
+  supervisor: number;
+  bio: string;
+  homePostalCode: string;
+}
+
 const ClientProfiles = () => {
   const [clients, setClients] = useState<Client[]>([]);
+  const [shifts, setShifts] = useState<Shift[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [filteredClients, setFilteredClients] = useState<Client[]>([]);
 
@@ -49,7 +74,18 @@ const ClientProfiles = () => {
       }
     };
 
+    const fetchShifts = async () => {
+      try {
+        const response = await fetch('http://localhost:8080/shifts');
+        const data = await response.json();
+        setShifts(data);
+      } catch (error) {
+        console.error("Error fetching shifts:", error);
+      }
+    };
+
     fetchClients();
+    fetchShifts();
   }, []);
 
   useEffect(() => {
@@ -68,6 +104,32 @@ const ClientProfiles = () => {
 
     setFilteredClients(results);
   }, [searchTerm, clients]);
+
+  const getStatusBadge = (status: string) => {
+    const statusColors: { [key: string]: string } = {
+      COMPLETED: "bg-green-100 text-green-800",
+      UPCOMING: "bg-blue-100 text-blue-800",
+      CANCELLED: "bg-red-100 text-red-800",
+      INPROGRESS: "bg-yellow-100 text-yellow-800",
+    };
+
+    return (
+      <Badge className={`${statusColors[status] || "bg-gray-100 text-gray-800"}`}>
+        {status}
+      </Badge>
+    );
+  };
+
+  const fetchWorkerDetails = async (workerId: number): Promise<Worker> => {
+    try {
+      const response = await fetch(`http://localhost:8080/workers/${workerId}`);
+      const data = await response.json();
+      return data;
+    } catch (error) {
+      console.error("Error fetching worker details:", error);
+      throw error;
+    }
+  };
 
   const PropertiesDialog = ({ properties }: { properties: Property[] }) => (
     <DialogContent className="max-w-3xl">
@@ -93,6 +155,61 @@ const ClientProfiles = () => {
     </DialogContent>
   );
 
+  const ShiftsDialog = ({ clientId }: { clientId: number }) => {
+    const [clientShifts, setClientShifts] = useState<Shift[]>([]);
+    const [workerDetails, setWorkerDetails] = useState<{ [key: number]: Worker }>({});
+
+    useEffect(() => {
+      const filteredShifts = shifts.filter(shift => shift.property.clientId === clientId);
+      setClientShifts(filteredShifts);
+
+      const fetchWorkers = async () => {
+        const workerIds = [...new Set(filteredShifts.map(shift => shift.worker))];
+        const workerPromises = workerIds.map(id => fetchWorkerDetails(id));
+        const workers = await Promise.all(workerPromises);
+        const workerMap = workers.reduce((acc, worker) => {
+          acc[worker.id] = worker;
+          return acc;
+        }, {} as { [key: number]: Worker });
+        setWorkerDetails(workerMap);
+      };
+
+      fetchWorkers();
+    }, [clientId]);
+
+    return (
+      <DialogContent className="max-w-4xl">
+        <DialogHeader>
+          <DialogTitle>Client Shifts</DialogTitle>
+        </DialogHeader>
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Date</TableHead>
+              <TableHead>Time</TableHead>
+              <TableHead>Status</TableHead>
+              <TableHead>Worker</TableHead>
+              <TableHead>Worker Phone</TableHead>
+              <TableHead>Supervisor ID</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {clientShifts.map((shift) => (
+              <TableRow key={shift.id}>
+                <TableCell>{new Date(shift.date).toLocaleDateString()}</TableCell>
+                <TableCell>{`${shift.startTime} - ${shift.endTime}`}</TableCell>
+                <TableCell>{getStatusBadge(shift.status)}</TableCell>
+                <TableCell>{workerDetails[shift.worker]?.name || 'Loading...'}</TableCell>
+                <TableCell>{workerDetails[shift.worker]?.phoneNumber || 'Loading...'}</TableCell>
+                <TableCell>{workerDetails[shift.worker]?.supervisor || 'Loading...'}</TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      </DialogContent>
+    );
+  };
+
   return (
     <div className="container mx-auto px-4 py-8">
       <div className="flex justify-between items-center mb-8">
@@ -114,22 +231,17 @@ const ClientProfiles = () => {
             <CardHeader className="flex flex-row items-center space-x-4 pb-2">
               <div className="flex-1">
                 <CardTitle className="text-lg">{client.name}</CardTitle>
-                <div className="flex items-center text-sm text-gray-500 mt-2">
+                <div className="flex items-center text-sm text-gray-500">
                   <MapPin className="w-4 h-4 mr-1" />
                   <p className="truncate">{client.properties[0]?.address}</p>
                 </div>
-                <div className="flex items-center text-sm text-gray-500 mt-2">
-                  <User className="w-4 h-4 mr-1" />
-                  <p>Client ID: {client.id}</p>
-                </div>
-                
               </div>
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center text-sm text-gray-600">
-                    <Home className="w-4 h-4 mr-1" />
+                    <User className="w-4 h-4 mr-1" />
                     <span>Postal Code:</span>
                   </div>
                   <span className="text-sm font-medium">
@@ -145,6 +257,16 @@ const ClientProfiles = () => {
                     </Button>
                   </DialogTrigger>
                   <PropertiesDialog properties={client.properties} />
+                </Dialog>
+
+                <Dialog>
+                  <DialogTrigger asChild>
+                    <Button variant="outline" className="w-full">
+                      <Briefcase className="w-4 h-4 mr-2" />
+                      View Shifts
+                    </Button>
+                  </DialogTrigger>
+                  <ShiftsDialog clientId={client.id} />
                 </Dialog>
               </div>
             </CardContent>

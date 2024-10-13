@@ -4,6 +4,7 @@ import {
   MonthlyData,
   ClientData,
   WorkerData,
+Shift,
 } from "@/types/dashboard";
 import AdminDashboard from "@/components/AdminDashboard";
 import WorkerDashboard from "@/components/WorkerDashboard";
@@ -13,106 +14,8 @@ const Dashboard: React.FC = () => {
   const [userData, setUserData] = useState<UserData | null>(null);
   const [clients, setClients] = useState<ClientData[]>([]);
   const [workerData, setWorkerData] = useState<WorkerData[]>([]);
-  const [worker] = useState<WorkerData[]>({...JSON.parse(localStorage.getItem('user') || '{}'),});
-
-  const [monthlyData] = useState<MonthlyData[]>([
-    {
-      month: "Jan",
-      jobs: 120,
-      newJobs: 15,
-      newClients: 5,
-      terminatedClients: 2,
-      cancellations: 8,
-    },
-    {
-      month: "Feb",
-      jobs: 150,
-      newJobs: 20,
-      newClients: 7,
-      terminatedClients: 1,
-      cancellations: 10,
-    },
-    {
-      month: "Mar",
-      jobs: 180,
-      newJobs: 25,
-      newClients: 10,
-      terminatedClients: 3,
-      cancellations: 12,
-    },
-    {
-      month: "Apr",
-      jobs: 160,
-      newJobs: 25,
-      newClients: 10,
-      terminatedClients: 3,
-      cancellations: 12,
-    },
-    {
-      month: "May",
-      jobs: 200,
-      newJobs: 25,
-      newClients: 10,
-      terminatedClients: 3,
-      cancellations: 12,
-    },
-    {
-      month: "Jun",
-      jobs: 180,
-      newJobs: 25,
-      newClients: 10,
-      terminatedClients: 3,
-      cancellations: 12,
-    },
-    {
-      month: "Jul",
-      jobs: 150,
-      newJobs: 25,
-      newClients: 10,
-      terminatedClients: 3,
-      cancellations: 12,
-    },
-    {
-      month: "Aug",
-      jobs: 160,
-      newJobs: 25,
-      newClients: 10,
-      terminatedClients: 3,
-      cancellations: 12,
-    },
-    {
-      month: "Sept",
-      jobs: 182,
-      newJobs: 25,
-      newClients: 10,
-      terminatedClients: 3,
-      cancellations: 12,
-    },
-    {
-      month: "Oct",
-      jobs: 190,
-      newJobs: 25,
-      newClients: 10,
-      terminatedClients: 3,
-      cancellations: 12,
-    },
-    {
-      month: "Nov",
-      jobs: 182,
-      newJobs: 25,
-      newClients: 10,
-      terminatedClients: 3,
-      cancellations: 12,
-    },
-    {
-      month: "Dec",
-      jobs: 182,
-      newJobs: 25,
-      newClients: 10,
-      terminatedClients: 3,
-      cancellations: 12,
-    },
-  ]);
+  const [worker] = useState<WorkerData>({...JSON.parse(localStorage.getItem('user') || '{}')});
+  const [monthlyData, setMonthlyData] = useState<MonthlyData[]>([]);
 
   useEffect(() => {
     const storedUser = localStorage.getItem("user");
@@ -166,13 +69,55 @@ const Dashboard: React.FC = () => {
       }
     };
 
+    const fetchShifts = async () => {
+      try {
+        const response = await axios.get("http://localhost:8080/shifts");
+        const shiftsData: Shift[] = response.data;
+
+        const processedData = processShiftData(shiftsData);
+        setMonthlyData(processedData);
+      } catch (error) {
+        console.error("Error fetching shifts:", error);
+      }
+    };
+
     if (userData) {
       fetchClients();
       if (userData.role === "admin") {
         fetchWorkers();
+        fetchShifts();
       }
     }
   }, [userData]);
+
+  const processShiftData = (shifts: Shift[]): MonthlyData[] => {
+    const monthlyJobCounts: { [key: string]: number } = {};
+
+    shifts.forEach((shift) => {
+      const date = new Date(shift.date);
+      const monthYear = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+
+      // Count jobs
+      monthlyJobCounts[monthYear] = (monthlyJobCounts[monthYear] || 0) + 1;
+
+    });
+
+    const monthlyData: MonthlyData[] = Object.keys(monthlyJobCounts).map((monthYear) => {
+      const [year, month] = monthYear.split('-');
+      return {
+        month: new Date(parseInt(year), parseInt(month) - 1).toLocaleString('default', { month: 'short' }),
+        jobs: monthlyJobCounts[monthYear],
+      };
+    });
+
+    monthlyData.sort((a, b) => {
+      const dateA = new Date(a.month + " 1, 2000");
+      const dateB = new Date(b.month + " 1, 2000");
+      return dateA.getTime() - dateB.getTime();
+    });
+
+    return monthlyData;
+  };
 
   if (!userData) {
     return <div>Loading...</div>;
