@@ -27,6 +27,7 @@ import {
   PaginationNext,
   PaginationPrevious,
 } from "@/components/ui/pagination";
+import { Badge } from "@/components/ui/badge";
 
 interface Shift {
   id: number;
@@ -40,6 +41,7 @@ interface Shift {
   date: string;
   startTime: string;
   endTime: string;
+  status: string;
 }
 
 interface Leave {
@@ -99,8 +101,23 @@ const WorkerProfiles = () => {
   );
   const totalPages = Math.ceil(filteredWorkers.length / workersPerPage);
 
+  const getStatusBadge = (status: string) => {
+    const statusColors: { [key: string]: string } = {
+      COMPLETED: "bg-green-100 text-green-800",
+      UPCOMING: "bg-blue-100 text-blue-800",
+      CANCELLED: "bg-red-100 text-red-800",
+      INPROGRESS: "bg-yellow-100 text-yellow-800",
+    };
+
+    return (
+      <Badge className={`${statusColors[status] || "bg-gray-100 text-gray-800"}`}>
+        {status}
+      </Badge>
+    );
+  };
+
   const ScheduleDialog = ({ shifts }: { shifts: Shift[] }) => (
-    <DialogContent className="max-w-3xl">
+    <DialogContent className="max-w-4xl">
       <DialogHeader>
         <DialogTitle>Worker Schedule</DialogTitle>
       </DialogHeader>
@@ -111,6 +128,7 @@ const WorkerProfiles = () => {
             <TableHead>Time</TableHead>
             <TableHead>Duration</TableHead>
             <TableHead>Location</TableHead>
+            <TableHead>Status</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -127,6 +145,7 @@ const WorkerProfiles = () => {
                 </TableCell>
                 <TableCell>{duration} hours</TableCell>
                 <TableCell className="max-w-xs truncate">{shift.property.address}</TableCell>
+                <TableCell>{getStatusBadge(shift.status)}</TableCell>
               </TableRow>
             );
           })}
@@ -168,9 +187,6 @@ const WorkerProfiles = () => {
 
                 <div className="flex items-center justify-between text-sm">
                   <span>Supervisor ID: {worker.supervisor}</span>
-                </div>
-                <div className="flex items-center justify-between text-sm">
-                  <span>Postal Code: {worker.homePostalCode}</span>
                 </div>
 
                 <Dialog>
