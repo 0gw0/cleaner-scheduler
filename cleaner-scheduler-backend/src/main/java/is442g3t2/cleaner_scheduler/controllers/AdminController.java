@@ -2,6 +2,7 @@ package is442g3t2.cleaner_scheduler.controllers;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import is442g3t2.cleaner_scheduler.dto.admin.PostAdminRequest;
 import is442g3t2.cleaner_scheduler.models.Admin;
 
 import is442g3t2.cleaner_scheduler.repositories.AdminRepository;

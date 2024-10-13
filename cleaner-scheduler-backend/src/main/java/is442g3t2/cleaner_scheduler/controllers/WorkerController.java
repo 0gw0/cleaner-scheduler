@@ -5,14 +5,17 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import is442g3t2.cleaner_scheduler.dto.shift.AddShiftRequest;
 import is442g3t2.cleaner_scheduler.dto.shift.AddShiftResponse;
 import is442g3t2.cleaner_scheduler.dto.shift.GetShiftCountResponse;
+import is442g3t2.cleaner_scheduler.dto.worker.WorkerDTO;
 import is442g3t2.cleaner_scheduler.dto.worker.TakeLeaveRequest;
 import is442g3t2.cleaner_scheduler.exceptions.ShiftsOverlapException;
 import is442g3t2.cleaner_scheduler.models.property.Property;
 import is442g3t2.cleaner_scheduler.models.leave.AnnualLeave;
 import is442g3t2.cleaner_scheduler.models.leave.MedicalLeave;
 import is442g3t2.cleaner_scheduler.models.worker.Worker;
+import is442g3t2.cleaner_scheduler.models.Admin;
 import is442g3t2.cleaner_scheduler.models.shift.Frequency;
 import is442g3t2.cleaner_scheduler.models.shift.Shift;
+import is442g3t2.cleaner_scheduler.repositories.AdminRepository;
 import is442g3t2.cleaner_scheduler.repositories.PropertyRepository;
 import is442g3t2.cleaner_scheduler.repositories.WorkerRepository;
 import jakarta.validation.Valid;
@@ -25,6 +28,7 @@ import java.time.LocalDate;
 import java.time.LocalTime;
 import java.time.YearMonth;
 import java.util.List;
+import java.util.stream.Collectors;
 
 @RestController()
 @RequestMapping(path = "/workers")
@@ -32,10 +36,12 @@ public class WorkerController {
 
     private final WorkerRepository workerRepository;
     private final PropertyRepository propertyRepository;
+    private final AdminRepository adminRepository;
 
-    public WorkerController(WorkerRepository workerRepository, PropertyRepository propertyRepository) {
-        this.workerRepository = workerRepository;
-        this.propertyRepository = propertyRepository;
+    public WorkerController(WorkerRepository workerRepository, AdminRepository adminRepository, PropertyRepository propertyRepository) {
+    this.workerRepository = workerRepository;
+    this.adminRepository = adminRepository;
+    this.propertyRepository = propertyRepository;
     }
 
 
@@ -48,12 +54,20 @@ public class WorkerController {
         if (supervisorId == null) {
             workers = workerRepository.findAll();
         } else {
-            workers = workerRepository.findBySupervisorId(supervisorId);
+            workers = workerRepository.findBySupervisor_Id(supervisorId);
         }
 
         if (workers.isEmpty()) {
             return ResponseEntity.noContent().build();
         }
+        List<WorkerDTO> workerDTOs = workers.stream()
+            .map(worker -> new WorkerDTO(
+                worker.getId(),
+                worker.getName(),
+                worker.getPhoneNumber(),
+                worker.getBio(),
+                worker.getSupervisorId()))
+            .collect(Collectors.toList());
 
         return ResponseEntity.ok(workers);
     }
@@ -230,6 +244,26 @@ public class WorkerController {
                 () -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Worker not found")
         );
         return ResponseEntity.ok(worker.getTotalMedicalLeavesTakenByYear(year));
+    }
+
+    @Tag(name = "workers")
+    @Operation(description = "Create a new worker", summary = "Create a new worker")
+    @PostMapping("")
+    public ResponseEntity<Worker> createWorker(@RequestBody WorkerDTO postWorkerRequest) {
+        Worker worker = new Worker(
+            postWorkerRequest.getName(),
+            postWorkerRequest.getPhoneNumber(),
+            postWorkerRequest.getBio()
+        );
+
+        if (postWorkerRequest.getSupervisorId() != null) {
+            Admin supervisor = adminRepository.findById(postWorkerRequest.getSupervisorId())
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Supervisor not found"));
+            worker.setSupervisor(supervisor);
+        }
+
+        Worker savedWorker = workerRepository.save(worker);
+        return ResponseEntity.status(HttpStatus.CREATED).body(savedWorker);
     }
 
 

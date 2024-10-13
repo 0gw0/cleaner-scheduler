@@ -2,6 +2,7 @@ package is442g3t2.cleaner_scheduler.controllers;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import is442g3t2.cleaner_scheduler.dto.client.PostClientRequest;
 import is442g3t2.cleaner_scheduler.models.Client;
 import is442g3t2.cleaner_scheduler.repositories.ClientRepository;
 import org.springframework.http.HttpStatus;
