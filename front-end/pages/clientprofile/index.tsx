@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { Search, MapPin, User, Calendar } from "lucide-react";
+import { Search, MapPin, User, Calendar, Home } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -19,110 +19,38 @@ import {
   TableRow,
 } from "@/components/ui/table";
 
-// Types
-interface CleaningJob {
-  id: string;
-  type: string;
-  date: string;
-  status: string;
-  price: number;
+// Updated Types
+interface Property {
+  id: number;
+  address: string;
+  postalCode: string;
+  client: number;
 }
 
 interface Client {
   id: number;
   name: string;
-  address: string;
-  cleaningJobs: CleaningJob[];
-  preferredCleaner: string;
-  status: string;
+  properties: Property[];
 }
 
-// Mock Data
-const mockClients: Client[] = [
-  {
-    id: 1,
-    name: "Fraser Chua",
-    address: "Kovan S549610 Mansion",
-    status: "Active",
-    cleaningJobs: [
-      {
-        id: "1",
-        type: "Deep Cleaning",
-        date: "2024-03-15",
-        status: "Completed",
-        price: 200,
-      },
-      {
-        id: "2",
-        type: "Regular Cleaning",
-        date: "2024-03-22",
-        status: "Scheduled",
-        price: 120,
-      },
-      {
-        id: "3",
-        type: "Window Cleaning",
-        date: "2024-03-29",
-        status: "Pending",
-        price: 150,
-      },
-    ],
-    preferredCleaner: "Maria Rodriguez",
-
-  },
-  {
-    id: 2,
-    name: "Glen Wang",
-    address: "Botanic Garden S549120 Mansion",
-    status: "Active",
-    cleaningJobs: [
-      {
-        id: "4",
-        type: "Move-out Cleaning",
-        date: "2024-03-18",
-        status: "Scheduled",
-        price: 300,
-      },
-      {
-        id: "5",
-        type: "Regular Cleaning",
-        date: "2024-03-25",
-        status: "Pending",
-        price: 120,
-      },
-    ],
-    preferredCleaner: "Maria Arpit",
-  },
-  {
-    id: 3,
-    name: "Sasha Grey",
-    address: "789 Pine Road, Queens, NY 11375",
-    status: "Active",
-    cleaningJobs: [
-      {
-        id: "6",
-        type: "Deep Cleaning",
-        date: "2024-03-20",
-        status: "Completed",
-        price: 200,
-      },
-      {
-        id: "7",
-        type: "Regular Cleaning",
-        date: "2024-03-27",
-        status: "Scheduled",
-        price: 120,
-      },
-    ],
-    preferredCleaner: "Fatzilla Gorloc",
- 
-  },
-];
-
 const ClientProfiles = () => {
-  const [clients, setClients] = useState<Client[]>(mockClients);
+  const [clients, setClients] = useState<Client[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
-  const [filteredClients, setFilteredClients] = useState<Client[]>(clients);
+  const [filteredClients, setFilteredClients] = useState<Client[]>([]);
+
+  useEffect(() => {
+    const fetchClients = async () => {
+      try {
+        const response = await fetch('http://localhost:8080/clients');
+        const data = await response.json();
+        setClients(data);
+      } catch (error) {
+        console.error("Error fetching clients:", error);
+      }
+    };
+
+    fetchClients();
+  }, []);
 
   useEffect(() => {
     let results = [...clients];
@@ -131,49 +59,33 @@ const ClientProfiles = () => {
       results = results.filter(
         (client) =>
           client.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          client.address.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          client.preferredCleaner
-            .toLowerCase()
-            .includes(searchTerm.toLowerCase())
+          client.properties.some(property => 
+            property.address.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            property.postalCode.includes(searchTerm)
+          )
       );
     }
 
     setFilteredClients(results);
   }, [searchTerm, clients]);
 
-  const JobsDialog = ({ jobs }: { jobs: CleaningJob[] }) => (
+  const PropertiesDialog = ({ properties }: { properties: Property[] }) => (
     <DialogContent className="max-w-3xl">
       <DialogHeader>
-        <DialogTitle>Cleaning Jobs History</DialogTitle>
+        <DialogTitle>Client Properties</DialogTitle>
       </DialogHeader>
       <Table>
         <TableHeader>
           <TableRow>
-            <TableHead>Date</TableHead>
-            <TableHead>Type</TableHead>
-            <TableHead>Status</TableHead>
-            <TableHead>Price</TableHead>
+            <TableHead>Address</TableHead>
+            <TableHead>Postal Code</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
-          {jobs.map((job) => (
-            <TableRow key={job.id}>
-              <TableCell>{new Date(job.date).toLocaleDateString()}</TableCell>
-              <TableCell>{job.type}</TableCell>
-              <TableCell>
-                <span
-                  className={`px-2 py-1 rounded-full text-xs ${
-                    job.status === "Completed"
-                      ? "bg-green-100 text-green-800"
-                      : job.status === "Scheduled"
-                      ? "bg-blue-100 text-blue-800"
-                      : "bg-yellow-100 text-yellow-800"
-                  }`}
-                >
-                  {job.status}
-                </span>
-              </TableCell>
-              <TableCell>${job.price}</TableCell>
+          {properties.map((property) => (
+            <TableRow key={property.id}>
+              <TableCell>{property.address}</TableCell>
+              <TableCell>{property.postalCode}</TableCell>
             </TableRow>
           ))}
         </TableBody>
@@ -200,33 +112,28 @@ const ClientProfiles = () => {
         {filteredClients.map((client) => (
           <Card key={client.id} className="hover:shadow-lg transition-shadow">
             <CardHeader className="flex flex-row items-center space-x-4 pb-2">
-          
               <div className="flex-1">
                 <CardTitle className="text-lg">{client.name}</CardTitle>
-                <div className="flex items-center text-sm text-gray-500">
+                <div className="flex items-center text-sm text-gray-500 mt-2">
                   <MapPin className="w-4 h-4 mr-1" />
-                  <p className="truncate">{client.address}</p>
+                  <p className="truncate">{client.properties[0]?.address}</p>
                 </div>
+                <div className="flex items-center text-sm text-gray-500 mt-2">
+                  <User className="w-4 h-4 mr-1" />
+                  <p>Client ID: {client.id}</p>
+                </div>
+                
               </div>
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center text-sm text-gray-600">
-                    <User className="w-4 h-4 mr-1" />
-                    <span>Preferred Cleaner:</span>
+                    <Home className="w-4 h-4 mr-1" />
+                    <span>Postal Code:</span>
                   </div>
                   <span className="text-sm font-medium">
-                    {client.preferredCleaner}
-                  </span>
-                </div>
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center text-sm text-gray-600">
-                    <User className="w-4 h-4 mr-1" />
-                    <span>Status:</span>
-                  </div>
-                  <span className="text-sm font-medium">
-                    {client.status}
+                    {client.properties[0]?.postalCode}
                   </span>
                 </div>
 
@@ -234,44 +141,11 @@ const ClientProfiles = () => {
                   <DialogTrigger asChild>
                     <Button variant="outline" className="w-full">
                       <Calendar className="w-4 h-4 mr-2" />
-                      View Cleaning Jobs ({client.cleaningJobs.length})
+                      View Properties ({client.properties.length})
                     </Button>
                   </DialogTrigger>
-                  <JobsDialog jobs={client.cleaningJobs} />
+                  <PropertiesDialog properties={client.properties} />
                 </Dialog>
-
-                <div className="flex justify-between text-sm text-gray-500">
-                  <span>
-                    Last Service:{" "}
-                    {new Date(
-                      client.cleaningJobs.sort(
-                        (a, b) =>
-                          new Date(b.date).getTime() -
-                          new Date(a.date).getTime()
-                      )[0].date
-                    ).toLocaleDateString()}
-                  </span>
-                  <span>
-                    Next Service:{" "}
-                    {client.cleaningJobs
-                      .filter((job) => job.status === "Scheduled")
-                      .sort(
-                        (a, b) =>
-                          new Date(a.date).getTime() -
-                          new Date(b.date).getTime()
-                      )[0]?.date
-                      ? new Date(
-                          client.cleaningJobs
-                            .filter((job) => job.status === "Scheduled")
-                            .sort(
-                              (a, b) =>
-                                new Date(a.date).getTime() -
-                                new Date(b.date).getTime()
-                            )[0].date
-                        ).toLocaleDateString()
-                      : "None scheduled"}
-                  </span>
-                </div>
               </div>
             </CardContent>
           </Card>

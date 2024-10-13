@@ -27,261 +27,69 @@ import {
   PaginationNext,
   PaginationPrevious,
 } from "@/components/ui/pagination";
-import { WorkerData, ScheduleItem } from "@/types/dashboard";
 
+interface Shift {
+  id: number;
+  worker: number;
+  property: {
+    propertyId: number;
+    clientId: number;
+    address: string;
+    postalCode: string;
+  };
+  date: string;
+  startTime: string;
+  endTime: string;
+}
 
-export const mockWorkers: WorkerData[] = [
-  {
-    id: 1,
-    name: "David Chen",
-    shifts: [
-      {
-        date: "2024-07-23",
-        startTime: "09:00:00",
-        endTime: "17:00:00",
-        valid: true
-      },
-      {
-        date: "2024-12-19",
-        startTime: "09:00:00",
-        endTime: "17:00:00",
-        valid: true
-      },
-      {
-        date: "2024-10-07",
-        startTime: "09:00:00",
-        endTime: "17:00:00",
-        valid: true
-      },
-      {
-        date: "2024-04-02",
-        startTime: "09:00:00",
-        endTime: "17:00:00",
-        valid: false
-      }
-    ],
-    schedule: [
-      {
-        id: "1a",
-        date: "2024-11-24",
-        startTime: "13:00:00",
-        endTime: "16:00:00",
-        location: "123 Main St, Brooklyn, NY 11201",
-        client_id: 1,
-        valid: true,
-        status: "upcoming"
-      },
-      {
-        id: "1b",
-        date: "2024-11-24",
-        startTime: "14:00:00",
-        endTime: "17:00:00",
-        location: "456 Park Ave, Manhattan, NY 10022",
-        client_id: 2,
-        valid: true,
-        status: "upcoming"
-      }
-    ],
-    phoneNumber: "(499) 653-2151",
-    supervisor: 1,
-    supervisor_number: "(974) 308-8994",
-    bio: "Experienced house cleaner specializing in eco-friendly cleaning solutions"
-  },
-  {
-    id: 2,
-    name: "Sarah Johnson",
-    shifts: [
-      {
-        date: "2024-08-15",
-        startTime: "08:00:00",
-        endTime: "16:00:00",
-        valid: true
-      },
-      {
-        date: "2024-09-01",
-        startTime: "09:00:00",
-        endTime: "17:00:00",
-        valid: false
-      }
-    ],
-    schedule: [
-      {
-        id: "2a",
-        date: "2024-10-05",
-        startTime: "10:00:00",
-        endTime: "14:00:00",
-        location: "789 Broadway, Queens, NY 11373",
-        client_id: 3,
-        valid: true,
-        status: "upcoming"
-      },
-      {
-        id: "2b",
-        date: "2024-10-06",
-        startTime: "09:00:00",
-        endTime: "12:00:00",
-        location: "321 5th Ave, Manhattan, NY 10016",
-        client_id: 4,
-        valid: true,
-        status: "upcoming"
-      },
-      {
-        id: "2c",
-        date: "2024-09-30",
-        startTime: "13:00:00",
-        endTime: "17:00:00",
-        location: "654 Atlantic Ave, Brooklyn, NY 11217",
-        client_id: 5,
-        valid: false,
-        status: "cancelled",
-        cancelReason: "Client rescheduled"
-      }
-    ],
-    phoneNumber: "(212) 555-1234",
-    supervisor: 3,
-    supervisor_number: "(212) 555-5678",
-    bio: "Detailed-oriented cleaner with 5+ years of experience in residential cleaning"
-  },
-  {
-    id: 3,
-    name: "Michael Rodriguez",
-    shifts: [
-      {
-        date: "2024-11-01",
-        startTime: "07:00:00",
-        endTime: "15:00:00",
-        valid: true
-      },
-      {
-        date: "2024-11-02",
-        startTime: "07:00:00",
-        endTime: "15:00:00",
-        valid: true
-      }
-    ],
-    schedule: [
-      {
-        id: "3a",
-        date: "2024-10-15",
-        startTime: "08:00:00",
-        endTime: "11:00:00",
-        location: "987 Northern Blvd, Queens, NY 11101",
-        client_id: 6,
-        valid: true,
-        status: "completed"
-      },
-      {
-        id: "3b",
-        date: "2024-10-15",
-        startTime: "13:00:00",
-        endTime: "16:00:00",
-        location: "147 Madison Ave, Manhattan, NY 10016",
-        client_id: 7,
-        valid: true,
-        status: "completed"
-      }
-    ],
-    phoneNumber: "(347) 555-9876",
-    supervisor: 2,
-    supervisor_number: "(347) 555-4321",
-    bio: "Experienced in both residential and commercial cleaning with a focus on customer satisfaction"
-  },
-  {
-    id: 4,
-    name: "Emily Nguyen",
-    shifts: [
-      {
-        date: "2024-12-01",
-        startTime: "09:00:00",
-        endTime: "17:00:00",
-        valid: true
-      },
-      {
-        date: "2024-12-02",
-        startTime: "09:00:00",
-        endTime: "17:00:00",
-        valid: true
-      }
-    ],
-    schedule: [
-      {
-        id: "4a",
-        date: "2024-11-20",
-        startTime: "10:00:00",
-        endTime: "13:00:00",
-        location: "258 Court St, Brooklyn, NY 11201",
-        client_id: 8,
-        valid: true,
-        status: "upcoming"
-      }
-    ],
-    phoneNumber: "(718) 555-3456",
-    supervisor: 1,
-    supervisor_number: "(718) 555-7890",
-    bio: "Specializes in green cleaning techniques and allergy-friendly cleaning products"
-  },
-  {
-    id: 5,
-    name: "James Wilson",
-    shifts: [
-      {
-        date: "2024-10-10",
-        startTime: "08:00:00",
-        endTime: "16:00:00",
-        valid: true
-      },
-      {
-        date: "2024-10-11",
-        startTime: "08:00:00",
-        endTime: "16:00:00",
-        valid: false
-      }
-    ],
-    schedule: [
-      {
-        id: "5a",
-        date: "2024-10-01",
-        startTime: "09:00:00",
-        endTime: "12:00:00",
-        location: "123 Main St, Brooklyn, NY 11201",
-        client_id: 1,
-        valid: true,
-        status: "completed"
-      },
-      {
-        id: "5b",
-        date: "2024-10-01",
-        startTime: "14:00:00",
-        endTime: "17:00:00",
-        location: "456 Park Ave, Manhattan, NY 10022",
-        client_id: 2,
-        valid: true,
-        status: "completed"
-      }
-    ],
-    phoneNumber: "(646) 555-2468",
-    supervisor: 3,
-    supervisor_number: "(646) 555-1357",
-    bio: "Experienced in high-end residential cleaning with attention to detail"
-  }
-];
+interface Leave {
+  id: number;
+  startDate: string;
+  endDate: string;
+}
+
+interface WorkerData {
+  id: number;
+  name: string;
+  shifts: Shift[];
+  phoneNumber: string;
+  supervisor: number;
+  bio: string;
+  annualLeaves: Leave[];
+  medicalLeaves: Leave[];
+  homePostalCode: string;
+}
 
 const WorkerProfiles = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
-  const [filteredWorkers, setFilteredWorkers] = useState<WorkerData[]>(mockWorkers);
+  const [workerData, setWorkerData] = useState<WorkerData[]>([]);
+  const [filteredWorkers, setFilteredWorkers] = useState<WorkerData[]>([]);
   const workersPerPage = 9;
 
   useEffect(() => {
-    const results = mockWorkers.filter(
+    const fetchWorkerData = async () => {
+      const userWorkers = JSON.parse(localStorage.getItem('user') || '{}').workers || [];
+      const workerPromises = userWorkers.map((id: number) => 
+        fetch(`http://localhost:8080/workers/${id}`).then(res => res.json())
+      );
+      const workers = await Promise.all(workerPromises);
+      setWorkerData(workers);
+      setFilteredWorkers(workers);
+    };
+
+    fetchWorkerData();
+  }, []);
+
+  useEffect(() => {
+    const results = workerData.filter(
       (worker) =>
         worker.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        worker.phoneNumber.includes(searchTerm) ||
         worker.bio.toLowerCase().includes(searchTerm.toLowerCase())
     );
     setFilteredWorkers(results);
     setCurrentPage(1);
-  }, [searchTerm]);
+  }, [searchTerm, workerData]);
 
   const indexOfLastWorker = currentPage * workersPerPage;
   const indexOfFirstWorker = indexOfLastWorker - workersPerPage;
@@ -291,7 +99,7 @@ const WorkerProfiles = () => {
   );
   const totalPages = Math.ceil(filteredWorkers.length / workersPerPage);
 
-  const ScheduleDialog = ({ schedule }: { schedule: ScheduleItem[] }) => (
+  const ScheduleDialog = ({ shifts }: { shifts: Shift[] }) => (
     <DialogContent className="max-w-3xl">
       <DialogHeader>
         <DialogTitle>Worker Schedule</DialogTitle>
@@ -303,32 +111,22 @@ const WorkerProfiles = () => {
             <TableHead>Time</TableHead>
             <TableHead>Duration</TableHead>
             <TableHead>Location</TableHead>
-            <TableHead>Status</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
-          {schedule.map((appointment) => {
-            const startTime = new Date(`2024-01-01T${appointment.startTime}`);
-            const endTime = new Date(`2024-01-01T${appointment.endTime}`);
+          {shifts.map((shift) => {
+            const startTime = new Date(`2024-01-01T${shift.startTime}`);
+            const endTime = new Date(`2024-01-01T${shift.endTime}`);
             const duration = (endTime.getTime() - startTime.getTime()) / (1000 * 60 * 60);
             
             return (
-              <TableRow key={appointment.id}>
-                <TableCell>{new Date(appointment.date).toLocaleDateString()}</TableCell>
+              <TableRow key={shift.id}>
+                <TableCell>{new Date(shift.date).toLocaleDateString()}</TableCell>
                 <TableCell>
-                  {appointment.startTime.slice(0, 5)} - {appointment.endTime.slice(0, 5)}
+                  {shift.startTime.slice(0, 5)} - {shift.endTime.slice(0, 5)}
                 </TableCell>
                 <TableCell>{duration} hours</TableCell>
-                <TableCell className="max-w-xs truncate">{appointment.location}</TableCell>
-                <TableCell>
-                  <span className={`px-2 py-1 rounded-full text-xs ${
-                    appointment.status === 'completed' ? 'bg-green-100 text-green-800' :
-                    appointment.status === 'upcoming' ? 'bg-blue-100 text-blue-800' :
-                    'bg-red-100 text-red-800'
-                  }`}>
-                    {appointment.status.charAt(0).toUpperCase() + appointment.status.slice(1)}
-                  </span>
-                </TableCell>
+                <TableCell className="max-w-xs truncate">{shift.property.address}</TableCell>
               </TableRow>
             );
           })}
@@ -370,22 +168,24 @@ const WorkerProfiles = () => {
 
                 <div className="flex items-center justify-between text-sm">
                   <span>Supervisor ID: {worker.supervisor}</span>
-                  <span>{worker.supervisor_number}</span>
+                </div>
+                <div className="flex items-center justify-between text-sm">
+                  <span>Postal Code: {worker.homePostalCode}</span>
                 </div>
 
                 <Dialog>
                   <DialogTrigger asChild>
                     <Button variant="outline" className="w-full">
                       <Calendar className="w-4 h-4 mr-2" />
-                      View Schedule ({worker.schedule.length} appointments)
+                      View Schedule ({worker.shifts.length} shifts)
                     </Button>
                   </DialogTrigger>
-                  <ScheduleDialog schedule={worker.schedule} />
+                  <ScheduleDialog shifts={worker.shifts} />
                 </Dialog>
 
                 <div className="flex justify-between text-sm text-gray-500">
                   <span>
-                    Active Shifts: {worker.shifts.filter((shift) => shift.valid).length}
+                    Total Shifts: {worker.shifts.length}
                   </span>
                   <span>
                     Next Shift: {
