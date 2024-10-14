@@ -248,11 +248,11 @@ public class WorkerController {
             postWorkerRequest.getBio()
         );
 
-        if (postWorkerRequest.getSupervisorId() != null) {
-            Admin supervisor = adminRepository.findById(postWorkerRequest.getSupervisorId())
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Supervisor not found"));
-            worker.setSupervisor(supervisor);
-        }
+    
+        Admin supervisor = adminRepository.findById(postWorkerRequest.getSupervisorId())
+            .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Supervisor not found"));
+        worker.setSupervisor(supervisor);
+    
 
         Worker savedWorker = workerRepository.save(worker);
         return ResponseEntity.status(HttpStatus.CREATED).body(savedWorker);
