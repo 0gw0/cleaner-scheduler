@@ -10,5 +10,5 @@ import java.util.List;
 public interface WorkerRepository extends JpaRepository<Worker, Long> {
 
 
-    List<Worker> findBySupervisorId(Long supervisorId);
+    List<Worker> findBySupervisor_Id(Long supervisorId);
 }

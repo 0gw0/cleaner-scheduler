@@ -2,6 +2,7 @@ package is442g3t2.cleaner_scheduler.controllers;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import is442g3t2.cleaner_scheduler.dto.admin.PostAdminRequest;
 import is442g3t2.cleaner_scheduler.models.Admin;
 
 import is442g3t2.cleaner_scheduler.repositories.AdminRepository;
@@ -15,6 +16,9 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.util.List;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+
 
 @RestController
 @RequestMapping("/admins")
@@ -46,5 +50,10 @@ public class AdminController {
                 ));
     }
 
-
+    @PostMapping("")
+    public ResponseEntity<Admin> createAdmin(@RequestBody PostAdminRequest adminCreateDTO) {
+        Admin admin = new Admin(adminCreateDTO.getName());
+        Admin newAdmin = adminRepository.save(admin);
+        return ResponseEntity.status(HttpStatus.CREATED).body(newAdmin);
+    }
 }
