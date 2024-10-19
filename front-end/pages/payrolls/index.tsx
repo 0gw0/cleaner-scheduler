@@ -9,7 +9,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import { Loader2, DollarSign, Clock, UserCheck } from "lucide-react";
+import { Loader2, DollarSign, Clock, UserCheck, Mail } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -25,6 +25,10 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Input } from "@/components/ui/input";
+import jsPDF from "jspdf";
+import "jspdf-autotable";
+import emailjs from "emailjs-com";
 
 interface Worker {
   id: number;
@@ -67,8 +71,13 @@ const PayrollManagementPage: React.FC = () => {
   const [payrollData, setPayrollData] = useState<PayrollData[]>([]);
   const [loading, setLoading] = useState(true);
   const [showSuccessAlert, setShowSuccessAlert] = useState(false);
+  const [successMessage, setSuccessMessage] = useState("");
+  const [showEmailDialog, setShowEmailDialog] = useState(false);
+  const [email, setEmail] = useState("");
+  const [pdfBlob, setPdfBlob] = useState<Blob | null>(null);
+  const [sendingEmail, setSendingEmail] = useState(false);
   const [selectedMonth, setSelectedMonth] = useState<string>(
-    new Date().toISOString().slice(0, 7) 
+    new Date().toISOString().slice(0, 7)
   );
 
   useEffect(() => {
@@ -136,14 +145,130 @@ const PayrollManagementPage: React.FC = () => {
     setPayrollData(payrollInfo);
   };
 
-  const handleProcessPayroll = () => {
-    console.log("Processing payroll:", payrollData);
-    setShowSuccessAlert(true);
-    setTimeout(() => setShowSuccessAlert(false), 3000);
+  const generatePDF = () => {
+    const doc = new jsPDF();
+    const monthYear = new Date(selectedMonth).toLocaleString("default", {
+      month: "long",
+      year: "numeric",
+    });
+
+    // Title
+    doc.setFontSize(20);
+    doc.text(`Payroll Report - ${monthYear}`, 15, 20);
+
+    // Summary
+    doc.setFontSize(12);
+    doc.text(`Total Payroll: $${totalPayroll.toFixed(2)}`, 15, 35);
+    doc.text(`Total Workers: ${totalWorkers}`, 15, 42);
+    doc.text(`Average Pay: $${averagePay.toFixed(2)}`, 15, 49);
+
+    // Payroll table
+    const tableData = payrollData.map((worker) => [
+      worker.workerName,
+      worker.regularHours.toFixed(2),
+      worker.overtimeHours.toFixed(2),
+      `$${worker.regularPay.toFixed(2)}`,
+      `$${worker.overtimePay.toFixed(2)}`,
+      `$${worker.totalPay.toFixed(2)}`,
+    ]);
+
+    (doc as any).autoTable({
+      startY: 60,
+      head: [
+        [
+          "Worker",
+          "Regular Hours",
+          "OT Hours",
+          "Regular Pay",
+          "OT Pay",
+          "Total Pay",
+        ],
+      ],
+      body: tableData,
+    });
+
+    // Shift details
+    let yPos = (doc as any).lastAutoTable.finalY + 20;
+
+    payrollData.forEach((worker) => {
+      if (yPos > 250) {
+        doc.addPage();
+        yPos = 20;
+      }
+
+      doc.setFontSize(14);
+      doc.text(`${worker.workerName}'s Shifts`, 15, yPos);
+      yPos += 10;
+
+      const shiftsData = worker.shifts.map((shift) => [
+        shift.date,
+        shift.startTime,
+        shift.endTime,
+        shift.property.address,
+        shift.status,
+      ]);
+
+      (doc as any).autoTable({
+        startY: yPos,
+        head: [["Date", "Start Time", "End Time", "Address", "Status"]],
+        body: shiftsData,
+      });
+
+      yPos = (doc as any).lastAutoTable.finalY + 15;
+    });
+
+    return doc.output("blob");
   };
 
-  const handleMonthChange = (value: string) => {
-    setSelectedMonth(value);
+  const handleProcessPayroll = () => {
+    if (payrollData.length === 0) {
+      setSuccessMessage("No payroll data available for the selected month.");
+      setShowSuccessAlert(true);
+      setTimeout(() => setShowSuccessAlert(false), 3000);
+      return;
+    }
+
+    const blob = generatePDF();
+    setPdfBlob(blob);
+    setShowEmailDialog(true);
+  };
+
+  const handleSendEmail = async () => {
+    if (!email || !pdfBlob) return;
+
+    setSendingEmail(true);
+    try {
+      // Convert PDF blob to base64
+      const reader = new FileReader();
+      reader.readAsDataURL(pdfBlob);
+
+      reader.onload = async () => {
+        const base64Data = reader.result?.toString().split(",")[1];
+
+        await emailjs.send(
+          "service_k6ukh8a",
+          "template_w91f0wc",
+          {
+            to_email: email,
+            message: `Payroll report for ${selectedMonth}`,
+            pdf_attachment: base64Data,
+            filename: `payroll-${selectedMonth}.pdf`,
+          },
+          "nBkme_CQ_uGVex77j"
+        );
+
+        setShowEmailDialog(false);
+        setSuccessMessage("Payroll report sent successfully!");
+        setShowSuccessAlert(true);
+        setTimeout(() => setShowSuccessAlert(false), 3000);
+      };
+    } catch (error) {
+      console.error("Error sending email:", error);
+      setSuccessMessage("Error sending email. Please try again.");
+      setShowSuccessAlert(true);
+    } finally {
+      setSendingEmail(false);
+    }
   };
 
   if (loading) {
@@ -168,15 +293,17 @@ const PayrollManagementPage: React.FC = () => {
       </h1>
 
       <div className="flex justify-end mb-4">
-        <Select onValueChange={handleMonthChange} value={selectedMonth}>
+        <Select onValueChange={setSelectedMonth} value={selectedMonth}>
           <SelectTrigger className="w-[180px]">
             <SelectValue placeholder="Select month" />
           </SelectTrigger>
           <SelectContent>
             {Array.from({ length: 12 }, (_, i) => {
+              const month = String(i + 1).padStart(2, "0");
+              const value = `2024-${month}`;
               const date = new Date(2024, i, 1);
               return (
-                <SelectItem key={i} value={date.toISOString().slice(0, 7)}>
+                <SelectItem key={i} value={value}>
                   {date.toLocaleString("default", {
                     month: "long",
                     year: "numeric",
@@ -326,11 +453,51 @@ const PayrollManagementPage: React.FC = () => {
         </Button>
       </div>
 
+      <Dialog open={showEmailDialog} onOpenChange={setShowEmailDialog}>
+        <DialogContent className="max-w-3xl">
+          <DialogHeader>
+            <DialogTitle>Send Payroll Report</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="flex gap-4 items-center">
+              <Input
+                type="email"
+                placeholder="Enter email address"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+              />
+              <Button
+                onClick={handleSendEmail}
+                disabled={!email || sendingEmail}
+              >
+                {sendingEmail ? (
+                  <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                ) : (
+                  <Mail className="h-4 w-4 mr-2" />
+                )}
+                Send Report
+              </Button>
+            </div>
+
+            <div className="border rounded-lg p-4">
+              <h3 className="font-semibold mb-2">Preview</h3>
+              {pdfBlob && (
+                <iframe
+                  src={URL.createObjectURL(pdfBlob)}
+                  className="w-full h-[600px] border rounded"
+                  title="Payroll PDF Preview"
+                />
+              )}
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
       {showSuccessAlert && (
         <Alert variant="default" className="mt-4 bg-green-100 border-green-500">
           <AlertTitle className="text-green-800">Success</AlertTitle>
           <AlertDescription className="text-green-700">
-            Payroll processed successfully!
+            {successMessage}
           </AlertDescription>
         </Alert>
       )}
