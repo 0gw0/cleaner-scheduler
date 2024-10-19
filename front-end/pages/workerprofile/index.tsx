@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Search, Phone, Calendar } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { useRouter } from "next/router";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Dialog,
@@ -68,11 +69,16 @@ const WorkerProfiles = () => {
   const [workerData, setWorkerData] = useState<WorkerData[]>([]);
   const [filteredWorkers, setFilteredWorkers] = useState<WorkerData[]>([]);
   const workersPerPage = 9;
+  const router = useRouter();
+
+  const handleViewSchedule = (workerId: number) => {
+    router.push(`/workerdashboard/${workerId}`);
+  };
 
   useEffect(() => {
     const fetchWorkerData = async () => {
       const userWorkers = JSON.parse(localStorage.getItem('user') || '{}').workers || [];
-      const workerPromises = userWorkers.map((id: number) => 
+      const workerPromises = userWorkers.map((id: number) =>
         fetch(`http://localhost:8080/workers/${id}`).then(res => res.json())
       );
       const workers = await Promise.all(workerPromises);
@@ -136,7 +142,7 @@ const WorkerProfiles = () => {
             const startTime = new Date(`2024-01-01T${shift.startTime}`);
             const endTime = new Date(`2024-01-01T${shift.endTime}`);
             const duration = (endTime.getTime() - startTime.getTime()) / (1000 * 60 * 60);
-            
+
             return (
               <TableRow key={shift.id}>
                 <TableCell>{new Date(shift.date).toLocaleDateString()}</TableCell>
@@ -189,7 +195,7 @@ const WorkerProfiles = () => {
                   <span>Supervisor ID: {worker.supervisor}</span>
                 </div>
 
-                <Dialog>
+                {/* <Dialog>
                   <DialogTrigger asChild>
                     <Button variant="outline" className="w-full">
                       <Calendar className="w-4 h-4 mr-2" />
@@ -197,8 +203,18 @@ const WorkerProfiles = () => {
                     </Button>
                   </DialogTrigger>
                   <ScheduleDialog shifts={worker.shifts} />
-                </Dialog>
+                </Dialog> */}
 
+                <div className="text-center">
+                  <Button
+                    variant="link"
+                    className="text-blue-600 hover:underline"
+                    onClick={() => handleViewSchedule(worker.id)}
+                  >
+                    View {worker.name}'s Schedule
+                  </Button>
+                  
+                </div>
                 <div className="flex justify-between text-sm text-gray-500">
                   <span>
                     Total Shifts: {worker.shifts.length}

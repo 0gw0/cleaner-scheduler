@@ -4,7 +4,7 @@ import {
   MonthlyData,
   ClientData,
   WorkerData,
-Shift,
+  Shift,
 } from "@/types/dashboard";
 import AdminDashboard from "@/components/AdminDashboard";
 import WorkerDashboard from "@/components/WorkerDashboard";
@@ -14,7 +14,7 @@ const Dashboard: React.FC = () => {
   const [userData, setUserData] = useState<UserData | null>(null);
   const [clients, setClients] = useState<ClientData[]>([]);
   const [workerData, setWorkerData] = useState<WorkerData[]>([]);
-  const [worker] = useState<WorkerData>({...JSON.parse(localStorage.getItem('user') || '{}')});
+  const [worker] = useState<WorkerData>({ ...JSON.parse(localStorage.getItem('user') || '{}') });
   const [monthlyData, setMonthlyData] = useState<MonthlyData[]>([]);
 
   useEffect(() => {
