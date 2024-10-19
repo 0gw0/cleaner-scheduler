@@ -28,7 +28,6 @@ import {
 import { Input } from "@/components/ui/input";
 import jsPDF from "jspdf";
 import "jspdf-autotable";
-import emailjs from "emailjs-com";
 
 interface Worker {
   id: number;
@@ -232,42 +231,59 @@ const PayrollManagementPage: React.FC = () => {
     setPdfBlob(blob);
     setShowEmailDialog(true);
   };
-
   const handleSendEmail = async () => {
-    if (!email || !pdfBlob) return;
+    if (!email || !pdfBlob) {
+      setSuccessMessage("Missing email or PDF data");
+      setShowSuccessAlert(true);
+      return;
+    }
 
     setSendingEmail(true);
     try {
       // Convert PDF blob to base64
-      const reader = new FileReader();
-      reader.readAsDataURL(pdfBlob);
+      const base64Data = await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => {
+          const result = reader.result?.toString().split(",")[1];
+          if (result) {
+            resolve(result);
+          } else {
+            reject(new Error("Failed to convert PDF to base64"));
+          }
+        };
+        reader.onerror = () => reject(reader.error);
+        reader.readAsDataURL(pdfBlob);
+      });
 
-      reader.onload = async () => {
-        const base64Data = reader.result?.toString().split(",")[1];
+      const response = await fetch("/api/send-payroll", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          to: email,
+          subject: `Payroll Report - ${selectedMonth}`,
+          pdfData: base64Data,
+          filename: `payroll-${selectedMonth}.pdf`,
+        }),
+      });
 
-        await emailjs.send(
-          "service_k6ukh8a",
-          "template_w91f0wc",
-          {
-            to_email: email,
-            message: `Payroll report for ${selectedMonth}`,
-            pdf_attachment: base64Data,
-            filename: `payroll-${selectedMonth}.pdf`,
-          },
-          "nBkme_CQ_uGVex77j"
-        );
+      const data = await response.json();
 
-        setShowEmailDialog(false);
-        setSuccessMessage("Payroll report sent successfully!");
-        setShowSuccessAlert(true);
-        setTimeout(() => setShowSuccessAlert(false), 3000);
-      };
-    } catch (error) {
+      if (!response.ok) {
+        throw new Error(data.error || "Failed to send email");
+      }
+
+      setShowEmailDialog(false);
+      setSuccessMessage("Payroll report sent successfully!");
+      setShowSuccessAlert(true);
+    } catch (error: any) {
       console.error("Error sending email:", error);
-      setSuccessMessage("Error sending email. Please try again.");
+      setSuccessMessage(`Error sending email: ${error.message}`);
       setShowSuccessAlert(true);
     } finally {
       setSendingEmail(false);
+      setTimeout(() => setShowSuccessAlert(false), 3000);
     }
   };
 

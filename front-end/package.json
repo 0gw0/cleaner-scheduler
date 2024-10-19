@@ -34,6 +34,7 @@
     "react-big-calendar": "^1.14.0",
     "react-dom": "^18",
     "recharts": "^2.12.7",
+    "resend": "^4.0.0",
     "tailwind-merge": "^2.5.2",
     "tailwindcss-animate": "^1.0.7"
   },
