@@ -1,11 +1,11 @@
 import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
-import { ShiftData } from '@/types/task';
+import { Shift } from '@/types/task';
 import { CalendarIcon, ClockIcon, MapPinIcon, UserIcon, BuildingIcon } from 'lucide-react';
 
 interface TaskDetailModalProps {
-  shiftData: ShiftData;
+  shiftData: Shift;
   isOpen: boolean;
   onClose: () => void;
 }
@@ -18,10 +18,23 @@ export const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ shiftData, isO
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
+      
       <DialogContent className="sm:max-w-[425px]">
+        
         <DialogHeader>
           <DialogTitle>Task Details</DialogTitle>
           <DialogDescription>Detailed information about the selected task.</DialogDescription>
+          <span
+      className={`absolute top-2 right-2 px-2 py-1 rounded-full text-xs z-10 font-semibold ${
+      shiftData.status === "COMPLETED"
+        ? "bg-green-100 text-green-600"
+        : shiftData.status === "IN PROGRESS"
+        ? "bg-yellow-100 text-yellow-600"
+        : "bg-blue-100 text-blue-600"
+        }`}
+      >
+        {shiftData.status}
+      </span>
         </DialogHeader>
         <div className="grid gap-4 py-4">
           {/* Property Address */}
@@ -47,7 +60,7 @@ export const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ shiftData, isO
             <span className="font-bold col-span-1">Date:</span>
             <span className="col-span-3 flex items-center">
               <CalendarIcon className="w-4 h-4 mr-2" />
-              {shiftData.date.toDateString()}
+              {shiftData.date}
             </span>
           </div>
 
@@ -56,7 +69,7 @@ export const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ shiftData, isO
             <span className="font-bold col-span-1">Time:</span>
             <span className="col-span-3 flex items-center">
               <ClockIcon className="w-4 h-4 mr-2" />
-              {formatTime(shiftData.startTime)} - {formatTime(shiftData.endTime)}
+              {shiftData.startTime} - {shiftData.endTime}
             </span>
           </div>
 
