@@ -3,6 +3,8 @@ import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Shift } from '@/types/task';
 import { CalendarIcon, ClockIcon, MapPinIcon, UserIcon, BuildingIcon } from 'lucide-react';
+import Image from 'next/image'
+
 
 interface TaskDetailModalProps {
   shiftData: Shift;
@@ -16,6 +18,7 @@ export const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ shiftData, isO
     return `${time.hour.toString().padStart(2, '0')}:${time.minute.toString().padStart(2, '0')}`;
   };
 
+
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       
@@ -25,14 +28,14 @@ export const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ shiftData, isO
           <DialogTitle>Task Details</DialogTitle>
           <DialogDescription>Detailed information about the selected task.</DialogDescription>
           <span
-      className={`absolute top-2 right-2 px-2 py-1 rounded-full text-xs z-10 font-semibold ${
-      shiftData.status === "COMPLETED"
-        ? "bg-green-100 text-green-600"
-        : shiftData.status === "IN PROGRESS"
-        ? "bg-yellow-100 text-yellow-600"
-        : "bg-blue-100 text-blue-600"
-        }`}
-      >
+          className={`absolute top-2 right-2 px-2 py-1 rounded-full text-xs z-10 font-semibold ${
+          shiftData.status === "COMPLETED"
+            ? "bg-green-100 text-green-600"
+            : shiftData.status === "IN PROGRESS"
+            ? "bg-yellow-100 text-yellow-600"
+            : "bg-blue-100 text-blue-600"
+            }`}
+          >
         {shiftData.status}
       </span>
         </DialogHeader>
@@ -91,6 +94,22 @@ export const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ shiftData, isO
             </span>
           </div>
         </div>
+
+        {/* Photo of proof */}
+        {/* TO DO: Fetch URL of photo from db */}
+        {/* Reminder: You need to add the URLs of the image to next.config.mjs file */}
+        {(shiftData.status === "COMPLETED" || shiftData.status === "IN PROGRESS") &&
+        <div className="grid grid-cols-4 items-center gap-4">
+        <span className="font-bold col-span-1">Photo:</span>
+            <Image
+              src = "https://i.pinimg.com/736x/a5/38/d4/a538d48a27ac95d5e581f4df22d13fc3.jpg"
+              alt="Picture of the author"
+              width={300}
+              height={300}
+            />
+        </div>}
+        
+        
         <Button onClick={onClose}>Close</Button>
       </DialogContent>
     </Dialog>
