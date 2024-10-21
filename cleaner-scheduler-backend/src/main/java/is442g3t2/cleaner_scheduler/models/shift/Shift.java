@@ -44,6 +44,8 @@ public class Shift {
     @Column(nullable = false)
     private ShiftStatus status;
 
+    @Embedded
+    private ArrivalImage arrivalImage;
 
 
     public Shift(LocalDate date, LocalTime startTime, LocalTime endTime, Property property, ShiftStatus status) throws InvalidShiftException {
