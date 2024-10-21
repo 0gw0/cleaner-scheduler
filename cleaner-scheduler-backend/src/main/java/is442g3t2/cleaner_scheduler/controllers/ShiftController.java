@@ -5,15 +5,21 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import is442g3t2.cleaner_scheduler.dto.worker.FindClosestAvailableWorkersRequest;
 import is442g3t2.cleaner_scheduler.dto.worker.FindClosestAvailableWorkersResponse;
+import is442g3t2.cleaner_scheduler.models.shift.ArrivalImage;
 import is442g3t2.cleaner_scheduler.models.worker.Worker;
 import is442g3t2.cleaner_scheduler.models.worker.WorkerWithTravelTime;
 import is442g3t2.cleaner_scheduler.models.shift.Shift;
+import is442g3t2.cleaner_scheduler.repositories.ShiftRepository;
 import is442g3t2.cleaner_scheduler.repositories.WorkerRepository;
+import is442g3t2.cleaner_scheduler.services.S3Service;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
-import java.util.List;
-import java.util.Objects;
+import java.io.IOException;
+import java.net.URL;
+import java.util.*;
 import java.util.stream.Collectors;
 
 import static is442g3t2.cleaner_scheduler.models.property.Property.getCoordinatesFromPostalCode;
@@ -26,9 +32,13 @@ public class ShiftController {
 
 
     private final WorkerRepository workerRepository;
+    private final ShiftRepository shiftRepository;
+    private final S3Service s3Service;
 
-    public ShiftController(WorkerRepository workerRepository) {
+    public ShiftController(WorkerRepository workerRepository, ShiftRepository shiftRepository, S3Service s3Service) {
         this.workerRepository = workerRepository;
+        this.shiftRepository = shiftRepository;
+        this.s3Service = s3Service;
     }
 
     @PostMapping("/available-workers")
@@ -108,5 +118,86 @@ public class ShiftController {
     private boolean filterByMonth(Shift shift, Integer month) {
         return month == null || shift.getDate().getMonthValue() == month;
     }
+
+    @PostMapping("/{shiftId}/arrival-image")
+    public ResponseEntity<?> uploadArrivalImage(
+            @PathVariable Long shiftId,
+            @RequestParam("file") MultipartFile file) {
+        try {
+            if (file.isEmpty()) {
+                return ResponseEntity
+                        .status(HttpStatus.BAD_REQUEST)
+                        .body(createErrorResponse("Error: Please select a file to upload"));
+            }
+
+            Optional<Shift> shiftOptional = shiftRepository.findById(shiftId);
+            if (shiftOptional.isEmpty()) {
+                return ResponseEntity
+                        .status(HttpStatus.NOT_FOUND)
+                        .body(createErrorResponse("Error: Shift not found with id: " + shiftId));
+            }
+            Shift shift = shiftOptional.get();
+
+            String s3Key = "arrivals/" + shiftId + "/" + file.getOriginalFilename();
+            s3Service.saveToS3(s3Key, file.getInputStream(), file.getContentType());
+
+            ArrivalImage arrivalImage = new ArrivalImage(s3Key, file.getOriginalFilename());
+            shift.setArrivalImage(arrivalImage);
+
+            shiftRepository.save(shift);
+
+            Map<String, Object> response = new HashMap<>();
+            response.put("message", "Arrival image uploaded successfully");
+            response.put("shift", shift);
+
+            return ResponseEntity.ok(response);
+        } catch (IOException e) {
+            return ResponseEntity
+                    .status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(createErrorResponse("Error uploading file: " + e.getMessage()));
+        } catch (Exception e) {
+            return ResponseEntity
+                    .status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(createErrorResponse("An unexpected error occurred: " + e.getMessage()));
+        }
+    }
+
+    @GetMapping("/{shiftId}/arrival-image")
+    public ResponseEntity<?> getArrivalImageUrl(@PathVariable Long shiftId) {
+        try {
+            Optional<Shift> shiftOptional = shiftRepository.findById(shiftId);
+            if (shiftOptional.isEmpty()) {
+                return ResponseEntity
+                        .status(HttpStatus.NOT_FOUND)
+                        .body(createErrorResponse("Error: Shift not found with id: " + shiftId));
+            }
+            Shift shift = shiftOptional.get();
+
+            if (shift.getArrivalImage() == null) {
+                return ResponseEntity
+                        .status(HttpStatus.NOT_FOUND)
+                        .body(createErrorResponse("Error: No arrival image found for shift with id: " + shiftId));
+            }
+
+            URL presignedUrl = s3Service.getPresignedUrl(shift.getArrivalImage().getS3Key(), 3600); // URL valid for 1 hour
+
+            Map<String, Object> response = new HashMap<>();
+            response.put("message", "Arrival image URL retrieved successfully");
+            response.put("url", presignedUrl.toString());
+
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            return ResponseEntity
+                    .status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(createErrorResponse("An unexpected error occurred: " + e.getMessage()));
+        }
+    }
+
+    private Map<String, String> createErrorResponse(String errorMessage) {
+        Map<String, String> errorResponse = new HashMap<>();
+        errorResponse.put("error", errorMessage);
+        return errorResponse;
+    }
+
 
 }

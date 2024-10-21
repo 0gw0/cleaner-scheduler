@@ -3,6 +3,7 @@ package is442g3t2.cleaner_scheduler.config;
 import is442g3t2.cleaner_scheduler.exceptions.ShiftsOverlapException;
 import is442g3t2.cleaner_scheduler.models.*;
 import is442g3t2.cleaner_scheduler.models.property.Property;
+import is442g3t2.cleaner_scheduler.models.shift.ArrivalImage;
 import is442g3t2.cleaner_scheduler.models.shift.Shift;
 import is442g3t2.cleaner_scheduler.models.shift.ShiftStatus;
 import is442g3t2.cleaner_scheduler.models.worker.Worker;
@@ -16,6 +17,7 @@ import org.springframework.context.annotation.Configuration;
 
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.time.Month;
 
@@ -45,13 +47,15 @@ public class DataInitializer {
             // Create and save Workers with shifts
             Worker worker1 = new Worker("Mati", "1234567890", "eg bio 1");
             worker1.setSupervisor(admin1);
-            worker1.addShift(new Shift(
+            Shift shift1 = new Shift(
                     LocalDate.of(2024, Month.SEPTEMBER, 12),
                     LocalTime.of(9, 0),
                     LocalTime.of(17, 0),
                     property1,
                     ShiftStatus.COMPLETED
-            ));
+            );
+            shift1.setArrivalImage(new ArrivalImage("arrivals/1/resized_image.jpg", LocalDateTime.now(), "resized_image.jpg"));
+            worker1.addShift(shift1);
             worker1.addShift(new Shift(
                     LocalDate.of(2024, Month.SEPTEMBER, 16),
                     LocalTime.of(9, 0),
