@@ -167,7 +167,6 @@ export const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ shiftData, isO
             />
         </div>}
         
-        <Button onClick={onClose}>Close</Button>
         <div className="flex justify-between mt-4">
           {isEditing ? (
             <Button variant="default" onClick={handleSave}>
