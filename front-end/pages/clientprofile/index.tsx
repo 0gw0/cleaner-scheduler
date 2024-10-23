@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { Search, MapPin, User, Calendar, Briefcase } from "lucide-react";
+import { Search, MapPin, User, Calendar, Briefcase, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -19,12 +19,23 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
+import AddClientForm from "@/components/AddClientForm";
+import { Label } from "@/components/ui/label";
+import axios from "axios";
+import { motion, AnimatePresence } from 'framer-motion';
+
 
 interface Property {
-  id: number;
+  id: number
+  client: number;
   address: string;
   postalCode: string;
-  client: number;
+}
+
+interface PropertyPayload{
+  address: string;
+  postalCode: string;
+  clientId: number;
 }
 
 interface Client {
@@ -56,6 +67,11 @@ interface Worker {
   bio: string;
   homePostalCode: string;
 }
+
+interface AddPropertyProps {
+  clientId: number;
+  onAdd: (property: Property) => void;
+};
 
 const ClientProfiles = () => {
   const [clients, setClients] = useState<Client[]>([]);
@@ -131,29 +147,148 @@ const ClientProfiles = () => {
     }
   };
 
-  const PropertiesDialog = ({ properties }: { properties: Property[] }) => (
-    <DialogContent className="max-w-3xl">
-      <DialogHeader>
-        <DialogTitle>Client Properties</DialogTitle>
-      </DialogHeader>
-      <Table>
-        <TableHeader>
-          <TableRow>
-            <TableHead>Address</TableHead>
-            <TableHead>Postal Code</TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {properties.map((property) => (
-            <TableRow key={property.id}>
-              <TableCell>{property.address}</TableCell>
-              <TableCell>{property.postalCode}</TableCell>
+  const AddProperty: React.FC<AddPropertyProps> = ({ clientId, onAdd }) => {
+    const [isFormVisible, setIsFormVisible] = useState(false);
+    const [isSuccess, setIsSuccess] = useState(false);
+    const [propertyData, setPropertyData] = useState<PropertyPayload>({
+      address: '',
+      postalCode: '',
+      clientId,
+    });
+  
+    const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+      const { name, value } = e.target;
+      setPropertyData((prev) => ({ ...prev, [name]: value }));
+    };
+  
+    const handleAddProperty = async () => {
+      try {
+        const response = await axios.post(
+          'http://localhost:8080/properties',
+          propertyData
+        );
+        console.log('Property added:', response.data);
+        setIsSuccess(true);
+        onAdd(response.data);
+  
+        setTimeout(() => {
+          setIsSuccess(false);
+          setPropertyData({ address: '', postalCode: '', clientId });
+          setIsFormVisible(false);
+        }, 1500);
+      } catch (error) {
+        console.error('Error adding property:', error);
+        alert('Failed to add property. Please try again.');
+      }
+    };
+  
+    return (
+      <div>
+        <Button
+          onClick={() => setIsFormVisible(!isFormVisible)}
+          className="mb-4"
+        >
+          {isFormVisible ? 'Cancel' : 'Add Property'}
+        </Button>
+  
+        <AnimatePresence>
+          {isFormVisible && (
+            <motion.div
+              key="form"
+              initial={{ opacity: 0, y: 10, scale: 0.95 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: -10, scale: 0.95 }}
+              transition={{ duration: 0.3 }}
+              className="space-y-4 p-4 bg-gray-50 rounded-lg shadow-lg"
+            >
+              <div>
+                <Label htmlFor="address">Address</Label>
+                <Input
+                  id="address"
+                  name="address"
+                  value={propertyData.address}
+                  onChange={handleInputChange}
+                  required
+                  className="mt-2"
+                />
+              </div>
+              <div>
+              <Label htmlFor="postalCode">Postal Code</Label>
+                <Input
+                  id="postalCode"
+                  name="postalCode"
+                  value={propertyData.postalCode}
+                  onChange={(e) => {
+                    const value = e.target.value;
+                    if (/^\d*$/.test(value) && value.length <= 6) {  // Allow only digits and max length 8
+                      handleInputChange(e);
+                    }
+                  }}
+                  required
+                  className="mt-2"
+                />
+              </div>
+              <Button
+                onClick={handleAddProperty}
+              >
+                Submit Property
+              </Button>
+            </motion.div>
+          )}
+        </AnimatePresence>
+  
+        <AnimatePresence>
+          {isSuccess && (
+            <motion.div
+              key="success"
+              initial={{ scale: 0, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0, opacity: 0 }}
+              transition={{ duration: 0.5 }}
+              className="flex justify-center items-center mt-4"
+            >
+              <Check className="text-green-500 w-12 h-12" />
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </div>
+    );
+  };
+  
+  const PropertiesDialog: React.FC<{ properties: Property[] }> = ({
+    properties: initialProperties,
+  }) => {
+    const [properties, setProperties] = useState<Property[]>(initialProperties);
+  
+    const handleAddProperty = (newProperty: Property) => {
+      setProperties((prev) => [...prev, newProperty]);
+    };
+  
+    return (
+      <DialogContent className="max-w-3xl">
+        <DialogHeader>
+          <DialogTitle>Client Properties</DialogTitle>
+          <AddProperty clientId={initialProperties[0].client} onAdd={handleAddProperty} />
+        </DialogHeader>
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Address</TableHead>
+              <TableHead>Postal Code</TableHead>
             </TableRow>
-          ))}
-        </TableBody>
-      </Table>
-    </DialogContent>
-  );
+          </TableHeader>
+          <TableBody>
+            {properties.map((property) => (
+              <TableRow key={property.id}>
+                <TableCell>{property.address}</TableCell>
+                <TableCell>{property.postalCode}</TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      </DialogContent>
+    );
+  };
 
   const ShiftsDialog = ({ clientId }: { clientId: number }) => {
     const [clientShifts, setClientShifts] = useState<Shift[]>([]);
@@ -222,6 +357,9 @@ const ClientProfiles = () => {
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
           />
+        </div>
+        <div>
+          <AddClientForm/>
         </div>
       </div>
 

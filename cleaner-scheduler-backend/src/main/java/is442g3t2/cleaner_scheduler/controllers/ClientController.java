@@ -47,6 +47,7 @@ public class ClientController {
     }
 
     @PostMapping("")
+    @Operation( description = "Create client", summary = "Create client")
     public ResponseEntity<Client> createClient(@RequestBody PostClientRequest clientCreateDTO) {
         Client client = new Client(clientCreateDTO.getName());
         Client newClient = clientRepository.save(client);
