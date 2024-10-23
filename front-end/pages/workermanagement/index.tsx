@@ -6,6 +6,7 @@ import { CustomPagination } from '@/components/CustomPagination';
 import { MCDialog } from '@/components/MCDialog';
 import { WorkerCard } from '@/components/WorkerCard';
 import { WorkerData, Shift } from '@/types/workermanagement';
+import axios from 'axios';
 
 const WorkerManagement = () => {
 	const [searchTerm, setSearchTerm] = useState('');
@@ -37,15 +38,11 @@ const WorkerManagement = () => {
 	useEffect(() => {
 		const fetchWorkerData = async () => {
 			try {
-				const userWorkers =
-					JSON.parse(localStorage.getItem('user') || '{}').workers ||
-					[];
-				const workerPromises = userWorkers.map((id: number) =>
-					fetch(`http://localhost:8080/workers/${id}`).then((res) =>
-						res.json()
-					)
+				const response = await axios.get<WorkerData[]>(
+					'http://localhost:8080/workers'
 				);
-				const workers = await Promise.all(workerPromises);
+				const workers = response.data;
+				console.log('Fetched workers:', workers);
 				setWorkerData(workers);
 				setFilteredWorkers(workers);
 			} catch (error) {
