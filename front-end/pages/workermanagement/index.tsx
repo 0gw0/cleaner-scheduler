@@ -5,7 +5,7 @@ import { Input } from '@/components/ui/input';
 import { CustomPagination } from '@/components/CustomPagination';
 import { MCDialog } from '@/components/MCDialog';
 import { WorkerCard } from '@/components/WorkerCard';
-import { WorkerData, Shift } from '@/types/workermanagement';
+import { WorkerData, Shift, UserData } from '@/types/workermanagement';
 import axios from 'axios';
 
 const WorkerManagement = () => {
@@ -21,28 +21,38 @@ const WorkerManagement = () => {
 	const [showMCDialog, setShowMCDialog] = useState(false);
 	const [showReallocationDialog, setShowReallocationDialog] = useState(false);
 	const [affectedShifts, setAffectedShifts] = useState<Shift[]>([]);
+	const [supervisorId, setSupervisorId] = useState<string | null>(null);
 
 	const workersPerPage = 9;
 	const router = useRouter();
 
-	// Calculate pagination
-	const indexOfLastWorker = currentPage * workersPerPage;
-	const indexOfFirstWorker = indexOfLastWorker - workersPerPage;
-	const currentWorkers = filteredWorkers.slice(
-		indexOfFirstWorker,
-		indexOfLastWorker
-	);
-	const totalPages = Math.ceil(filteredWorkers.length / workersPerPage);
+	// Get supervisor ID from localStorage when component mounts
+	useEffect(() => {
+		const userStr = localStorage.getItem('user');
+		if (userStr) {
+			try {
+				const userData = JSON.parse(userStr);
+				console.log('User data:', userData); // Debug log
+				if (userData.id) {
+					setSupervisorId(userData.id);
+				}
+			} catch (error) {
+				console.error('Error parsing user data:', error);
+			}
+		}
+	}, []);
 
 	// Fetch worker data
 	useEffect(() => {
 		const fetchWorkerData = async () => {
+			if (!supervisorId) return;
+
 			try {
 				const response = await axios.get<WorkerData[]>(
-					'http://localhost:8080/workers'
+					`http://localhost:8080/workers?supervisorId=${supervisorId}`
 				);
 				const workers = response.data;
-				console.log('Fetched workers:', workers);
+				console.log('Fetched workers for supervisor:', workers);
 				setWorkerData(workers);
 				setFilteredWorkers(workers);
 			} catch (error) {
@@ -53,7 +63,16 @@ const WorkerManagement = () => {
 		};
 
 		fetchWorkerData();
-	}, []);
+	}, [supervisorId]);
+
+	// Rest of the component remains the same
+	const indexOfLastWorker = currentPage * workersPerPage;
+	const indexOfFirstWorker = indexOfLastWorker - workersPerPage;
+	const currentWorkers = filteredWorkers.slice(
+		indexOfFirstWorker,
+		indexOfLastWorker
+	);
+	const totalPages = Math.ceil(filteredWorkers.length / workersPerPage);
 
 	// Handle search filter
 	useEffect(() => {

@@ -24,6 +24,7 @@ const Dashboard: React.FC = () => {
 		if (storedUser) {
 			const parsedUser = JSON.parse(storedUser);
 			setUserData(parsedUser);
+			console.log('User data:', parsedUser); // Debug log
 		}
 	}, []);
 
@@ -60,13 +61,20 @@ const Dashboard: React.FC = () => {
 			if (!userData || userData.role !== 'admin') return;
 
 			try {
-				const response = await axios.get<WorkerData[]>(
-					'http://localhost:8080/workers'
-				);
-				// No filtering needed - just set all workers
-				setWorkerData(response.data);
+				// Use user's ID as supervisorId if available
+				const url = userData.id
+					? `http://localhost:8080/workers?supervisorId=${userData.id}`
+					: 'http://localhost:8080/workers';
+
+				console.log('Fetching workers from:', url);
+				const response = await axios.get<WorkerData[]>(url);
+				const workers = response.data;
+				console.log('Fetched workers:', workers);
+
+				setWorkerData(workers);
 			} catch (error) {
 				console.error('Error fetching worker data:', error);
+				setWorkerData([]);
 			}
 		};
 
