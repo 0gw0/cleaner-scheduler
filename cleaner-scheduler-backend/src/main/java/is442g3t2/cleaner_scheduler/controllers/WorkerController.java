@@ -19,6 +19,7 @@ import is442g3t2.cleaner_scheduler.models.shift.Shift;
 import is442g3t2.cleaner_scheduler.repositories.AdminRepository;
 import is442g3t2.cleaner_scheduler.repositories.PropertyRepository;
 import is442g3t2.cleaner_scheduler.repositories.WorkerRepository;
+import is442g3t2.cleaner_scheduler.services.WorkerService;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -38,8 +39,10 @@ public class WorkerController {
     private final WorkerRepository workerRepository;
     private final PropertyRepository propertyRepository;
     private final AdminRepository adminRepository;
+    private final WorkerService workerService;
 
-    public WorkerController(WorkerRepository workerRepository, AdminRepository adminRepository, PropertyRepository propertyRepository) {
+    public WorkerController(WorkerService workerService, WorkerRepository workerRepository, AdminRepository adminRepository, PropertyRepository propertyRepository) {
+    this.workerService = workerService;
     this.workerRepository = workerRepository;
     this.adminRepository = adminRepository;
     this.propertyRepository = propertyRepository;
@@ -50,13 +53,15 @@ public class WorkerController {
     @Operation(description = "get ALL workers or ALL workers under a superviser using their supervisor id", summary = "get ALL workers or ALL workers under a superviser using their supervisor id")
     @GetMapping("")
     public ResponseEntity<List<Worker>> getWorkers(@RequestParam(name = "supervisorId", required = false) Long supervisorId) {
-        List<Worker> workers;
+        List<Worker> workers = supervisorId == null ? 
+        workerService.getAllWorkers() : 
+        workerService.getWorkersBySupervisorId(supervisorId);
 
-        if (supervisorId == null) {
-            workers = workerRepository.findAll();
-        } else {
-            workers = workerRepository.findBySupervisor_Id(supervisorId);
-        }
+        // if (supervisorId == null) {
+        //     workers = workerRepository.findAll();
+        // } else {
+        //     workers = workerRepository.findBySupervisor_Id(supervisorId);
+        // }
 
         if (workers.isEmpty()) {
             return ResponseEntity.noContent().build();
@@ -193,6 +198,7 @@ public class WorkerController {
         return ResponseEntity.ok(worker.getTotalAnnualLeavesTakenByYear(year));
     }
 
+
     @Tag(name = "workers - medical leaves")
     @Operation(description = "take medical leave for a worker with worker id with START DATE AND END DATE", summary = "take medical leave for a worker with worker id with START DATE AND END DATE")
     @PostMapping("/{id}/medical-leaves")
@@ -238,6 +244,19 @@ public class WorkerController {
                 () -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Worker not found")
         );
         return ResponseEntity.ok(worker.getTotalMedicalLeavesTakenByYear(year));
+    }
+
+    @Tag(name = "workers - shifts")
+    @Operation(description = "get ALL shifts of all workers under a supervisor", summary = "get ALL shifts by supervisor ID")
+    @GetMapping("/supervisor/{supervisorId}/shifts")
+    public ResponseEntity<List<Shift>> getShiftsBySupervisorId(@PathVariable Long supervisorId) {
+        List<Shift> shifts = workerService.getAllShiftsBySupervisorId(supervisorId);
+        
+        if (shifts.isEmpty()) {
+            return ResponseEntity.noContent().build();
+        }
+
+        return ResponseEntity.ok(shifts);
     }
 
     @Tag(name = "workers")
