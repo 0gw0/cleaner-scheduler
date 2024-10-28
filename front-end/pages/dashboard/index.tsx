@@ -79,10 +79,13 @@ const Dashboard: React.FC = () => {
 		};
 
 		const fetchShifts = async () => {
+			if (!userData || userData.role !== 'admin') return;
+
 			try {
-				const response = await axios.get<Shift[]>(
-					'http://localhost:8080/shifts'
-				);
+				const url = userData.id
+					? `http://localhost:8080/workers/supervisor/${userData.id}/shifts`
+					: 'http://localhost:8080/shifts';
+				const response = await axios.get<Shift[]>(url);
 				const shiftsData = response.data;
 
 				const processedData = processShiftData(shiftsData);
