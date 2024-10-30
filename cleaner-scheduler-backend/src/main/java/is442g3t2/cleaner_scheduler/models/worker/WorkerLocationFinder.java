@@ -136,20 +136,24 @@ public class WorkerLocationFinder {
             Optional<Shift> availableShift = findAvailableShift(worker, targetDate, targetStartTime, targetEndTime,
                     targetLocationLatLng);
 
+
             // check if worker on leave during shift date
             boolean isOnLeave = annualLeaves.stream().anyMatch(
                     leave -> !targetDate.isBefore(leave.getStartDate()) && !targetDate.isAfter(leave.getEndDate()));
-
+            Shift targetShift = new Shift(targetDate, targetStartTime, targetEndTime);
+            // check if fella is on leave
             if (!isOnLeave) {
+                if (shiftsOverlap(availableShift.get(), targetShift) ) {
+                    continue;
+                } 
                 LatLng workerLocation;
                 Optional<Shift> previousShift = findPreviousShift(worker, targetDate, targetStartTime);
-                if (availableShift.isPresent()) {
+                // check if the fella can make it from previous location
+                if (isShiftBeforeTargetAndPossibleDistance(previousShift.get(), targetLocationLatLng, targetDate,
+                        targetStartTime)) {
+                    workerLocation = getPropertyLocation(previousShift.get().getProperty().getPostalCode());
+                } else { // fella comes from home because: no previous shift OR fella is at home
                     workerLocation = getCoordinatesFromPostalCode(worker.getHomePostalCode());
-                } else {
-                    if (isShiftBeforeTargetAndPossibleDistance(previousShift.get(), targetLocationLatLng, targetDate,
-                            targetStartTime)) {
-                        workerLocation = getPropertyLocation(previousShift.get().getProperty().getPostalCode());
-                    }
                 }
 
                 TravelTime travelTimeToTarget = getTravelTime(workerLocation, targetLocationLatLng, targetDateTime);
@@ -157,8 +161,6 @@ public class WorkerLocationFinder {
                     updateClosestWorkers(closestWorkers,
                             new WorkerWithTravelTime(worker, travelTimeToTarget, availableShift.get(), workerLocation));
                 }
-                // worker location not initialized if worker got prev shift and prev shift overlap 
-                // should i add if workerLocation not null statement or smt?
             }
         }
 
