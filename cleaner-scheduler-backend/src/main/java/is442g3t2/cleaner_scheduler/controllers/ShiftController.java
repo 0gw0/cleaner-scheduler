@@ -120,6 +120,8 @@ public class ShiftController {
     }
 
     @PostMapping("/{shiftId}/arrival-image")
+    @Tag(name = "shifts", description = "Shift and Image Management APIs")
+    @Operation(summary = "Upload arrival image", description = "Upload an arrival image for a specific shift")
     public ResponseEntity<?> uploadArrivalImage(
             @PathVariable Long shiftId,
             @RequestParam("file") MultipartFile file) {
@@ -163,6 +165,8 @@ public class ShiftController {
     }
 
     @GetMapping("/{shiftId}/arrival-image")
+    @Tag(name = "shifts", description = "Shift and Image Management APIs")
+    @Operation(summary = "Get arrival image URL", description = "Get the URL of the arrival image for a specific shift")
     public ResponseEntity<?> getArrivalImageUrl(@PathVariable Long shiftId) {
         try {
             Optional<Shift> shiftOptional = shiftRepository.findById(shiftId);
