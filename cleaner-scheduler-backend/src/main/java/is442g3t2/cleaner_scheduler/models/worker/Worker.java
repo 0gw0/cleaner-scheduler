@@ -80,7 +80,7 @@ public class Worker {
                 .noneMatch(existingShift -> existingShift.getDate().equals(newShift.getDate()) && shiftsOverlap(newShift, existingShift));
     }
 
-    private boolean shiftsOverlap(Shift shift1, Shift shift2) {
+    public boolean shiftsOverlap(Shift shift1, Shift shift2) {
         return !(shift1.getEndTime().isBefore(shift2.getStartTime()) ||
                 shift2.getEndTime().isBefore(shift1.getStartTime()));
     }

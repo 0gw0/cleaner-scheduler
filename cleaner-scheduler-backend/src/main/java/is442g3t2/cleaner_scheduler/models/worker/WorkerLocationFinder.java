@@ -10,6 +10,7 @@ import is442g3t2.cleaner_scheduler.models.leave.AnnualLeave;
 import is442g3t2.cleaner_scheduler.models.shift.Shift;
 import is442g3t2.cleaner_scheduler.models.shift.TravelTime;
 
+
 import java.io.IOException;
 import java.time.*;
 import java.util.*;
@@ -143,7 +144,7 @@ public class WorkerLocationFinder {
             Shift targetShift = new Shift(targetDate, targetStartTime, targetEndTime);
             // check if fella is on leave
             if (!isOnLeave) {
-                if (shiftsOverlap(availableShift.get(), targetShift) ) {
+                if (worker.shiftsOverlap(availableShift.get(), targetShift) ) {
                     continue;
                 } 
                 LatLng workerLocation;
