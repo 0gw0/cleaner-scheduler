@@ -7,14 +7,13 @@ import com.google.maps.errors.ApiException;
 import com.google.maps.model.*;
 
 import is442g3t2.cleaner_scheduler.models.leave.AnnualLeave;
+import is442g3t2.cleaner_scheduler.models.leave.MedicalLeave;
 import is442g3t2.cleaner_scheduler.models.shift.Shift;
 import is442g3t2.cleaner_scheduler.models.shift.TravelTime;
-
 
 import java.io.IOException;
 import java.time.*;
 import java.util.*;
-import java.time.Duration;
 
 import static is442g3t2.cleaner_scheduler.models.property.Property.getCoordinatesFromPostalCode;
 
@@ -30,7 +29,6 @@ public class WorkerLocationFinder {
         try {
             ZonedDateTime zonedDateTime = departureTime.atZone(ZoneId.systemDefault());
             Instant instant = zonedDateTime.toInstant();
-
             // Sanity check to ensure coordinates are within a reasonable range
             if (!isValidCoordinate(origin) || !isValidCoordinate(destination)) {
                 System.err.println("Invalid coordinates detected. Please check your input.");
@@ -128,44 +126,101 @@ public class WorkerLocationFinder {
 
     public static List<WorkerWithTravelTime> findTopFiveClosestWorkers(LatLng targetLocationLatLng,
             LocalDate targetDate, LocalTime targetStartTime, LocalTime targetEndTime, List<Worker> workers) {
+        System.out.println("Starting search with " + workers.size() + " workers");
+
         PriorityQueue<WorkerWithTravelTime> closestWorkers = new PriorityQueue<>(5,
                 Comparator.comparingLong(WorkerWithTravelTime::getTotalTravelTimeToTarget));
         LocalDateTime targetDateTime = LocalDateTime.of(targetDate, targetStartTime);
 
         for (Worker worker : workers) {
+            System.out.println("\nChecking worker: " + worker.getId()); // assuming worker has getId()
+
             List<AnnualLeave> annualLeaves = worker.getAnnualLeavesByYear(targetDate.getYear());
+            List<MedicalLeave> medicalLeaves = worker.getMedicalLeavesByYear(targetDate.getYear());
             Optional<Shift> availableShift = findAvailableShift(worker, targetDate, targetStartTime, targetEndTime,
                     targetLocationLatLng);
 
+            System.out.println("Available shift present: " + availableShift.isPresent());
 
             // check if worker on leave during shift date
             boolean isOnLeave = annualLeaves.stream().anyMatch(
                     leave -> !targetDate.isBefore(leave.getStartDate()) && !targetDate.isAfter(leave.getEndDate()));
+            System.out.println("Worker is on leave: " + isOnLeave);
+            boolean isOnMedicalLeave = medicalLeaves.stream().anyMatch(
+                    leave -> !targetDate.isBefore(leave.getStartDate()) && !targetDate.isAfter(leave.getEndDate()));
+            System.out.println("Worker is on medical leave: " + isOnMedicalLeave);
+
             Shift targetShift = new Shift(targetDate, targetStartTime, targetEndTime);
-            // check if fella is on leave
+
             if (!isOnLeave) {
-                if (worker.shiftsOverlap(availableShift.get(), targetShift) ) {
-                    continue;
-                } 
+                if (!isOnMedicalLeave) {
+                    if (!availableShift.isPresent()) {
+                        Optional<Shift> previousShift = findPreviousShift(worker, targetDate, targetStartTime);
+    
+                        if (isShiftBeforeTargetAndPossibleDistance(previousShift.get(), targetLocationLatLng,
+                                targetDate, targetStartTime)) {
+                            // If the worker can make it from the previous shift location, allow them
+                            availableShift = Optional.of(new Shift(targetDate, targetStartTime, targetEndTime));
+    
+                        } else {
+                            // If they can't make it, filter out the worker
+                            System.out.println("Worker filtered out: No available shift");
+                            System.out.println(previousShift);
+                            System.out.println(
+                                    isShiftBeforeTargetAndPossibleDistance(previousShift.get(), targetLocationLatLng,
+                                            targetDate, targetStartTime));
+                            continue;
+                        }
+                    }
+                }
+                
+
                 LatLng workerLocation;
                 Optional<Shift> previousShift = findPreviousShift(worker, targetDate, targetStartTime);
-                // check if the fella can make it from previous location
-                if (isShiftBeforeTargetAndPossibleDistance(previousShift.get(), targetLocationLatLng, targetDate,
-                        targetStartTime)) {
-                    workerLocation = getPropertyLocation(previousShift.get().getProperty().getPostalCode());
-                } else { // fella comes from home because: no previous shift OR fella is at home
-                    workerLocation = getCoordinatesFromPostalCode(worker.getHomePostalCode());
+                // System.out.println("Previous shift present: " + previousShift.isPresent());
+                // System.out.println("Previous shift details: " + previousShift);
+
+                if (previousShift.isPresent() && worker.shiftsOverlap(previousShift.get(), targetShift) && previousShift.get().getDate() == targetDate) {
+                    System.out.println("Worker filtered out: Shifts overlap");
+                    continue;
                 }
 
-                TravelTime travelTimeToTarget = getTravelTime(workerLocation, targetLocationLatLng, targetDateTime);
-                if (travelTimeToTarget.totalTravelTime > 0) {
-                    updateClosestWorkers(closestWorkers,
-                            new WorkerWithTravelTime(worker, travelTimeToTarget, availableShift.get(), workerLocation));
+                try {
+                    // check if the fella can make it from previous location
+                    if (previousShift.isPresent() &&
+                            isShiftBeforeTargetAndPossibleDistance(previousShift.get(), targetLocationLatLng,
+                                    targetDate,
+                                    targetStartTime)) {
+                        System.out.println("Worker can make it from previous location");
+                        workerLocation = getPropertyLocation(previousShift.get().getProperty().getPostalCode());
+                    } else {
+                        System.out.println("Worker will start from home");
+                        workerLocation = getCoordinatesFromPostalCode(worker.getHomePostalCode());
+                    }
+
+                    TravelTime travelTimeToTarget = getTravelTime(workerLocation, targetLocationLatLng, targetDateTime);
+                    System.out.println("Travel time calculated: " + travelTimeToTarget.totalTravelTime);
+
+                    if (travelTimeToTarget.totalTravelTime >= 0) {
+                        updateClosestWorkers(closestWorkers,
+                                new WorkerWithTravelTime(worker, travelTimeToTarget, availableShift.get(),
+                                        workerLocation));
+                        System.out.println("Worker added to closest workers queue");
+                    } else {
+                        System.out.println("Worker filtered out: Invalid travel time");
+                    }
+                } catch (Exception e) {
+                    System.err.println("Error processing worker: " + e.getMessage());
+                    e.printStackTrace();
                 }
+            } else {
+                System.out.println("Worker filtered out: On leave");
             }
         }
 
-        return new ArrayList<>(closestWorkers);
+        List<WorkerWithTravelTime> result = new ArrayList<>(closestWorkers);
+        System.out.println("\nFinal number of workers found: " + result.size());
+        return result;
     }
 
     private static void updateClosestWorkers(PriorityQueue<WorkerWithTravelTime> closestWorkers,
@@ -252,14 +307,20 @@ public class WorkerLocationFinder {
             // Calculate travel time from previous shift location to target location
             TravelTime travelTimeToTarget = getTravelTime(workerLocation, targetLocationLatLng,
                     previousShiftEndDateTime);
+            System.out.println(travelTimeToTarget.totalTravelTime);
 
-            if (travelTimeToTarget.totalTravelTime > 0) {
+            if (travelTimeToTarget.totalTravelTime >= 0) {
                 // Calculate the time difference between target start time and previous shift
                 // end time in seconds
-                long timeDifferenceInSeconds = Duration.between(previousShiftEndDateTime, targetDateTime).getSeconds();
+                long timeDifferenceInSeconds = java.time.Duration.between(previousShiftEndDateTime, targetDateTime)
+                        .getSeconds();
 
                 // Check if travel time is less than available time
-                return travelTimeToTarget.totalTravelTime < timeDifferenceInSeconds;
+                System.out.println("Total Travel Time (seconds): " + travelTimeToTarget.totalTravelTime);
+                System.out.println("Time Difference (seconds): " + timeDifferenceInSeconds);
+                System.out.println(
+                        "Can worker make it? " + (travelTimeToTarget.totalTravelTime <= timeDifferenceInSeconds));
+                return travelTimeToTarget.totalTravelTime <= timeDifferenceInSeconds;
             }
         }
 
