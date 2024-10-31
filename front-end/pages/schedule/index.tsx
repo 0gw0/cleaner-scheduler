@@ -1,10 +1,54 @@
 import { ScheduleComponent, ViewsDirective, ViewDirective, Inject, Day, Week, Month, DragAndDrop } from "@syncfusion/ej2-react-schedule";
 import { registerLicense } from "@syncfusion/ej2-base";
-import { useMemo } from "react";
-import React from 'react';
+import { DataManager, ODataV4Adaptor, Query } from '@syncfusion/ej2-data';
+import React, { useEffect, useState, useMemo } from "react";
+import axios from 'axios';
 
 registerLicense("Ngo9BigBOggjHTQxAR8/V1NDaF5cWWtCf1JpRGRGfV5ycEVHYlZTRXxcR00DNHVRdkdnWH9feHVXRGFfV012V0U=");
 
+const API_URL = 'http://localhost:8080/shifts';
+
+interface ApiProperty {
+    address: string;
+    postalCode: string;
+}
+
+interface ApiItem {
+    id: number;
+    worker: number;
+    property?: ApiProperty;
+    date: string;
+    startTime: string;
+    endTime: string;
+    status: string;
+}
+
+interface EventData {
+    Id: number;
+    Subject: string;
+    StartTime: Date;
+    EndTime: Date;
+    IsAllDay: boolean;
+    Address: string;
+    Status: string;
+}
+
+
+// Function to transform data to match ScheduleComponent format
+function transformData(apiData: ApiItem[]): EventData[] {
+    return apiData.map((item: ApiItem) => ({
+        Id: item.id,
+        Subject: item.property ? item.property.address : 'No Address',
+        StartTime: new Date(`${item.date}T${item.startTime}`),
+        EndTime: new Date(`${item.date}T${item.endTime}`),
+        IsAllDay: false,
+        Address: item.property ? item.property.address : 'N/A',
+        Status: item.status.charAt(0).toUpperCase() + item.status.slice(1).toLowerCase(),
+        // Add other fields if needed
+    }));
+}
+
+// Hard coded data for testing
 const data = [
     {
         Id: 61,
@@ -96,24 +140,38 @@ const data = [
 ];
 
 export default function Schedule() {
-    // const memoizedData = useMemo(() => data, []);
+    const [eventsData, setEventsData] = useState<EventData[]>([]);
+
+    useEffect(() => {
+        // Fetch data from the API and transform it
+        const fetchData = async () => {
+            try {
+                const response = await axios.get<ApiItem[]>(API_URL);
+                const transformedData = transformData(response.data);
+                setEventsData(transformedData); // Set the transformed data to state
+            } catch (error) {
+                console.error('Error fetching data:', error);
+            }
+        };
+
+        fetchData();
+    }, []);
 
     return (
-        <main 
-        className="flex justify-content items-center min-h-screen">
+        <main className="flex justify-content items-center min-h-screen">
             <ScheduleComponent
-            className="m-12"
-            // width={1000}
-            height={650}
-            allowMultiDrag={true} 
-            eventSettings={{
-                dataSource: data,
-                fields: {
-                    location: { name: 'Address' },
-                }
-            }} 
-            currentView="Month"
-            selectedDate={new Date(2024, 9, 15)} 
+                className="m-12"
+                // width={1000}
+                height={650}
+                allowMultiDrag={true}
+                eventSettings={{
+                    dataSource: eventsData,
+                    fields: {
+                        location: { name: 'Address' },
+                    }
+                }} 
+                currentView="Month"
+                selectedDate={new Date(2024, 8, 15)}
             >
                 <ViewsDirective>
                     <ViewDirective option="Day" />
@@ -123,7 +181,6 @@ export default function Schedule() {
 
                 <Inject services={[Day, Week, Month, DragAndDrop]} />
             </ScheduleComponent>
-            
         </main>
     );
 }
