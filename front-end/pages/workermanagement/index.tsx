@@ -1,11 +1,15 @@
 import React, { useState, useEffect } from 'react';
-import { useRouter } from 'next/router';
 import { Search } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { CustomPagination } from '@/components/CustomPagination';
-import { MCDialog } from '@/components/MCDialog';
 import { WorkerCard } from '@/components/WorkerCard';
-import { WorkerData, Shift, UserData } from '@/types/workermanagement';
+import {
+	WorkerData,
+	Shift,
+	AvailableWorker,
+	DialogState,
+} from '@/types/workermanagement';
+import { Dialogs } from '@/components/Dialogs';
 import axios from 'axios';
 
 const WorkerManagement = () => {
@@ -13,18 +17,25 @@ const WorkerManagement = () => {
 	const [currentPage, setCurrentPage] = useState(1);
 	const [workerData, setWorkerData] = useState<WorkerData[]>([]);
 	const [filteredWorkers, setFilteredWorkers] = useState<WorkerData[]>([]);
+	const [supervisorId, setSupervisorId] = useState<string | null>(null);
+	const [isSubmitting, setIsSubmitting] = useState(false);
+
+	// Dialog states
+	const [dialogState, setDialogState] = useState<DialogState>({
+		showMC: false,
+		showSchedule: false,
+		showMCHistory: false,
+		showReallocation: false,
+	});
 	const [selectedWorker, setSelectedWorker] = useState<WorkerData | null>(
 		null
 	);
-	const [mcStartDate, setMcStartDate] = useState('');
-	const [mcEndDate, setMcEndDate] = useState('');
-	const [showMCDialog, setShowMCDialog] = useState(false);
-	const [showReallocationDialog, setShowReallocationDialog] = useState(false);
-	const [affectedShifts, setAffectedShifts] = useState<Shift[]>([]);
-	const [supervisorId, setSupervisorId] = useState<string | null>(null);
+	const [mcDates, setMcDates] = useState({
+		startDate: '',
+		endDate: '',
+	});
 
 	const workersPerPage = 9;
-	const router = useRouter();
 
 	// Get supervisor ID from localStorage when component mounts
 	useEffect(() => {
@@ -32,7 +43,6 @@ const WorkerManagement = () => {
 		if (userStr) {
 			try {
 				const userData = JSON.parse(userStr);
-				console.log('User data:', userData); // Debug log
 				if (userData.id) {
 					setSupervisorId(userData.id);
 				}
@@ -51,10 +61,8 @@ const WorkerManagement = () => {
 				const response = await axios.get<WorkerData[]>(
 					`http://localhost:8080/workers?supervisorId=${supervisorId}`
 				);
-				const workers = response.data;
-				console.log('Fetched workers for supervisor:', workers);
-				setWorkerData(workers);
-				setFilteredWorkers(workers);
+				setWorkerData(response.data);
+				setFilteredWorkers(response.data);
 			} catch (error) {
 				console.error('Error fetching worker data:', error);
 				setWorkerData([]);
@@ -65,7 +73,6 @@ const WorkerManagement = () => {
 		fetchWorkerData();
 	}, [supervisorId]);
 
-	// Rest of the component remains the same
 	const indexOfLastWorker = currentPage * workersPerPage;
 	const indexOfFirstWorker = indexOfLastWorker - workersPerPage;
 	const currentWorkers = filteredWorkers.slice(
@@ -85,48 +92,177 @@ const WorkerManagement = () => {
 		setCurrentPage(1);
 	}, [searchTerm, workerData]);
 
-	// Handle MC submission
-	const handleSubmitMC = async () => {
-		if (!selectedWorker || !mcStartDate || !mcEndDate) return;
+	const handleDialogOpen = (
+		dialogType: keyof typeof dialogState,
+		worker: WorkerData
+	) => {
+		setSelectedWorker(worker);
+		setDialogState((prev) => ({
+			...prev,
+			[dialogType]: true,
+		}));
+	};
 
-		try {
-			// Find affected shifts during MC period
-			const affectedShifts = selectedWorker.shifts.filter((shift) => {
-				const shiftDate = new Date(shift.date);
-				const startDate = new Date(mcStartDate);
-				const endDate = new Date(mcEndDate);
-				return shiftDate >= startDate && shiftDate <= endDate;
-			});
-
-			// TODO: API call to submit MC
-			// const response = await fetch('http://localhost:8080/medical-leave', {
-			//   method: 'POST',
-			//   headers: { 'Content-Type': 'application/json' },
-			//   body: JSON.stringify({
-			//     workerId: selectedWorker.id,
-			//     startDate: mcStartDate,
-			//     endDate: mcEndDate,
-			//     affectedShifts: affectedShifts.map(shift => shift.id)
-			//   })
-			// });
-
-			setAffectedShifts(affectedShifts);
-			setShowMCDialog(false);
-			setShowReallocationDialog(true);
-		} catch (error) {
-			console.error('Error submitting MC:', error);
+	const handleDialogClose = (dialogType: keyof typeof dialogState) => {
+		setDialogState((prev) => ({
+			...prev,
+			[dialogType]: false,
+		}));
+		if (dialogType === 'showMC') {
+			setMcDates({ startDate: '', endDate: '' });
 		}
 	};
 
-	// Handle view schedule
-	const handleViewSchedule = (workerId: number) => {
-		router.push(`/workerdashboard/${workerId}`);
+	// Helper function to sort workers by travel time
+	const getBestWorker = (
+		workers: AvailableWorker[]
+	): AvailableWorker | null => {
+		if (workers.length === 0) return null;
+		return workers.reduce((best, current) => {
+			return current.travelTimeToTarget.totalTravelTime <
+				best.travelTimeToTarget.totalTravelTime
+				? current
+				: best;
+		});
 	};
 
-	// Handle submit MC button click
-	const handleSubmitMCClick = (worker: WorkerData) => {
-		setSelectedWorker(worker);
-		setShowMCDialog(true);
+	// Handle MC submission
+	const handleSubmitMC = async () => {
+		if (
+			!selectedWorker ||
+			!mcDates.startDate ||
+			!mcDates.endDate ||
+			isSubmitting
+		)
+			return;
+
+		setIsSubmitting(true);
+		try {
+			// Submit MC
+			const mcResponse = await fetch(
+				`http://localhost:8080/workers/${selectedWorker.id}/medical-leaves`,
+				{
+					method: 'POST',
+					headers: {
+						'Content-Type': 'application/json',
+					},
+					body: JSON.stringify({
+						startDate: mcDates.startDate,
+						endDate: mcDates.endDate,
+					}),
+				}
+			);
+
+			if (!mcResponse.ok) {
+				throw new Error(`HTTP error! status: ${mcResponse.status}`);
+			}
+
+			const updatedWorker = await mcResponse.json();
+
+			// Process affected shifts
+			const affectedShifts = updatedWorker.shifts.filter(
+				(shift: Shift) => {
+					const shiftDate = new Date(shift.date);
+					const startDate = new Date(mcDates.startDate);
+					const endDate = new Date(mcDates.endDate);
+					return shiftDate >= startDate && shiftDate <= endDate;
+				}
+			);
+
+			// Handle shift reallocation
+			if (affectedShifts.length > 0) {
+				await Promise.all(
+					affectedShifts.map(async (shift: Shift) => {
+						const [hours, minutes] = shift.startTime.split(':');
+						const [endHours, endMinutes] = shift.endTime.split(':');
+
+						const availableWorkersResponse = await fetch(
+							'http://localhost:8080/shifts/available-workers',
+							{
+								method: 'POST',
+								headers: {
+									'Content-Type': 'application/json',
+								},
+								body: JSON.stringify({
+									postalCode: shift.property.postalCode,
+									startTime: `${hours.padStart(
+										2,
+										'0'
+									)}:${minutes.padStart(2, '0')}:00`,
+									endTime: `${endHours.padStart(
+										2,
+										'0'
+									)}:${endMinutes.padStart(2, '0')}:00`,
+									date: shift.date,
+								}),
+							}
+						);
+
+						if (!availableWorkersResponse.ok) {
+							throw new Error(
+								`Error fetching available workers: ${availableWorkersResponse.status}`
+							);
+						}
+
+						const availableWorkers =
+							await availableWorkersResponse.json();
+						const bestWorker = getBestWorker(availableWorkers);
+
+						if (bestWorker) {
+							const assignmentResponse = await fetch(
+								`http://localhost:8080/workers/${bestWorker.id}/shifts`,
+								{
+									method: 'POST',
+									headers: {
+										'Content-Type': 'application/json',
+									},
+									body: JSON.stringify({
+										frequency: {
+											interval: 1,
+											unit: 'DAYS',
+										},
+										startDate: shift.date,
+										endDate: shift.date,
+										startTime: `${hours.padStart(
+											2,
+											'0'
+										)}:${minutes.padStart(2, '0')}:00`,
+										endTime: `${endHours.padStart(
+											2,
+											'0'
+										)}:${endMinutes.padStart(2, '0')}:00`,
+										propertyId: shift.property.propertyId,
+									}),
+								}
+							);
+
+							if (!assignmentResponse.ok) {
+								throw new Error(
+									`Error assigning shift: ${assignmentResponse.status}`
+								);
+							}
+						}
+					})
+				);
+			}
+
+			// Update local state and handle dialogs - This part looks correct
+			setWorkerData((prevData) =>
+				prevData.map((worker) =>
+					worker.id === selectedWorker.id ? updatedWorker : worker
+				)
+			);
+
+			handleDialogClose('showMC');
+			if (affectedShifts.length > 0) {
+				setDialogState((prev) => ({ ...prev, showReallocation: true }));
+			}
+		} catch (error) {
+			console.error('Error in MC submission process:', error);
+			// You might want to show an error message to the user here
+		} finally {
+			setIsSubmitting(false);
+		}
 	};
 
 	return (
@@ -151,8 +287,7 @@ const WorkerManagement = () => {
 					<WorkerCard
 						key={worker.id}
 						worker={worker}
-						onSubmitMC={handleSubmitMCClick}
-						onViewSchedule={handleViewSchedule}
+						onActionClick={handleDialogOpen}
 					/>
 				))}
 			</div>
@@ -165,6 +300,16 @@ const WorkerManagement = () => {
 				</div>
 			)}
 
+			{/* Centralized Dialog Management */}
+			<Dialogs
+				dialogState={dialogState}
+				onClose={handleDialogClose}
+				selectedWorker={selectedWorker}
+				mcDates={mcDates}
+				onMCDatesChange={setMcDates}
+				onSubmitMC={handleSubmitMC}
+			/>
+
 			{/* Pagination */}
 			{filteredWorkers.length > 0 && (
 				<CustomPagination
@@ -173,18 +318,6 @@ const WorkerManagement = () => {
 					onPageChange={setCurrentPage}
 				/>
 			)}
-
-			{/* Dialogs */}
-			<MCDialog
-				showDialog={showMCDialog}
-				onOpenChange={setShowMCDialog}
-				selectedWorker={selectedWorker}
-				mcStartDate={mcStartDate}
-				mcEndDate={mcEndDate}
-				onStartDateChange={setMcStartDate}
-				onEndDateChange={setMcEndDate}
-				onSubmit={handleSubmitMC}
-			/>
 		</div>
 	);
 };
