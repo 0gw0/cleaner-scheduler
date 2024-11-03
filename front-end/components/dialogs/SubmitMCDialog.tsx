@@ -6,6 +6,7 @@ import {
 	DialogHeader,
 	DialogTitle,
 	DialogFooter,
+	DialogDescription,
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
@@ -89,6 +90,10 @@ export const SubmitMCDialog = ({
 					<DialogTitle>
 						Submit Medical Leave for {selectedWorker?.name}
 					</DialogTitle>
+					<DialogDescription>
+						Submit a medical certificate for {selectedWorker?.name}.
+						This will automatically handle shift reallocation.
+					</DialogDescription>
 				</DialogHeader>
 				<div className="space-y-4">
 					<div>

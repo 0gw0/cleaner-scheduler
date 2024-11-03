@@ -2,6 +2,7 @@ import {
 	DialogContent,
 	DialogHeader,
 	DialogTitle,
+	DialogDescription,
 } from '@/components/ui/dialog';
 import {
 	Table,
@@ -77,6 +78,9 @@ export const ScheduleDialog = ({ shifts }: ScheduleDialogProps) => {
 		<DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
 			<DialogHeader>
 				<DialogTitle>Worker Schedule</DialogTitle>
+				<DialogDescription>
+					View and manage worker&apos;s scheduled shifts
+				</DialogDescription>
 			</DialogHeader>
 
 			{Object.entries(groupedShifts).map(([monthYear, monthShifts]) => (

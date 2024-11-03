@@ -4,6 +4,7 @@ import {
 	DialogContent,
 	DialogHeader,
 	DialogTitle,
+	DialogDescription,
 } from '@/components/ui/dialog';
 import { format } from 'date-fns';
 import { WorkerData } from '@/types/workermanagement';
@@ -24,6 +25,9 @@ export const MCHistoryDialog = ({
 			<DialogContent className="max-w-3xl">
 				<DialogHeader>
 					<DialogTitle>Medical Leave Records</DialogTitle>
+					<DialogDescription>
+						View past medical certificates and leave records
+					</DialogDescription>
 				</DialogHeader>
 				<div className="space-y-4">
 					<div className="rounded-lg border">

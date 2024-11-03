@@ -5,6 +5,7 @@ import {
 	DialogHeader,
 	DialogTitle,
 	DialogFooter,
+	DialogDescription,
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 
@@ -22,6 +23,10 @@ export const ReallocationDialog = ({
 			<DialogContent>
 				<DialogHeader>
 					<DialogTitle>Shift Reallocation</DialogTitle>
+					<DialogDescription>
+						Shifts have been automatically reassigned to available
+						workers
+					</DialogDescription>
 				</DialogHeader>
 				<div className="py-4">
 					<p>Shifts are being reallocated to available workers...</p>
