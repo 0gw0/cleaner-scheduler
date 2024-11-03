@@ -138,7 +138,12 @@ const WorkerManagement = () => {
 
 		setIsSubmitting(true);
 		try {
-			// Submit MC
+			console.log('1. Submitting MC with data:', {
+				workerId: selectedWorker.id,
+				startDate: mcDates.startDate,
+				endDate: mcDates.endDate,
+			});
+
 			const mcResponse = await fetch(
 				`http://localhost:8080/workers/${selectedWorker.id}/medical-leaves`,
 				{
@@ -154,12 +159,19 @@ const WorkerManagement = () => {
 			);
 
 			if (!mcResponse.ok) {
+				console.error(
+					'MC submission failed with status:',
+					mcResponse.status
+				);
 				throw new Error(`HTTP error! status: ${mcResponse.status}`);
 			}
 
 			const updatedWorker = await mcResponse.json();
+			console.log(
+				'MC submission successful. Updated worker data:',
+				updatedWorker
+			);
 
-			// Process affected shifts
 			const affectedShifts = updatedWorker.shifts.filter(
 				(shift: Shift) => {
 					const shiftDate = new Date(shift.date);
@@ -169,12 +181,23 @@ const WorkerManagement = () => {
 				}
 			);
 
-			// Handle shift reallocation
+			console.log('2. Affected shifts found:', affectedShifts);
+
 			if (affectedShifts.length > 0) {
-				await Promise.all(
-					affectedShifts.map(async (shift: Shift) => {
-						const [hours, minutes] = shift.startTime.split(':');
-						const [endHours, endMinutes] = shift.endTime.split(':');
+				for (const shift of affectedShifts) {
+					// Changed to for...of loop for better async handling
+					try {
+						const availableWorkersRequestBody = {
+							postalCode: shift.property.postalCode,
+							startTime: shift.startTime,
+							endTime: shift.endTime,
+							date: shift.date,
+						};
+
+						console.log(
+							'3. Fetching available workers with data:',
+							availableWorkersRequestBody
+						);
 
 						const availableWorkersResponse = await fetch(
 							'http://localhost:8080/shifts/available-workers',
@@ -183,32 +206,62 @@ const WorkerManagement = () => {
 								headers: {
 									'Content-Type': 'application/json',
 								},
-								body: JSON.stringify({
-									postalCode: shift.property.postalCode,
-									startTime: `${hours.padStart(
-										2,
-										'0'
-									)}:${minutes.padStart(2, '0')}:00`,
-									endTime: `${endHours.padStart(
-										2,
-										'0'
-									)}:${endMinutes.padStart(2, '0')}:00`,
-									date: shift.date,
-								}),
+								body: JSON.stringify(
+									availableWorkersRequestBody
+								),
 							}
 						);
 
+						const responseText =
+							await availableWorkersResponse.text();
+						console.log('Raw response:', responseText);
+
 						if (!availableWorkersResponse.ok) {
-							throw new Error(
-								`Error fetching available workers: ${availableWorkersResponse.status}`
+							console.error(
+								'Failed to fetch available workers:',
+								availableWorkersResponse.status,
+								responseText
 							);
+							continue; // Skip to next shift instead of throwing
 						}
 
-						const availableWorkers =
-							await availableWorkersResponse.json();
+						// Try parsing the response as JSON
+						let availableWorkers;
+						try {
+							availableWorkers = JSON.parse(responseText);
+							console.log(
+								'4. Available workers found:',
+								availableWorkers
+							);
+						} catch (e) {
+							console.error(
+								'Failed to parse available workers response:',
+								e
+							);
+							continue;
+						}
+
 						const bestWorker = getBestWorker(availableWorkers);
+						console.log('5. Selected best worker:', bestWorker);
 
 						if (bestWorker) {
+							const assignmentRequestBody = {
+								frequency: {
+									interval: 1,
+									unit: 'DAYS',
+								},
+								startDate: shift.date,
+								endDate: shift.date,
+								startTime: shift.startTime,
+								endTime: shift.endTime,
+								propertyId: shift.property.propertyId,
+							};
+
+							console.log(
+								'6. Attempting to assign shift with data:',
+								assignmentRequestBody
+							);
+
 							const assignmentResponse = await fetch(
 								`http://localhost:8080/workers/${bestWorker.id}/shifts`,
 								{
@@ -216,37 +269,37 @@ const WorkerManagement = () => {
 									headers: {
 										'Content-Type': 'application/json',
 									},
-									body: JSON.stringify({
-										frequency: {
-											interval: 1,
-											unit: 'DAYS',
-										},
-										startDate: shift.date,
-										endDate: shift.date,
-										startTime: `${hours.padStart(
-											2,
-											'0'
-										)}:${minutes.padStart(2, '0')}:00`,
-										endTime: `${endHours.padStart(
-											2,
-											'0'
-										)}:${endMinutes.padStart(2, '0')}:00`,
-										propertyId: shift.property.propertyId,
-									}),
+									body: JSON.stringify(assignmentRequestBody),
 								}
 							);
 
+							const assignmentText =
+								await assignmentResponse.text();
+							console.log(
+								'Raw assignment response:',
+								assignmentText
+							);
+
 							if (!assignmentResponse.ok) {
-								throw new Error(
-									`Error assigning shift: ${assignmentResponse.status}`
+								console.error(
+									'Failed to assign shift:',
+									assignmentResponse.status,
+									assignmentText
 								);
+								continue;
 							}
+
+							console.log('7. Shift successfully assigned');
+						} else {
+							console.log('No best worker found for shift');
 						}
-					})
-				);
+					} catch (error) {
+						console.error('Error processing shift:', error);
+						// Continue with next shift instead of breaking
+					}
+				}
 			}
 
-			// Update local state and handle dialogs - This part looks correct
 			setWorkerData((prevData) =>
 				prevData.map((worker) =>
 					worker.id === selectedWorker.id ? updatedWorker : worker
@@ -259,7 +312,6 @@ const WorkerManagement = () => {
 			}
 		} catch (error) {
 			console.error('Error in MC submission process:', error);
-			// You might want to show an error message to the user here
 		} finally {
 			setIsSubmitting(false);
 		}
