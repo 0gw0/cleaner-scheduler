@@ -172,6 +172,9 @@ public class WorkerLocationFinder {
                             continue;
                         }
                     }
+                } else {
+                    System.out.println("Worker filtered out: On Medical leave");
+                    continue;
                 }
                 
 
@@ -214,7 +217,7 @@ public class WorkerLocationFinder {
                     e.printStackTrace();
                 }
             } else {
-                System.out.println("Worker filtered out: On leave");
+                System.out.println("Worker filtered out: On Annual leave");
             }
         }
 
