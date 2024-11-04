@@ -8,6 +8,7 @@ import {
 	Shift,
 	AvailableWorker,
 	DialogState,
+	ReallocationResult,
 } from '@/types/workermanagement';
 import { Dialogs } from '@/components/Dialogs';
 import axios from 'axios';
@@ -19,6 +20,9 @@ const WorkerManagement = () => {
 	const [filteredWorkers, setFilteredWorkers] = useState<WorkerData[]>([]);
 	const [supervisorId, setSupervisorId] = useState<string | null>(null);
 	const [isSubmitting, setIsSubmitting] = useState(false);
+	const [reallocationResults, setReallocationResults] = useState<
+		ReallocationResult[]
+	>([]);
 
 	// Dialog states
 	const [dialogState, setDialogState] = useState<DialogState>({
@@ -137,6 +141,7 @@ const WorkerManagement = () => {
 			return;
 
 		setIsSubmitting(true);
+		const tempResults: ReallocationResult[] = [];
 		try {
 			console.log('1. Submitting MC with data:', {
 				workerId: selectedWorker.id,
@@ -185,7 +190,6 @@ const WorkerManagement = () => {
 
 			if (affectedShifts.length > 0) {
 				for (const shift of affectedShifts) {
-					// Changed to for...of loop for better async handling
 					try {
 						const availableWorkersRequestBody = {
 							postalCode: shift.property.postalCode,
@@ -222,7 +226,7 @@ const WorkerManagement = () => {
 								availableWorkersResponse.status,
 								responseText
 							);
-							continue; // Skip to next shift instead of throwing
+							continue;
 						}
 
 						// Try parsing the response as JSON
@@ -256,6 +260,13 @@ const WorkerManagement = () => {
 								endTime: shift.endTime,
 								propertyId: shift.property.propertyId,
 							};
+
+							tempResults.push({
+								originalWorker: selectedWorker.name,
+								replacementWorker: bestWorker.name,
+								shiftDate: shift.date,
+								shiftTime: `${shift.startTime} - ${shift.endTime}`,
+							});
 
 							console.log(
 								'6. Attempting to assign shift with data:',
@@ -306,6 +317,7 @@ const WorkerManagement = () => {
 				)
 			);
 
+			setReallocationResults(tempResults);
 			handleDialogClose('showMC');
 			if (affectedShifts.length > 0) {
 				setDialogState((prev) => ({ ...prev, showReallocation: true }));
@@ -315,6 +327,11 @@ const WorkerManagement = () => {
 		} finally {
 			setIsSubmitting(false);
 		}
+	};
+
+	const handleFinalClose = () => {
+		handleDialogClose('showReallocation');
+		window.location.reload();
 	};
 
 	return (
@@ -360,6 +377,8 @@ const WorkerManagement = () => {
 				mcDates={mcDates}
 				onMCDatesChange={setMcDates}
 				onSubmitMC={handleSubmitMC}
+				reallocationResults={reallocationResults}
+				onFinalClose={handleFinalClose}
 			/>
 
 			{/* Pagination */}

@@ -12,8 +12,9 @@ import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { WorkerData } from '@/types/workermanagement';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import { addDays, format } from 'date-fns';
 
 interface MCDialogProps {
 	showDialog: boolean;
@@ -38,35 +39,25 @@ export const SubmitMCDialog = ({
 }: MCDialogProps) => {
 	const [error, setError] = useState<string | null>(null);
 
-	// Validate dates whenever they change
-	useEffect(() => {
-		validateDates();
-	}, [mcStartDate, mcEndDate]);
-
-	const validateDates = () => {
-		// Reset error
+	const validateDates = useCallback(() => {
 		setError(null);
 
-		// Get today's date at midnight for comparison
-		const today = new Date();
-		today.setHours(0, 0, 0, 0);
+		const tomorrow = addDays(new Date(), 1);
+		tomorrow.setHours(0, 0, 0, 0);
 
 		if (mcStartDate) {
 			const startDate = new Date(mcStartDate);
 			startDate.setHours(0, 0, 0, 0);
 
-			// Check if start date is in the past
-			if (startDate < today) {
-				setError('Start date cannot be in the past');
+			if (startDate < tomorrow) {
+				setError('Start date must be at least tomorrow');
 				return false;
 			}
 
-			// If end date is set, validate the range
 			if (mcEndDate) {
 				const endDate = new Date(mcEndDate);
 				endDate.setHours(0, 0, 0, 0);
 
-				// Check if end date is before start date
 				if (endDate < startDate) {
 					setError('End date cannot be before start date');
 					return false;
@@ -75,6 +66,39 @@ export const SubmitMCDialog = ({
 		}
 
 		return true;
+	}, [mcStartDate, mcEndDate]);
+
+	// Update end date when start date changes
+	useEffect(() => {
+		if (mcStartDate) {
+			// Only set end date if it's empty or less than start date
+			const endDate = mcEndDate ? new Date(mcEndDate) : null;
+			const startDate = new Date(mcStartDate);
+			if (!endDate || endDate < startDate) {
+				onEndDateChange(mcStartDate);
+			}
+		}
+	}, [mcStartDate]);
+
+	// Reset form when dialog closes
+	useEffect(() => {
+		if (!showDialog) {
+			onStartDateChange('');
+			onEndDateChange('');
+			setError(null);
+		}
+	}, [showDialog]);
+
+	// Validate dates
+	useEffect(() => {
+		if (showDialog) {
+			validateDates();
+		}
+	}, [validateDates, showDialog]);
+
+	const getTomorrowDate = () => {
+		const tomorrow = addDays(new Date(), 1);
+		return format(tomorrow, 'yyyy-MM-dd');
 	};
 
 	const handleSubmit = () => {
@@ -84,7 +108,15 @@ export const SubmitMCDialog = ({
 	};
 
 	return (
-		<Dialog open={showDialog} onOpenChange={onOpenChange}>
+		<Dialog
+			open={showDialog}
+			onOpenChange={(open) => {
+				if (!open) {
+					setError(null);
+				}
+				onOpenChange(open);
+			}}
+		>
 			<DialogContent>
 				<DialogHeader>
 					<DialogTitle>
@@ -108,6 +140,7 @@ export const SubmitMCDialog = ({
 									? 'border-red-500'
 									: ''
 							}
+							min={getTomorrowDate()}
 						/>
 					</div>
 					<div>
@@ -122,7 +155,7 @@ export const SubmitMCDialog = ({
 									? 'border-red-500'
 									: ''
 							}
-							min={mcStartDate} // Prevent selecting end date before start date
+							min={mcStartDate || getTomorrowDate()}
 						/>
 					</div>
 					{error && (

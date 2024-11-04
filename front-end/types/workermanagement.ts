@@ -118,3 +118,10 @@ export interface DialogsProps {
 	onMCDatesChange: (dates: MCDates) => void;
 	onSubmitMC: () => void;
 }
+
+export interface ReallocationResult {
+	originalWorker: string;
+	replacementWorker: string;
+	shiftDate: string;
+	shiftTime: string;
+}

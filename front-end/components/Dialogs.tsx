@@ -5,7 +5,11 @@ import { ScheduleDialog } from './dialogs/ScheduleDialog';
 import { MCHistoryDialog } from './dialogs/MCHistoryDialog';
 import { ReallocationDialog } from './dialogs/ReallocationDialog';
 import { Dialog } from '@/components/ui/dialog';
-import { WorkerData, DialogState } from '@/types/workermanagement';
+import {
+	WorkerData,
+	DialogState,
+	ReallocationResult,
+} from '@/types/workermanagement';
 
 interface DialogsProps {
 	dialogState: DialogState;
@@ -17,6 +21,8 @@ interface DialogsProps {
 	};
 	onMCDatesChange: (dates: { startDate: string; endDate: string }) => void;
 	onSubmitMC: () => void;
+	reallocationResults: ReallocationResult[]; // New prop
+	onFinalClose: () => void; // New prop
 }
 
 export const Dialogs = ({
@@ -26,10 +32,16 @@ export const Dialogs = ({
 	mcDates,
 	onMCDatesChange,
 	onSubmitMC,
+	reallocationResults,
+	onFinalClose,
 }: DialogsProps) => {
 	// Helper function to handle dialog state changes
 	const handleDialogChange = (dialogType: keyof DialogState) => () => {
-		onClose(dialogType);
+		if (dialogType === 'showReallocation') {
+			onFinalClose();
+		} else {
+			onClose(dialogType);
+		}
 	};
 
 	return (
@@ -65,6 +77,8 @@ export const Dialogs = ({
 			<ReallocationDialog
 				showDialog={dialogState.showReallocation}
 				onOpenChange={handleDialogChange('showReallocation')}
+				reallocationResults={reallocationResults}
+				onClose={onFinalClose}
 			/>
 		</>
 	);
