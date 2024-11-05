@@ -1,5 +1,8 @@
 package is442g3t2.cleaner_scheduler.models.worker;
 
+import com.fasterxml.jackson.annotation.JsonIdentityInfo;
+import com.fasterxml.jackson.annotation.JsonIdentityReference;
+import com.fasterxml.jackson.annotation.ObjectIdGenerators;
 import is442g3t2.cleaner_scheduler.exceptions.ShiftsOverlapException;
 import is442g3t2.cleaner_scheduler.models.Admin;
 import is442g3t2.cleaner_scheduler.models.leave.AnnualLeave;
@@ -20,7 +23,9 @@ import java.time.LocalTime;
 import java.time.YearMonth;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 
@@ -30,6 +35,10 @@ import java.util.stream.Collectors;
 @Setter
 @Entity
 @ToString
+@JsonIdentityInfo(
+        generator = ObjectIdGenerators.PropertyGenerator.class,
+        property = "id"
+)
 @Table(name = "workers")
 public class Worker {
 
@@ -40,8 +49,9 @@ public class Worker {
     @Column(nullable = false)
     private String name;
 
-    @OneToMany(mappedBy = "worker", cascade = CascadeType.ALL, orphanRemoval = true)
-    private List<Shift> shifts = new ArrayList<>();
+    @ManyToMany(mappedBy = "workers")
+    @JsonIdentityReference(alwaysAsId = true)
+    private Set<Shift> shifts = new HashSet<>();
 
     @Column(nullable = false)
     private String phoneNumber;
@@ -88,7 +98,7 @@ public class Worker {
     public void addShift(Shift shift) throws ShiftsOverlapException {
         if (isNewShiftValid(shift)) {
             shifts.add(shift);
-            shift.setWorker(this);
+            shift.getWorkers().add(this);
         } else {
             throw new ShiftsOverlapException("The new shift overlaps with an existing shift or ends before it starts");
         }
@@ -96,7 +106,9 @@ public class Worker {
 
     public void removeShift(Shift shift) {
         shifts.remove(shift);
+        shift.getWorkers().remove(this);
     }
+
 
     public void takeLeave(LocalDate startDate, LocalDate endDate) {
         AnnualLeave leave = new AnnualLeave(this, startDate, endDate);
