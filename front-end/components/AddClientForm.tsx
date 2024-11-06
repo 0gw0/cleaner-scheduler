@@ -5,6 +5,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Plus, X, Check, Trash } from 'lucide-react'
+import axios from 'axios'
 
 type Property = {
   address: string
@@ -17,9 +18,14 @@ type ClientData = {
   properties: Property[]
 }
 
+type ClientResponse = {
+  id: number
+  name: string
+}
+
 const initialClientData: ClientData = {
   name: '',
-  properties: [{  address: '', postalCode: '', client: 0 }],
+  properties: [{ address: '', postalCode: '', client: 0 }],
 }
 
 export default function AddClientForm() {
@@ -27,6 +33,8 @@ export default function AddClientForm() {
   const [formData, setFormData] = useState<ClientData>(initialClientData)
   const [showSuccess, setShowSuccess] = useState(false)
   const [isFormValid, setIsFormValid] = useState(false)
+  const [isSubmitting, setIsSubmitting] = useState(false)
+  const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
     const isValid = formData.name.trim() !== '' &&
@@ -55,22 +63,58 @@ export default function AddClientForm() {
   }
 
   const removeProperty = (index: number) => {
-    setFormData((prev) => ({
-      ...prev,
-      properties: prev.properties.filter((_, i) => i !== index),
-    }))
+    if (formData.properties.length > 1) {
+      setFormData((prev) => ({
+        ...prev,
+        properties: prev.properties.filter((_, i) => i !== index),
+      }))
+    }
   }
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    console.log('Client data submitted:', formData)
-    setShowSuccess(true)
+    setIsSubmitting(true)
+    setError(null)
 
-    setTimeout(() => {
-      setIsOpen(false)
-      setShowSuccess(false)
-      setFormData(initialClientData)
-    }, 1500)
+    try {
+      // Create client first
+      const clientResponse = await axios.post<ClientResponse>('http://localhost:8080/clients', {
+        name: formData.name
+      })
+
+      const clientId = clientResponse.data.id
+
+      // Create all properties for the client
+      const propertyPromises = formData.properties.map(property => 
+        axios.post('http://localhost:8080/properties', {
+          address: property.address,
+          postalCode: property.postalCode,
+          clientId: clientId
+        })
+      )
+
+      await Promise.all(propertyPromises)
+
+      setShowSuccess(true)
+      
+      // Reset and close form after success
+      setTimeout(() => {
+        setIsOpen(false)
+        setShowSuccess(false)
+        setFormData(initialClientData)
+      }, 1500)
+    } catch (err) {
+      console.error('Error creating client:', err)
+      setError('Failed to create client. Please try again.')
+    } finally {
+      setIsSubmitting(false)
+    }
+  }
+
+  const closeForm = () => {
+    setIsOpen(false)
+    setError(null)
+    setFormData(initialClientData)
   }
 
   return (
@@ -102,6 +146,12 @@ export default function AddClientForm() {
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
+                  {error && (
+                    <div className="mb-4 p-3 bg-red-100 text-red-800 rounded-md">
+                      {error}
+                    </div>
+                  )}
+                  
                   <form onSubmit={handleSubmit}>
                     {!showSuccess ? (
                       <>
@@ -137,18 +187,22 @@ export default function AddClientForm() {
                                   name="postalCode"
                                   value={property.postalCode}
                                   onChange={(e) => handleInputChange(e, index)}
+                                  pattern="[0-9]*"
+                                  maxLength={6}
                                   required
                                 />
                               </div>
-                              <Button
-                                type="button"
-                                variant="outline"
-                                onClick={() => removeProperty(index)}
-                                className="mt-2"
-                              >
-                                <Trash className="mr-2 h-4 w-4" />
-                                Remove Property
-                              </Button>
+                              {formData.properties.length > 1 && (
+                                <Button
+                                  type="button"
+                                  variant="outline"
+                                  onClick={() => removeProperty(index)}
+                                  className="mt-2"
+                                >
+                                  <Trash className="mr-2 h-4 w-4" />
+                                  Remove Property
+                                </Button>
+                              )}
                             </div>
                           ))}
 
@@ -158,9 +212,13 @@ export default function AddClientForm() {
                           </Button>
                         </div>
 
-                        <Button type="submit" className="mt-4 w-full" disabled={!isFormValid}>
-                          Confirm
-                          <Check className="ml-2 h-4 w-4" />
+                        <Button 
+                          type="submit" 
+                          className="mt-4 w-full"
+                          disabled={!isFormValid || isSubmitting}
+                        >
+                          {isSubmitting ? 'Submitting...' : 'Confirm'}
+                          {!isSubmitting && <Check className="ml-2 h-4 w-4" />}
                         </Button>
                       </>
                     ) : (
@@ -175,7 +233,7 @@ export default function AddClientForm() {
               </Card>
 
               <button
-                onClick={() => setIsOpen(false)}
+                onClick={closeForm}
                 className="absolute top-4 right-4 p-2 rounded-full bg-gray-200 hover:bg-gray-300"
               >
                 <X className="w-6 h-6" />
