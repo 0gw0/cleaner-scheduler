@@ -6,7 +6,8 @@ import axios from 'axios';
 
 registerLicense("Ngo9BigBOggjHTQxAR8/V1NDaF5cWWtCf1JpRGRGfV5ycEVHYlZTRXxcR00DNHVRdkdnWH9feHVXRGFfV012V0U=");
 
-const API_URL = 'http://localhost:8080/shifts';
+const SHIFT_API_URL = 'http://localhost:8080/shifts';
+const WORKER_API_URL = 'http://localhost:8080/workers';
 
 interface ApiProperty {
     address: string;
@@ -14,8 +15,8 @@ interface ApiProperty {
 }
 
 interface ApiItem {
-    id: number;
-    worker: number;
+    id: number; // TaskId
+    worker: number; // Worker ID
     property?: ApiProperty;
     date: string;
     startTime: string;
@@ -24,26 +25,28 @@ interface ApiItem {
 }
 
 interface EventData {
-    Id: number;
+    Id: number; // Worker ID
     Subject: string;
     StartTime: Date;
     EndTime: Date;
     IsAllDay: boolean;
     Address: string;
     Status: string;
+    TaskId: number; // Task ID
 }
 
 
 // Function to transform data to match ScheduleComponent format
 function transformData(apiData: ApiItem[]): EventData[] {
     return apiData.map((item: ApiItem) => ({
-        Id: item.id,
-        Subject: item.property ? item.property.address : 'No Address',
+        Id: item.worker,
+        Subject: `Worker ${item.worker}`,
         StartTime: new Date(`${item.date}T${item.startTime}`),
         EndTime: new Date(`${item.date}T${item.endTime}`),
         IsAllDay: false,
         Address: item.property ? item.property.address : 'N/A',
         Status: item.status.charAt(0).toUpperCase() + item.status.slice(1).toLowerCase(),
+        TaskId: item.id
         // Add other fields if needed
     }));
 }
@@ -141,14 +144,22 @@ const data = [
 
 export default function Schedule() {
     const [eventsData, setEventsData] = useState<EventData[]>([]);
+    const [workerIdFilter, setWorkerIdFilter] = useState<number | null>(null);
+    const [uniqueWorkerIds, setUniqueWorkerIds] = useState<number[]>([]);
+    const [searchTerm, setSearchTerm] = useState("");
 
     useEffect(() => {
         // Fetch data from the API and transform it
         const fetchData = async () => {
             try {
-                const response = await axios.get<ApiItem[]>(API_URL);
+                const response = await axios.get<ApiItem[]>(SHIFT_API_URL);
                 const transformedData = transformData(response.data);
+                console.log("Transformed Data:", transformedData); // Check here
                 setEventsData(transformedData); // Set the transformed data to state
+
+                // Extract unique worker IDs
+                const workers = Array.from(new Set(response.data.map(item => item.worker)));
+                setUniqueWorkerIds(workers);
             } catch (error) {
                 console.error('Error fetching data:', error);
             }
@@ -157,30 +168,62 @@ export default function Schedule() {
         fetchData();
     }, []);
 
-    return (
-        <main className="flex justify-content items-center min-h-screen">
-            <ScheduleComponent
-                className="m-12"
-                // width={1000}
-                height={650}
-                allowMultiDrag={true}
-                eventSettings={{
-                    dataSource: eventsData,
-                    fields: {
-                        location: { name: 'Address' },
-                    }
-                }} 
-                currentView="Month"
-                selectedDate={new Date(2024, 8, 15)}
-            >
-                <ViewsDirective>
-                    <ViewDirective option="Day" />
-                    <ViewDirective option="Week" />
-                    <ViewDirective option="Month" />
-                </ViewsDirective>
+    // Filtered data based on the selected worker ID and search term
+    const filteredEvents = eventsData.filter(event => {
+        const matchesWorkerFilter = workerIdFilter !== null ? event.Id === workerIdFilter : true;
+        const matchesSearchTerm = searchTerm ? event.Subject.toLowerCase().includes(searchTerm.toLowerCase()) : true;
+        console.log(`Event: ${event.Subject}, Worker ID: ${event.Id}, Matches Worker Filter: ${matchesWorkerFilter}, Matches Search Term: ${matchesSearchTerm}`);
+        return matchesWorkerFilter && matchesSearchTerm;
+    });
 
-                <Inject services={[Day, Week, Month, DragAndDrop]} />
-            </ScheduleComponent>
+    return (
+        <main className="flex flex-col items-center min-h-screen">
+                {/* Dropdown to select worker */}
+                <div className="w-full max-w-5xl text-center">
+                    <select onChange={(e) => setWorkerIdFilter(Number(e.target.value) || null)} className="m-4 p-2 border">
+                        <option value="">All Workers</option>
+                        {uniqueWorkerIds.map(workerId => (
+                            <option key={workerId} value={workerId}>{workerId}</option>
+                        ))}
+                    {/* Add more options dynamically or as needed */}
+                    </select>
+
+                    {/* Search input */}
+                    <input
+                        type="text"
+                        placeholder="Search..."
+                        value={searchTerm}
+                        onChange={(e) => setSearchTerm(e.target.value)}
+                        className="p-2 border border-gray-300 rounded ml-2"
+                    />
+                </div>
+                <div className="w-full">
+                    <ScheduleComponent
+                    // className="m-12"
+                    width="100%"
+                    height={650}
+                    allowMultiDrag={true}
+                    eventSettings={{
+                        dataSource: filteredEvents,
+                        fields: {
+                            location: { name: 'Address' },
+                        }
+                    }} 
+                    currentView="Month"
+                    selectedDate={new Date(2024, 8, 15)}
+                >
+                        <ViewsDirective>
+                            <ViewDirective option="Day" />
+                            <ViewDirective option="Week" />
+                            <ViewDirective option="Month" />
+                        </ViewsDirective>
+
+                        <Inject services={[Day, Week, Month, DragAndDrop]} />
+                    </ScheduleComponent>
+                </div>
+                
+
+            
         </main>
     );
 }
