@@ -5,6 +5,7 @@ import is442g3t2.cleaner_scheduler.models.shift.Shift;
 import is442g3t2.cleaner_scheduler.repositories.WorkerRepository;
 import org.springframework.stereotype.Service;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -29,5 +30,10 @@ public class WorkerService {
         return workers.stream()
                 .flatMap(worker -> worker.getShifts().stream())
                 .collect(Collectors.toList());
+    }
+
+    public List<Shift> getAllShiftsByWorkerId(Long workerId) {
+        Worker worker = workerRepository.getReferenceById(workerId);
+        return new ArrayList<>(worker.getShifts());  
     }
 }
