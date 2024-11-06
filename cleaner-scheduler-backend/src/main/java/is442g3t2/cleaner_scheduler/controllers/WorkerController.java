@@ -198,7 +198,8 @@ public class WorkerController {
         LocalDate endDate = LocalDate.parse(takeLeaveRequest.getEndDate());
         Worker worker = workerRepository.findById(id).orElseThrow(
                 () -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Worker not found"));
-
+        
+        workerService.removeAllShiftsByWorkerIdByDate(worker, startDate, endDate);
         worker.takeLeave(startDate, endDate);
         workerRepository.save(worker);
         return ResponseEntity.ok(worker);
@@ -240,7 +241,8 @@ public class WorkerController {
         LocalDate endDate = LocalDate.parse(takeLeaveRequest.getEndDate());
         Worker worker = workerRepository.findById(id).orElseThrow(
                 () -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Worker not found"));
-
+        
+        workerService.removeAllShiftsByWorkerIdByDate(worker, startDate, endDate);
         worker.takeMedicalLeave(startDate, endDate);
         workerRepository.save(worker);
         return ResponseEntity.ok(worker);
