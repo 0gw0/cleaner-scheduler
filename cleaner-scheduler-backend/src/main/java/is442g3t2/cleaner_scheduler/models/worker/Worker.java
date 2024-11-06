@@ -56,6 +56,13 @@ public class Worker {
     @Column(nullable = false)
     private String phoneNumber;
 
+    @Column(nullable = false)
+    private String status;
+    {
+        this.status = "Active";
+    }
+
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "supervisor_id")
     private Admin supervisor;

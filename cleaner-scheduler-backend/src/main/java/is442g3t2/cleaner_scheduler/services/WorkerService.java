@@ -4,6 +4,7 @@ import is442g3t2.cleaner_scheduler.models.worker.Worker;
 import is442g3t2.cleaner_scheduler.models.shift.Shift;
 import is442g3t2.cleaner_scheduler.repositories.WorkerRepository;
 import org.springframework.stereotype.Service;
+import is442g3t2.cleaner_scheduler.dto.worker.UpdateWorker;
 import org.springframework.web.server.ResponseStatusException;
 import org.springframework.http.HttpStatus;
 
@@ -63,5 +64,28 @@ public class WorkerService {
         for (Shift shift : shiftsToRemove) {
             worker.removeShift(shift);
         }
+    }
+
+    public Worker updateWorker(Long id, UpdateWorker UpdateWorker) {
+        Worker worker = workerRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Worker not found with id: " + id));
+
+        if (UpdateWorker.getName() != null) {
+            worker.setName(UpdateWorker.getName());
+        }
+        if (UpdateWorker.getPhoneNumber() != null) {
+            worker.setPhoneNumber(UpdateWorker.getPhoneNumber());
+        }
+        if (UpdateWorker.getBio() != null) {
+            worker.setBio(UpdateWorker.getBio());
+        }
+        // if (UpdateWorker.getHomePostalCode() != null) {
+        //     worker.setHomePostalCode(UpdateWorker.getHomePostalCode());
+        // }
+        if (UpdateWorker.getStatus() != null) {
+            worker.setStatus(UpdateWorker.getStatus());
+        }
+
+        return workerRepository.save(worker);
     }
 }

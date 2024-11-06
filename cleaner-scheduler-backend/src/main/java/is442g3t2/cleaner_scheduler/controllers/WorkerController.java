@@ -306,4 +306,10 @@ public class WorkerController {
                     HttpStatus.INTERNAL_SERVER_ERROR, "Error removing shift: " + e.getMessage());
         }
     }
+    
+    @PatchMapping("/{id}")
+    public ResponseEntity<Worker> updateWorker(@PathVariable Long id, @RequestBody UpdateWorker UpdateWorker) {
+        Worker updatedWorker = workerService.updateWorker(id, UpdateWorker);
+        return ResponseEntity.ok(updatedWorker);
+    }
 }
