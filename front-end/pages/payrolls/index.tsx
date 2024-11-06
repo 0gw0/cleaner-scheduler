@@ -9,7 +9,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import { Loader2, DollarSign, Clock, UserCheck, Mail } from "lucide-react";
+import { Loader2, DollarSign, UserCheck, Clock, Mail } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -29,15 +29,9 @@ import { Input } from "@/components/ui/input";
 import jsPDF from "jspdf";
 import "jspdf-autotable";
 
-interface Worker {
-  id: number;
-  name: string;
-  shifts: Shift[];
-}
-
 interface Shift {
   id: number;
-  worker: number;
+  workers: number[];
   property: {
     propertyId: number;
     clientId: number;
@@ -47,7 +41,7 @@ interface Shift {
   date: string;
   startTime: string;
   endTime: string;
-  status: "COMPLETED" | string;
+  status: "COMPLETED" | "UPCOMING" | string;
 }
 
 interface PayrollData {
@@ -61,11 +55,17 @@ interface PayrollData {
   shifts: Shift[];
 }
 
+interface Worker {
+  id: number;
+  name: string;
+}
+
 const BASE_HOURLY_RATE = 15;
 const OVERTIME_HOURLY_RATE = 25;
 const WEEKLY_HOUR_LIMIT = 44;
 
-const PayrollManagementPage: React.FC = () => {
+const PayrollManagementPage = () => {
+  const [shifts, setShifts] = useState<Shift[]>([]);
   const [workers, setWorkers] = useState<Worker[]>([]);
   const [payrollData, setPayrollData] = useState<PayrollData[]>([]);
   const [loading, setLoading] = useState(true);
@@ -80,70 +80,102 @@ const PayrollManagementPage: React.FC = () => {
   );
 
   useEffect(() => {
-    fetchWorkers();
+    const fetchInitialData = async () => {
+      setLoading(true);
+      try {
+        await Promise.all([fetchShifts(), fetchWorkers()]);
+      } catch (error) {
+        console.error("Error fetching initial data:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchInitialData();
   }, []);
 
   useEffect(() => {
-    if (workers.length > 0) {
-      calculatePayroll(workers);
+    if (shifts.length > 0 && workers.length > 0) {
+      calculatePayroll();
     }
-  }, [workers, selectedMonth]);
+  }, [shifts, workers, selectedMonth]);
 
-  const fetchWorkers = async () => {
-    setLoading(true);
+  const fetchShifts = async () => {
     try {
-      const user = JSON.parse(localStorage.getItem("user") || "{}");
-      const workerIds = user.workers || [];
-
-      const workersData = await Promise.all(
-        workerIds.map((id: number) =>
-          fetch(`http://localhost:8080/workers/${id}`).then((res) => res.json())
-        )
-      );
-
-      setWorkers(workersData);
+      const response = await fetch("http://localhost:8080/shifts");
+      const data = await response.json();
+      setShifts(data.filter((shift: any) => typeof shift !== "number"));
     } catch (error) {
-      console.error("Error fetching workers:", error);
-    } finally {
-      setLoading(false);
+      console.error("Error fetching shifts:", error);
     }
   };
 
-  const calculatePayroll = (workersData: Worker[]) => {
-    const payrollInfo = workersData.map((worker) => {
-      const filteredShifts = worker.shifts.filter(
-        (shift) =>
-          shift.status === "COMPLETED" && shift.date.startsWith(selectedMonth)
-      );
-      let totalHours = 0;
+  const workerIds: number[] = JSON.parse(
+    localStorage.getItem("user") || "{}"
+  ).workers || [];
 
-      filteredShifts.forEach((shift) => {
+  const fetchWorkers = async () => {
+    try {
+      const response = await fetch("http://localhost:8080/workers");
+      const data = await response.json();
+      const filteredWorkers = data.filter((worker: Worker) => 
+        workerIds.includes(worker.id)
+      );
+      setWorkers(filteredWorkers);
+    } catch (error) {
+      console.error("Error fetching workers:", error);
+    }
+  };
+
+  const calculatePayroll = () => {
+    const workerPayrollMap = new Map<number, PayrollData>();
+    workers.forEach(worker => {
+      workerPayrollMap.set(worker.id, {
+        workerId: worker.id,
+        workerName: worker.name,
+        regularHours: 0,
+        overtimeHours: 0,
+        regularPay: 0,
+        overtimePay: 0,
+        totalPay: 0,
+        shifts: [],
+      });
+    });
+
+    shifts.forEach(shift => {
+      if (shift.status === "COMPLETED" && shift.date.startsWith(selectedMonth)) {
         const start = new Date(`2000-01-01T${shift.startTime}`);
         const end = new Date(`2000-01-01T${shift.endTime}`);
         const shiftHours = (end.getTime() - start.getTime()) / (1000 * 60 * 60);
-        totalHours += shiftHours;
-      });
 
-      const regularHours = Math.min(totalHours, WEEKLY_HOUR_LIMIT);
-      const overtimeHours = Math.max(0, totalHours - WEEKLY_HOUR_LIMIT);
-      const regularPay = regularHours * BASE_HOURLY_RATE;
-      const overtimePay = overtimeHours * OVERTIME_HOURLY_RATE;
+        shift.workers.forEach(workerId => {
+          const workerData = workerPayrollMap.get(workerId);
+          if (workerData) {
+            const currentTotalHours = workerData.regularHours + workerData.overtimeHours;
+            const newTotalHours = currentTotalHours + shiftHours;
 
-      return {
-        workerId: worker.id,
-        workerName: worker.name,
-        regularHours,
-        overtimeHours,
-        regularPay,
-        overtimePay,
-        totalPay: regularPay + overtimePay,
-        shifts: filteredShifts,
-      };
+            if (newTotalHours <= WEEKLY_HOUR_LIMIT) {
+              workerData.regularHours += shiftHours;
+            } else {
+              const remainingRegularHours = Math.max(0, WEEKLY_HOUR_LIMIT - currentTotalHours);
+              workerData.regularHours += remainingRegularHours;
+              workerData.overtimeHours += shiftHours - remainingRegularHours;
+            }
+
+            workerData.shifts.push(shift);
+          }
+        });
+      }
     });
 
-    setPayrollData(payrollInfo);
-  };
+    workerPayrollMap.forEach(workerData => {
+      workerData.regularPay = workerData.regularHours * BASE_HOURLY_RATE;
+      workerData.overtimePay = workerData.overtimeHours * OVERTIME_HOURLY_RATE;
+      workerData.totalPay = workerData.regularPay + workerData.overtimePay;
+    });
 
+    setPayrollData(Array.from(workerPayrollMap.values()));
+  };
   const generatePDF = () => {
     const doc = new jsPDF();
     const monthYear = new Date(selectedMonth).toLocaleString("default", {
@@ -151,17 +183,14 @@ const PayrollManagementPage: React.FC = () => {
       year: "numeric",
     });
 
-    // Title
     doc.setFontSize(20);
     doc.text(`Payroll Report - ${monthYear}`, 15, 20);
 
-    // Summary
     doc.setFontSize(12);
     doc.text(`Total Payroll: $${totalPayroll.toFixed(2)}`, 15, 35);
     doc.text(`Total Workers: ${totalWorkers}`, 15, 42);
     doc.text(`Average Pay: $${averagePay.toFixed(2)}`, 15, 49);
 
-    // Payroll table
     const tableData = payrollData.map((worker) => [
       worker.workerName,
       worker.regularHours.toFixed(2),
@@ -231,6 +260,7 @@ const PayrollManagementPage: React.FC = () => {
     setPdfBlob(blob);
     setShowEmailDialog(true);
   };
+
   const handleSendEmail = async () => {
     if (!email || !pdfBlob) {
       setSuccessMessage("Missing email or PDF data");
@@ -240,7 +270,6 @@ const PayrollManagementPage: React.FC = () => {
 
     setSendingEmail(true);
     try {
-      // Convert PDF blob to base64
       const base64Data = await new Promise<string>((resolve, reject) => {
         const reader = new FileReader();
         reader.onload = () => {
@@ -470,7 +499,7 @@ const PayrollManagementPage: React.FC = () => {
       </div>
 
       <Dialog open={showEmailDialog} onOpenChange={setShowEmailDialog}>
-        <DialogContent className="max-w-3xl">
+        <DialogContent className="max-w-md">
           <DialogHeader>
             <DialogTitle>Send Payroll Report</DialogTitle>
           </DialogHeader>
@@ -482,28 +511,10 @@ const PayrollManagementPage: React.FC = () => {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
               />
-              <Button
-                onClick={handleSendEmail}
-                disabled={!email || sendingEmail}
-              >
-                {sendingEmail ? (
-                  <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                ) : (
-                  <Mail className="h-4 w-4 mr-2" />
-                )}
-                Send Report
+              <Button onClick={handleSendEmail}>
+                <Mail className="h-4 w-4 mr-2" />
+                Send
               </Button>
-            </div>
-
-            <div className="border rounded-lg p-4">
-              <h3 className="font-semibold mb-2">Preview</h3>
-              {pdfBlob && (
-                <iframe
-                  src={URL.createObjectURL(pdfBlob)}
-                  className="w-full h-[600px] border rounded"
-                  title="Payroll PDF Preview"
-                />
-              )}
             </div>
           </div>
         </DialogContent>

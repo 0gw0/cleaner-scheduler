@@ -1,28 +1,101 @@
-import React from 'react';
-import { MonthlyData, ClientData, WorkerData } from '@/types/dashboard';
-import StatusCard from './StatusCard';
-import JobsChart from './JobsChart';
-import ClientsTable from './ClientsTable';
-import WorkerTable from './WorkerTable';
-import { Users, Briefcase, AlertCircle } from 'lucide-react';
+import React from "react";
+import { MonthlyData, ClientData, WorkerData } from "@/types/dashboard";
+import StatusCard from "./StatusCard";
+import JobsChart from "./JobsChart";
+import ClientsTable from "./ClientsTable";
+import WorkerTable from "./WorkerTable";
+import WorkerStatistics from "./WorkerStatistics";
+import {
+  Users,
+  Briefcase,
+  AlertCircle,
+  Clock,
+  Calendar,
+  Download,
+} from "lucide-react";
+
+interface Shifts {
+  [key: string]: any;
+}
 
 interface AdminDashboardProps {
   monthlyData: MonthlyData[];
   clients: ClientData[];
   workerData: WorkerData[];
+  shifts: Shifts[];
 }
 
 const AdminDashboard: React.FC<AdminDashboardProps> = ({
   monthlyData,
   clients,
   workerData,
+  shifts,
 }) => {
-  const currentMonth = monthlyData[monthlyData.length - 1] || { month: '', jobs: 0 };
-  const totalJobs = monthlyData.reduce((sum, month) => sum + month.jobs, 0);
+
+  console.log(shifts);
+  const validMonthlyData = monthlyData.filter(
+    (data) => data.month !== "Invalid Date"
+  );
+  const currentMonth = validMonthlyData[validMonthlyData.length - 1] || {
+    month: "",
+    jobs: 0,
+  };
+  const totalJobs = validMonthlyData.reduce(
+    (sum, month) => sum + month.jobs,
+    0
+  );
+
+  const workerStats = {
+    totalWorkers: workerData.length,
+    onLeave: workerData.filter(
+      (worker) =>
+        worker.annualLeaves.length > 0 || worker.medicalLeaves.length > 0
+    ).length,
+  };
+
+  // Calculate client statistics
+  const clientStats = {
+    totalActive: clients.filter((c) => c.status === "Active").length,
+    totalInactive: clients.filter((c) => c.status !== "Active").length,
+  };
+
+  const exportToCSV = () => {
+    const csvContent = [
+      ["Month", "Total Jobs", "Active Clients"],
+      ...validMonthlyData.map((month) => [
+        month.month,
+        month.jobs,
+        clientStats.totalActive,
+      ]),
+    ]
+      .map((row) => row.join(","))
+      .join("\n");
+
+    // Create and trigger download
+    const blob = new Blob([csvContent], { type: "text/csv" });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.setAttribute("hidden", "");
+    a.setAttribute("href", url);
+    a.setAttribute("download", "monthly-statistics.csv");
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+  };
 
   return (
     <div className="p-8">
-      <h1 className="text-3xl font-bold mb-6">Admin Dashboard</h1>
+      <div className="flex justify-between items-center mb-6">
+        <h1 className="text-3xl font-bold">Admin Dashboard</h1>
+        <button
+          onClick={exportToCSV}
+          className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
+        >
+          <Download className="h-4 w-4" />
+          Export to CSV
+        </button>
+      </div>
+
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 mb-6">
         <StatusCard
           title="Total Jobs (All Time)"
@@ -34,20 +107,44 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
           value={currentMonth.jobs}
           icon={Briefcase}
         />
+
         <StatusCard
-          title="Active Clients"
-          value={clients.filter((c) => c.status === 'Active').length}
+          title="Average Jobs/Month"
+          value={Math.round(totalJobs / validMonthlyData.length) || 0}
+          icon={Briefcase}
+        />
+        <StatusCard
+          title="Latest Month Jobs"
+          value={currentMonth.jobs}
+          icon={Clock}
+        />
+      </div>
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 mb-6">
+        <StatusCard
+          title="Total Workers"
+          value={workerStats.totalWorkers}
           icon={Users}
         />
-		<StatusCard
-          title="Number of Workers"
-  		  value={workerData.length}
+        <StatusCard
+          title="Workers on Leave"
+          value={workerStats.onLeave}
+          icon={Calendar}
+        />
+        <StatusCard
+          title="Active Clients"
+          value={clientStats.totalActive}
+          icon={Users}
+        />
+        <StatusCard
+          title="Inactive Clients"
+          value={clientStats.totalInactive}
           icon={Users}
         />
       </div>
-      {monthlyData.length > 0 ? (
+
+      {validMonthlyData.length > 0 ? (
         <div className="mb-6">
-          <JobsChart data={monthlyData} />
+          <JobsChart data={validMonthlyData} />
         </div>
       ) : (
         <div className="mb-6 p-4 bg-yellow-100 border border-yellow-400 text-yellow-700 rounded">
@@ -55,10 +152,13 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
           No monthly data available. The chart will appear when data is present.
         </div>
       )}
+      
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
         <ClientsTable clients={clients} />
         <WorkerTable workerData={workerData} />
       </div>
+      
+      <WorkerStatistics shifts={shifts} />
     </div>
   );
 };
