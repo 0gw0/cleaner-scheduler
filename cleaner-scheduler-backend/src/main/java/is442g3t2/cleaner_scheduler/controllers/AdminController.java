@@ -36,7 +36,6 @@ public class AdminController {
     @GetMapping("")
     public ResponseEntity<List<Admin>> getAdmins() {
         List<Admin> admins = adminRepository.findAll();
-
         return ResponseEntity.ok(admins);
     }
 
