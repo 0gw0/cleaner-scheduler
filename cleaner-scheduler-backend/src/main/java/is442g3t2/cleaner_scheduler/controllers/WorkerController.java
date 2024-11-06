@@ -6,6 +6,7 @@ import is442g3t2.cleaner_scheduler.dto.shift.AddShiftRequest;
 import is442g3t2.cleaner_scheduler.dto.shift.AddShiftResponse;
 import is442g3t2.cleaner_scheduler.dto.shift.GetShiftCountResponse;
 import is442g3t2.cleaner_scheduler.dto.worker.PostWorkerRequest;
+import is442g3t2.cleaner_scheduler.dto.worker.UpdateWorker;
 import is442g3t2.cleaner_scheduler.dto.worker.TakeLeaveRequest;
 import is442g3t2.cleaner_scheduler.exceptions.ShiftsOverlapException;
 import is442g3t2.cleaner_scheduler.models.property.Property;
@@ -82,35 +83,9 @@ public class WorkerController {
     }
 
     @Tag(name = "workers - shifts")
-    @Operation(description = "get total shift count of a worker by worker id or with the specific YEAR AND MONTH", summary = "get  total shift count of a worker by worker id or with the specific YEAR AND MONTH")
+    @Operation(description = "get all shift and total shift count of a worker by worker id or with the specific YEAR AND MONTH", summary = "get all shift and total shift count of a worker by worker id or with the specific YEAR AND MONTH")
     @GetMapping("/{id}/shifts")
     public ResponseEntity<GetShiftCountResponse> getShiftCount(
-            @PathVariable Long id,
-            @RequestParam(required = false, name = "status") String status,
-            @RequestParam(required = false, name = "year") Integer year,
-            @RequestParam(required = false, name = "month") Integer month) {
-
-        Worker worker = workerRepository.findById(id)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Worker not found"));
-
-        if (year != null && month != null) {
-            YearMonth yearMonth = YearMonth.of(year, month);
-            int shiftCount = worker.getNumShiftsInMonth(yearMonth);
-            return ResponseEntity.ok(new GetShiftCountResponse(id, shiftCount, yearMonth));
-        } else if (year != null) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Year provided without month");
-        } else if (month != null) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Month provided without year");
-        } else {
-            int shiftCount = worker.getShifts().size();
-            return ResponseEntity.ok(new GetShiftCountResponse(id, shiftCount));
-        }
-    }
-
-    @Tag(name = "workers - shifts")
-    @Operation(description = "get ALL shifts of a worker by worker id or with the specific YEAR AND MONTH", summary = "get ALL shifts of a worker by worker id or with the specific YEAR AND MONTH")
-    @GetMapping("/{id}/allshifts")
-    public ResponseEntity<List<Shift>> getShift(
             @PathVariable Long id,
             @RequestParam(required = false, name = "status") String status,
             @RequestParam(required = false, name = "year") Integer year,
@@ -122,22 +97,26 @@ public class WorkerController {
         List<Shift> shifts = new ArrayList<>(worker.getShifts());
 
         if (year != null && month != null) {
+            YearMonth yearMonth = YearMonth.of(year, month);
+            int shiftCount = worker.getNumShiftsInMonth(yearMonth);
             shifts = shifts.stream()
                     .filter(shift -> {
-                        LocalDate shiftDate = shift.getDate(); // Assuming there's a getDate() method
+                        LocalDate shiftDate = shift.getDate(); 
                         return shiftDate.getYear() == year &&
                                 shiftDate.getMonthValue() == month;
                     })
                     .collect(Collectors.toList());
-            return ResponseEntity.ok(shifts);
+            return ResponseEntity.ok(new GetShiftCountResponse(id, shiftCount, yearMonth, shifts));
         } else if (year != null) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Year provided without month");
         } else if (month != null) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Month provided without year");
+        } else {
+            int shiftCount = worker.getShifts().size();
+            return ResponseEntity.ok(new GetShiftCountResponse(id, shiftCount, shifts));
         }
-        
-        return ResponseEntity.ok(shifts);
     }
+
 
     @Tag(name = "workers - shifts")
     @Operation(description = "add shift(s) to a worker", summary = "add shift(s) to a worker")
@@ -327,5 +306,4 @@ public class WorkerController {
                     HttpStatus.INTERNAL_SERVER_ERROR, "Error removing shift: " + e.getMessage());
         }
     }
-
 }
