@@ -9,7 +9,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import { Loader2, DollarSign, Clock, UserCheck } from "lucide-react";
+import { Loader2, DollarSign, UserCheck, Clock, Mail } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -25,16 +25,13 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-
-interface Worker {
-  id: number;
-  name: string;
-  shifts: Shift[];
-}
+import { Input } from "@/components/ui/input";
+import jsPDF from "jspdf";
+import "jspdf-autotable";
 
 interface Shift {
   id: number;
-  worker: number;
+  workers: number[];
   property: {
     propertyId: number;
     clientId: number;
@@ -44,7 +41,7 @@ interface Shift {
   date: string;
   startTime: string;
   endTime: string;
-  status: "COMPLETED" | string;
+  status: "COMPLETED" | "UPCOMING" | string;
 }
 
 interface PayrollData {
@@ -58,92 +55,265 @@ interface PayrollData {
   shifts: Shift[];
 }
 
+interface Worker {
+  id: number;
+  name: string;
+}
+
 const BASE_HOURLY_RATE = 15;
 const OVERTIME_HOURLY_RATE = 25;
 const WEEKLY_HOUR_LIMIT = 44;
 
-const PayrollManagementPage: React.FC = () => {
+const PayrollManagementPage = () => {
+  const [shifts, setShifts] = useState<Shift[]>([]);
   const [workers, setWorkers] = useState<Worker[]>([]);
   const [payrollData, setPayrollData] = useState<PayrollData[]>([]);
   const [loading, setLoading] = useState(true);
   const [showSuccessAlert, setShowSuccessAlert] = useState(false);
+  const [successMessage, setSuccessMessage] = useState("");
+  const [showEmailDialog, setShowEmailDialog] = useState(false);
+  const [email, setEmail] = useState("");
+  const [pdfBlob, setPdfBlob] = useState<Blob | null>(null);
+  const [sendingEmail, setSendingEmail] = useState(false);
   const [selectedMonth, setSelectedMonth] = useState<string>(
-    new Date().toISOString().slice(0, 7) 
+    new Date().toISOString().slice(0, 7)
   );
 
   useEffect(() => {
-    fetchWorkers();
+    const fetchInitialData = async () => {
+      setLoading(true);
+      try {
+        await Promise.all([fetchShifts(), fetchWorkers()]);
+      } catch (error) {
+        console.error("Error fetching initial data:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchInitialData();
   }, []);
 
   useEffect(() => {
-    if (workers.length > 0) {
-      calculatePayroll(workers);
+    if (shifts.length > 0 && workers.length > 0) {
+      calculatePayroll();
     }
-  }, [workers, selectedMonth]);
+  }, [shifts, workers, selectedMonth]);
 
-  const fetchWorkers = async () => {
-    setLoading(true);
+  const fetchShifts = async () => {
     try {
-      const user = JSON.parse(localStorage.getItem("user") || "{}");
-      const workerIds = user.workers || [];
-
-      const workersData = await Promise.all(
-        workerIds.map((id: number) =>
-          fetch(`http://localhost:8080/workers/${id}`).then((res) => res.json())
-        )
-      );
-
-      setWorkers(workersData);
+      const response = await fetch("http://localhost:8080/shifts");
+      const data = await response.json();
+      setShifts(data.filter((shift: any) => typeof shift !== "number"));
     } catch (error) {
-      console.error("Error fetching workers:", error);
-    } finally {
-      setLoading(false);
+      console.error("Error fetching shifts:", error);
     }
   };
 
-  const calculatePayroll = (workersData: Worker[]) => {
-    const payrollInfo = workersData.map((worker) => {
-      const filteredShifts = worker.shifts.filter(
-        (shift) =>
-          shift.status === "COMPLETED" && shift.date.startsWith(selectedMonth)
-      );
-      let totalHours = 0;
+  const workerIds: number[] = JSON.parse(
+    localStorage.getItem("user") || "{}"
+  ).workers || [];
 
-      filteredShifts.forEach((shift) => {
+  const fetchWorkers = async () => {
+    try {
+      const response = await fetch("http://localhost:8080/workers");
+      const data = await response.json();
+      const filteredWorkers = data.filter((worker: Worker) => 
+        workerIds.includes(worker.id)
+      );
+      setWorkers(filteredWorkers);
+    } catch (error) {
+      console.error("Error fetching workers:", error);
+    }
+  };
+
+  const calculatePayroll = () => {
+    const workerPayrollMap = new Map<number, PayrollData>();
+    workers.forEach(worker => {
+      workerPayrollMap.set(worker.id, {
+        workerId: worker.id,
+        workerName: worker.name,
+        regularHours: 0,
+        overtimeHours: 0,
+        regularPay: 0,
+        overtimePay: 0,
+        totalPay: 0,
+        shifts: [],
+      });
+    });
+
+    shifts.forEach(shift => {
+      if (shift.status === "COMPLETED" && shift.date.startsWith(selectedMonth)) {
         const start = new Date(`2000-01-01T${shift.startTime}`);
         const end = new Date(`2000-01-01T${shift.endTime}`);
         const shiftHours = (end.getTime() - start.getTime()) / (1000 * 60 * 60);
-        totalHours += shiftHours;
-      });
 
-      const regularHours = Math.min(totalHours, WEEKLY_HOUR_LIMIT);
-      const overtimeHours = Math.max(0, totalHours - WEEKLY_HOUR_LIMIT);
-      const regularPay = regularHours * BASE_HOURLY_RATE;
-      const overtimePay = overtimeHours * OVERTIME_HOURLY_RATE;
+        shift.workers.forEach(workerId => {
+          const workerData = workerPayrollMap.get(workerId);
+          if (workerData) {
+            const currentTotalHours = workerData.regularHours + workerData.overtimeHours;
+            const newTotalHours = currentTotalHours + shiftHours;
 
-      return {
-        workerId: worker.id,
-        workerName: worker.name,
-        regularHours,
-        overtimeHours,
-        regularPay,
-        overtimePay,
-        totalPay: regularPay + overtimePay,
-        shifts: filteredShifts,
-      };
+            if (newTotalHours <= WEEKLY_HOUR_LIMIT) {
+              workerData.regularHours += shiftHours;
+            } else {
+              const remainingRegularHours = Math.max(0, WEEKLY_HOUR_LIMIT - currentTotalHours);
+              workerData.regularHours += remainingRegularHours;
+              workerData.overtimeHours += shiftHours - remainingRegularHours;
+            }
+
+            workerData.shifts.push(shift);
+          }
+        });
+      }
     });
 
-    setPayrollData(payrollInfo);
+    workerPayrollMap.forEach(workerData => {
+      workerData.regularPay = workerData.regularHours * BASE_HOURLY_RATE;
+      workerData.overtimePay = workerData.overtimeHours * OVERTIME_HOURLY_RATE;
+      workerData.totalPay = workerData.regularPay + workerData.overtimePay;
+    });
+
+    setPayrollData(Array.from(workerPayrollMap.values()));
+  };
+  const generatePDF = () => {
+    const doc = new jsPDF();
+    const monthYear = new Date(selectedMonth).toLocaleString("default", {
+      month: "long",
+      year: "numeric",
+    });
+
+    doc.setFontSize(20);
+    doc.text(`Payroll Report - ${monthYear}`, 15, 20);
+
+    doc.setFontSize(12);
+    doc.text(`Total Payroll: $${totalPayroll.toFixed(2)}`, 15, 35);
+    doc.text(`Total Workers: ${totalWorkers}`, 15, 42);
+    doc.text(`Average Pay: $${averagePay.toFixed(2)}`, 15, 49);
+
+    const tableData = payrollData.map((worker) => [
+      worker.workerName,
+      worker.regularHours.toFixed(2),
+      worker.overtimeHours.toFixed(2),
+      `$${worker.regularPay.toFixed(2)}`,
+      `$${worker.overtimePay.toFixed(2)}`,
+      `$${worker.totalPay.toFixed(2)}`,
+    ]);
+
+    (doc as any).autoTable({
+      startY: 60,
+      head: [
+        [
+          "Worker",
+          "Regular Hours",
+          "OT Hours",
+          "Regular Pay",
+          "OT Pay",
+          "Total Pay",
+        ],
+      ],
+      body: tableData,
+    });
+
+    // Shift details
+    let yPos = (doc as any).lastAutoTable.finalY + 20;
+
+    payrollData.forEach((worker) => {
+      if (yPos > 250) {
+        doc.addPage();
+        yPos = 20;
+      }
+
+      doc.setFontSize(14);
+      doc.text(`${worker.workerName}'s Shifts`, 15, yPos);
+      yPos += 10;
+
+      const shiftsData = worker.shifts.map((shift) => [
+        shift.date,
+        shift.startTime,
+        shift.endTime,
+        shift.property.address,
+        shift.status,
+      ]);
+
+      (doc as any).autoTable({
+        startY: yPos,
+        head: [["Date", "Start Time", "End Time", "Address", "Status"]],
+        body: shiftsData,
+      });
+
+      yPos = (doc as any).lastAutoTable.finalY + 15;
+    });
+
+    return doc.output("blob");
   };
 
   const handleProcessPayroll = () => {
-    console.log("Processing payroll:", payrollData);
-    setShowSuccessAlert(true);
-    setTimeout(() => setShowSuccessAlert(false), 3000);
+    if (payrollData.length === 0) {
+      setSuccessMessage("No payroll data available for the selected month.");
+      setShowSuccessAlert(true);
+      setTimeout(() => setShowSuccessAlert(false), 3000);
+      return;
+    }
+
+    const blob = generatePDF();
+    setPdfBlob(blob);
+    setShowEmailDialog(true);
   };
 
-  const handleMonthChange = (value: string) => {
-    setSelectedMonth(value);
+  const handleSendEmail = async () => {
+    if (!email || !pdfBlob) {
+      setSuccessMessage("Missing email or PDF data");
+      setShowSuccessAlert(true);
+      return;
+    }
+
+    setSendingEmail(true);
+    try {
+      const base64Data = await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => {
+          const result = reader.result?.toString().split(",")[1];
+          if (result) {
+            resolve(result);
+          } else {
+            reject(new Error("Failed to convert PDF to base64"));
+          }
+        };
+        reader.onerror = () => reject(reader.error);
+        reader.readAsDataURL(pdfBlob);
+      });
+
+      const response = await fetch("/api/send-payroll", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          to: email,
+          subject: `Payroll Report - ${selectedMonth}`,
+          pdfData: base64Data,
+          filename: `payroll-${selectedMonth}.pdf`,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || "Failed to send email");
+      }
+
+      setShowEmailDialog(false);
+      setSuccessMessage("Payroll report sent successfully!");
+      setShowSuccessAlert(true);
+    } catch (error: any) {
+      console.error("Error sending email:", error);
+      setSuccessMessage(`Error sending email: ${error.message}`);
+      setShowSuccessAlert(true);
+    } finally {
+      setSendingEmail(false);
+      setTimeout(() => setShowSuccessAlert(false), 3000);
+    }
   };
 
   if (loading) {
@@ -168,15 +338,17 @@ const PayrollManagementPage: React.FC = () => {
       </h1>
 
       <div className="flex justify-end mb-4">
-        <Select onValueChange={handleMonthChange} value={selectedMonth}>
+        <Select onValueChange={setSelectedMonth} value={selectedMonth}>
           <SelectTrigger className="w-[180px]">
             <SelectValue placeholder="Select month" />
           </SelectTrigger>
           <SelectContent>
             {Array.from({ length: 12 }, (_, i) => {
+              const month = String(i + 1).padStart(2, "0");
+              const value = `2024-${month}`;
               const date = new Date(2024, i, 1);
               return (
-                <SelectItem key={i} value={date.toISOString().slice(0, 7)}>
+                <SelectItem key={i} value={value}>
                   {date.toLocaleString("default", {
                     month: "long",
                     year: "numeric",
@@ -326,11 +498,33 @@ const PayrollManagementPage: React.FC = () => {
         </Button>
       </div>
 
+      <Dialog open={showEmailDialog} onOpenChange={setShowEmailDialog}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Send Payroll Report</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="flex gap-4 items-center">
+              <Input
+                type="email"
+                placeholder="Enter email address"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+              />
+              <Button onClick={handleSendEmail}>
+                <Mail className="h-4 w-4 mr-2" />
+                Send
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
       {showSuccessAlert && (
         <Alert variant="default" className="mt-4 bg-green-100 border-green-500">
           <AlertTitle className="text-green-800">Success</AlertTitle>
           <AlertDescription className="text-green-700">
-            Payroll processed successfully!
+            {successMessage}
           </AlertDescription>
         </Alert>
       )}

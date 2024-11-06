@@ -22,17 +22,16 @@ import { Badge } from "@/components/ui/badge";
 import AddClientForm from "@/components/AddClientForm";
 import { Label } from "@/components/ui/label";
 import axios from "axios";
-import { motion, AnimatePresence } from 'framer-motion';
-
+import { motion, AnimatePresence } from "framer-motion";
 
 interface Property {
-  id: number
+  id: number;
   client: number;
   address: string;
   postalCode: string;
 }
 
-interface PropertyPayload{
+interface PropertyPayload {
   address: string;
   postalCode: string;
   clientId: number;
@@ -44,9 +43,16 @@ interface Client {
   properties: Property[];
 }
 
+interface ArrivalImage {
+  s3Key: string;
+  uploadTime: string;
+  fileName: string;
+}
+
 interface Shift {
   id: number;
-  worker: number;
+  workers: number[];
+  workerIds: number[];
   property: {
     propertyId: number;
     clientId: number;
@@ -57,6 +63,7 @@ interface Shift {
   startTime: string;
   endTime: string;
   status: string;
+  arrivalImage: ArrivalImage | null;
 }
 
 interface Worker {
@@ -71,7 +78,7 @@ interface Worker {
 interface AddPropertyProps {
   clientId: number;
   onAdd: (property: Property) => void;
-};
+}
 
 const ClientProfiles = () => {
   const [clients, setClients] = useState<Client[]>([]);
@@ -82,7 +89,7 @@ const ClientProfiles = () => {
   useEffect(() => {
     const fetchClients = async () => {
       try {
-        const response = await fetch('http://localhost:8080/clients');
+        const response = await fetch("http://localhost:8080/clients");
         const data = await response.json();
         setClients(data);
       } catch (error) {
@@ -92,9 +99,10 @@ const ClientProfiles = () => {
 
     const fetchShifts = async () => {
       try {
-        const response = await fetch('http://localhost:8080/shifts');
+        const response = await fetch("http://localhost:8080/shifts");
         const data = await response.json();
         setShifts(data);
+        console.log(data);
       } catch (error) {
         console.error("Error fetching shifts:", error);
       }
@@ -111,9 +119,12 @@ const ClientProfiles = () => {
       results = results.filter(
         (client) =>
           client.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          client.properties.some(property => 
-            property.address.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            property.postalCode.includes(searchTerm)
+          client.properties.some(
+            (property) =>
+              property.address
+                .toLowerCase()
+                .includes(searchTerm.toLowerCase()) ||
+              property.postalCode.includes(searchTerm)
           )
       );
     }
@@ -130,7 +141,9 @@ const ClientProfiles = () => {
     };
 
     return (
-      <Badge className={`${statusColors[status] || "bg-gray-100 text-gray-800"}`}>
+      <Badge
+        className={`${statusColors[status] || "bg-gray-100 text-gray-800"}`}
+      >
         {status}
       </Badge>
     );
@@ -151,46 +164,45 @@ const ClientProfiles = () => {
     const [isFormVisible, setIsFormVisible] = useState(false);
     const [isSuccess, setIsSuccess] = useState(false);
     const [propertyData, setPropertyData] = useState<PropertyPayload>({
-      address: '',
-      postalCode: '',
+      address: "",
+      postalCode: "",
       clientId,
     });
-  
+
     const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
       const { name, value } = e.target;
       setPropertyData((prev) => ({ ...prev, [name]: value }));
     };
-  
+
     const handleAddProperty = async () => {
       try {
         const response = await axios.post(
-          'http://localhost:8080/properties',
+          "http://localhost:8080/properties",
           propertyData
         );
-        console.log('Property added:', response.data);
         setIsSuccess(true);
         onAdd(response.data);
-  
+
         setTimeout(() => {
           setIsSuccess(false);
-          setPropertyData({ address: '', postalCode: '', clientId });
+          setPropertyData({ address: "", postalCode: "", clientId });
           setIsFormVisible(false);
         }, 1500);
       } catch (error) {
-        console.error('Error adding property:', error);
-        alert('Failed to add property. Please try again.');
+        console.error("Error adding property:", error);
+        alert("Failed to add property. Please try again.");
       }
     };
-  
+
     return (
       <div>
         <Button
           onClick={() => setIsFormVisible(!isFormVisible)}
           className="mb-4"
         >
-          {isFormVisible ? 'Cancel' : 'Add Property'}
+          {isFormVisible ? "Cancel" : "Add Property"}
         </Button>
-  
+
         <AnimatePresence>
           {isFormVisible && (
             <motion.div
@@ -213,14 +225,15 @@ const ClientProfiles = () => {
                 />
               </div>
               <div>
-              <Label htmlFor="postalCode">Postal Code</Label>
+                <Label htmlFor="postalCode">Postal Code</Label>
                 <Input
                   id="postalCode"
                   name="postalCode"
                   value={propertyData.postalCode}
                   onChange={(e) => {
                     const value = e.target.value;
-                    if (/^\d*$/.test(value) && value.length <= 6) {  // Allow only digits and max length 8
+                    if (/^\d*$/.test(value) && value.length <= 6) {
+                      // Allow only digits and max length 8
                       handleInputChange(e);
                     }
                   }}
@@ -228,15 +241,11 @@ const ClientProfiles = () => {
                   className="mt-2"
                 />
               </div>
-              <Button
-                onClick={handleAddProperty}
-              >
-                Submit Property
-              </Button>
+              <Button onClick={handleAddProperty}>Submit Property</Button>
             </motion.div>
           )}
         </AnimatePresence>
-  
+
         <AnimatePresence>
           {isSuccess && (
             <motion.div
@@ -254,21 +263,24 @@ const ClientProfiles = () => {
       </div>
     );
   };
-  
+
   const PropertiesDialog: React.FC<{ properties: Property[] }> = ({
     properties: initialProperties,
   }) => {
     const [properties, setProperties] = useState<Property[]>(initialProperties);
-  
+
     const handleAddProperty = (newProperty: Property) => {
       setProperties((prev) => [...prev, newProperty]);
     };
-  
+
     return (
       <DialogContent className="max-w-3xl">
         <DialogHeader>
           <DialogTitle>Client Properties</DialogTitle>
-          <AddProperty clientId={initialProperties[0].client} onAdd={handleAddProperty} />
+          <AddProperty
+            clientId={initialProperties[0].client}
+            onAdd={handleAddProperty}
+          />
         </DialogHeader>
         <Table>
           <TableHeader>
@@ -292,18 +304,35 @@ const ClientProfiles = () => {
 
   const ShiftsDialog = ({ clientId }: { clientId: number }) => {
     const [clientShifts, setClientShifts] = useState<Shift[]>([]);
-    const [workerDetails, setWorkerDetails] = useState<{ [key: number]: Worker }>({});
+    const [workerDetails, setWorkerDetails] = useState<{
+      [key: number]: Worker;
+    }>({});
 
     useEffect(() => {
-      const filteredShifts = shifts.filter(shift => shift.property.clientId === clientId);
-      setClientShifts(filteredShifts);
+      const validShifts = shifts.filter(
+        (shift) =>
+          typeof shift === "object" &&
+          shift !== null &&
+          shift.property?.clientId === clientId
+      );
+      setClientShifts(validShifts);
 
       const fetchWorkers = async () => {
-        const workerIds = [...new Set(filteredShifts.map(shift => shift.worker))];
-        const workerPromises = workerIds.map(id => fetchWorkerDetails(id));
+        
+        const workerIds = new Set<number>();
+        validShifts.forEach((shift) => {
+          shift.workers?.forEach((id) => workerIds.add(id));
+          shift.workerIds?.forEach((id) => workerIds.add(id));
+        });
+
+        const workerPromises = Array.from(workerIds).map((id) =>
+          fetchWorkerDetails(id)
+        );
         const workers = await Promise.all(workerPromises);
         const workerMap = workers.reduce((acc, worker) => {
-          acc[worker.id] = worker;
+          if (worker) {
+            acc[worker.id] = worker;
+          }
           return acc;
         }, {} as { [key: number]: Worker });
         setWorkerDetails(workerMap);
@@ -311,6 +340,24 @@ const ClientProfiles = () => {
 
       fetchWorkers();
     }, [clientId]);
+
+    const getWorkerNames = (workerIds: number[]) => {
+      return workerIds
+        .map((id) => workerDetails[id]?.name || "Loading...")
+        .join(", ");
+    };
+
+    const getWorkerPhones = (workerIds: number[]) => {
+      return workerIds
+        .map((id) => workerDetails[id]?.phoneNumber || "Loading...")
+        .join(", ");
+    };
+
+    const getSupervisors = (workerIds: number[]) => {
+      return workerIds
+        .map((id) => workerDetails[id]?.supervisor || "Loading...")
+        .join(", ");
+    };
 
     return (
       <DialogContent className="max-w-4xl">
@@ -323,20 +370,28 @@ const ClientProfiles = () => {
               <TableHead>Date</TableHead>
               <TableHead>Time</TableHead>
               <TableHead>Status</TableHead>
-              <TableHead>Worker</TableHead>
-              <TableHead>Worker Phone</TableHead>
-              <TableHead>Supervisor ID</TableHead>
+              <TableHead>Workers</TableHead>
+              <TableHead>Worker Phones</TableHead>
+              <TableHead>Supervisor IDs</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {clientShifts.map((shift) => (
               <TableRow key={shift.id}>
-                <TableCell>{new Date(shift.date).toLocaleDateString()}</TableCell>
+                <TableCell>
+                  {new Date(shift.date).toLocaleDateString()}
+                </TableCell>
                 <TableCell>{`${shift.startTime} - ${shift.endTime}`}</TableCell>
                 <TableCell>{getStatusBadge(shift.status)}</TableCell>
-                <TableCell>{workerDetails[shift.worker]?.name || 'Loading...'}</TableCell>
-                <TableCell>{workerDetails[shift.worker]?.phoneNumber || 'Loading...'}</TableCell>
-                <TableCell>{workerDetails[shift.worker]?.supervisor || 'Loading...'}</TableCell>
+                <TableCell>
+                  {getWorkerNames(shift.workers || shift.workerIds || [])}
+                </TableCell>
+                <TableCell>
+                  {getWorkerPhones(shift.workers || shift.workerIds || [])}
+                </TableCell>
+                <TableCell>
+                  {getSupervisors(shift.workers || shift.workerIds || [])}
+                </TableCell>
               </TableRow>
             ))}
           </TableBody>
@@ -359,7 +414,7 @@ const ClientProfiles = () => {
           />
         </div>
         <div>
-          <AddClientForm/>
+          <AddClientForm />
         </div>
       </div>
 

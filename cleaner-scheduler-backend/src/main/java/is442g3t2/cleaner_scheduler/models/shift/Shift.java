@@ -1,5 +1,8 @@
 package is442g3t2.cleaner_scheduler.models.shift;
 
+import com.fasterxml.jackson.annotation.JsonIdentityInfo;
+import com.fasterxml.jackson.annotation.JsonIdentityReference;
+import com.fasterxml.jackson.annotation.ObjectIdGenerators;
 import is442g3t2.cleaner_scheduler.exceptions.InvalidShiftException;
 import is442g3t2.cleaner_scheduler.models.property.Property;
 import is442g3t2.cleaner_scheduler.models.property.PropertyInfo;
@@ -11,11 +14,17 @@ import lombok.Setter;
 
 import java.time.LocalDate;
 import java.time.LocalTime;
+import java.util.HashSet;
+import java.util.Set;
 
 @Entity
 @NoArgsConstructor
 @Getter
 @Setter
+@JsonIdentityInfo(
+        generator = ObjectIdGenerators.PropertyGenerator.class,
+        property = "id"
+)
 public class Shift {
 
 
@@ -23,9 +32,14 @@ public class Shift {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @ManyToOne
-    @JoinColumn(name = "worker_id")
-    private Worker worker;
+    @ManyToMany
+    @JoinTable(
+            name = "shift_workers",
+            joinColumns = @JoinColumn(name = "shift_id"),
+            inverseJoinColumns = @JoinColumn(name = "worker_id")
+    )
+    @JsonIdentityReference(alwaysAsId = true)
+    private Set<Worker> workers = new HashSet<>();
 
     @ManyToOne
     @JoinColumn(name = "property_id")
@@ -69,8 +83,21 @@ public class Shift {
         this.endTime = targetEndTime;
     }
 
-    public Long getWorker() {
-        return worker.getId();
+
+    public Set<Long> getWorkerIds() {
+        return workers.stream()
+                .map(Worker::getId)
+                .collect(java.util.stream.Collectors.toSet());
+    }
+
+    public void addWorker(Worker worker) {
+        workers.add(worker);
+        worker.getShifts().add(this);
+    }
+
+    public void removeWorker(Worker worker) {
+        workers.remove(worker);
+        worker.getShifts().remove(this);
     }
 
 

@@ -18,13 +18,14 @@ const Dashboard: React.FC = () => {
 		...JSON.parse(localStorage.getItem('user') || '{}'),
 	});
 	const [monthlyData, setMonthlyData] = useState<MonthlyData[]>([]);
+	const [shifts, setShifts] = useState<Shift[]>([]);
 
 	useEffect(() => {
 		const storedUser = localStorage.getItem('user');
 		if (storedUser) {
 			const parsedUser = JSON.parse(storedUser);
 			setUserData(parsedUser);
-			console.log('User data:', parsedUser); // Debug log
+			console.log('User data:', parsedUser); 
 		}
 	}, []);
 
@@ -61,7 +62,6 @@ const Dashboard: React.FC = () => {
 			if (!userData || userData.role !== 'admin') return;
 
 			try {
-				// Use user's ID as supervisorId if available
 				const url = userData.id
 					? `http://localhost:8080/workers?supervisorId=${userData.id}`
 					: 'http://localhost:8080/workers';
@@ -87,8 +87,10 @@ const Dashboard: React.FC = () => {
 					: 'http://localhost:8080/shifts';
 				const response = await axios.get<Shift[]>(url);
 				const shiftsData = response.data;
-
+				setShifts(shiftsData);
+				
 				const processedData = processShiftData(shiftsData);
+			
 				setMonthlyData(processedData);
 			} catch (error) {
 				console.error('Error fetching shifts:', error);
@@ -152,6 +154,7 @@ const Dashboard: React.FC = () => {
 				monthlyData={monthlyData}
 				clients={clients}
 				workerData={workerData}
+				shifts = {shifts}
 			/>
 		);
 	}
