@@ -164,7 +164,7 @@ export default function AddTaskForm() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4"
+            className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50"
           >
             <motion.div
               initial={{ scale: 0.9, opacity: 0 }}
@@ -364,7 +364,6 @@ export default function AddTaskForm() {
                 </CardContent>
               </Card>
 
-              {/* Close (X) Button */}
               <button
                 onClick={() => setIsOpen(false)}
                 className="absolute top-4 right-4 p-2 rounded-full bg-gray-200 hover:bg-gray-300"

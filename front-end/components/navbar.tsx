@@ -29,7 +29,7 @@ const Navbar = () => {
   const navLinks = [
     { href: "/schedule", label: "Schedule", roles: ["worker", "admin"] },
     { href: "/clientprofile", label: "Client Profiles", roles: ["admin"] },
-    { href: "/workerprofile", label: "Worker Profiles", roles: ["admin"] },
+    { href: "/workermanagement", label: "Worker Management", roles: ["admin"] },
     { href: "/payrolls", label: "Manage Payrolls Requests", roles: ["admin"] },
     { href: "/managetasks", label: "Manage Tasks", roles: ["admin"] },
     { href: "/profile", label: "Profile", roles: ["admin", "worker"] },
