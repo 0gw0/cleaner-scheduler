@@ -133,7 +133,7 @@ public class WorkerLocationFinder {
         LocalDateTime targetDateTime = LocalDateTime.of(targetDate, targetStartTime);
 
         for (Worker worker : workers) {
-            System.out.println("\nChecking worker: " + worker.getId()); // assuming worker has getId()
+            System.out.println("\nChecking worker: " + worker.getId());
 
             List<AnnualLeave> annualLeaves = worker.getAnnualLeavesByYear(targetDate.getYear());
             List<MedicalLeave> medicalLeaves = worker.getMedicalLeavesByYear(targetDate.getYear());

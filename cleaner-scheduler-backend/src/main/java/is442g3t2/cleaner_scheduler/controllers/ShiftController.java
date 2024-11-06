@@ -102,6 +102,7 @@ public class ShiftController {
                 .filter(shift -> filterByStatus(shift, status))
                 .filter(shift -> filterByYear(shift, year))
                 .filter(shift -> filterByMonth(shift, month))
+                .distinct()
                 .collect(Collectors.toList());
 
         return ResponseEntity.ok(filteredShifts);
