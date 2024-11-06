@@ -28,6 +28,7 @@ public class WorkerService {
         List<Worker> workers = getWorkersBySupervisorId(supervisorId);
         return workers.stream()
                 .flatMap(worker -> worker.getShifts().stream())
+                .distinct()
                 .collect(Collectors.toList());
     }
 }
