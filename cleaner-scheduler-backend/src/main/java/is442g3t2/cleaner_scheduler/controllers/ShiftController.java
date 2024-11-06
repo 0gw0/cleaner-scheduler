@@ -3,6 +3,7 @@ package is442g3t2.cleaner_scheduler.controllers;
 import com.google.maps.model.LatLng;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import is442g3t2.cleaner_scheduler.dto.shift.UpdateShift;
 import is442g3t2.cleaner_scheduler.dto.worker.FindClosestAvailableWorkersRequest;
 import is442g3t2.cleaner_scheduler.dto.worker.FindClosestAvailableWorkersResponse;
 import is442g3t2.cleaner_scheduler.models.shift.ArrivalImage;
@@ -12,6 +13,8 @@ import is442g3t2.cleaner_scheduler.models.shift.Shift;
 import is442g3t2.cleaner_scheduler.repositories.ShiftRepository;
 import is442g3t2.cleaner_scheduler.repositories.WorkerRepository;
 import is442g3t2.cleaner_scheduler.services.S3Service;
+import is442g3t2.cleaner_scheduler.services.ShiftService;
+
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -34,11 +37,13 @@ public class ShiftController {
     private final WorkerRepository workerRepository;
     private final ShiftRepository shiftRepository;
     private final S3Service s3Service;
+    private final ShiftService shiftService; 
 
-    public ShiftController(WorkerRepository workerRepository, ShiftRepository shiftRepository, S3Service s3Service) {
+    public ShiftController(WorkerRepository workerRepository, ShiftRepository shiftRepository, S3Service s3Service, ShiftService shiftService) {
         this.workerRepository = workerRepository;
         this.shiftRepository = shiftRepository;
         this.s3Service = s3Service;
+        this.shiftService = shiftService;
     }
 
     @PostMapping("/available-workers")
@@ -102,6 +107,7 @@ public class ShiftController {
                 .filter(shift -> filterByStatus(shift, status))
                 .filter(shift -> filterByYear(shift, year))
                 .filter(shift -> filterByMonth(shift, month))
+                .distinct()
                 .collect(Collectors.toList());
 
         return ResponseEntity.ok(filteredShifts);
@@ -195,6 +201,23 @@ public class ShiftController {
                     .status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body(createErrorResponse("An unexpected error occurred: " + e.getMessage()));
         }
+    }
+
+    @PutMapping("/{shiftId}/update")
+    @Tag(name = "shifts", description = "Update workers, timing and dates of shifts")
+    @Operation(summary = "Update shift URL", description = "Update workers, timing and dates for a specific shift")
+    public ResponseEntity<Shift> updateShiftDetails(
+        @PathVariable Long shiftId, 
+        @RequestBody UpdateShift updateRequest) {
+
+        Shift updatedShift = shiftService.updateShiftDetails(
+            shiftId,
+            updateRequest.getWorkerIds(),
+            updateRequest.getNewDate(),
+            updateRequest.getNewStartTime(),
+            updateRequest.getNewEndTime()
+        );
+        return ResponseEntity.ok(updatedShift);
     }
 
     private Map<String, String> createErrorResponse(String errorMessage) {
