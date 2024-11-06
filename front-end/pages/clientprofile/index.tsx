@@ -1,5 +1,12 @@
 import React, { useState, useEffect } from "react";
-import { Search, MapPin, User, Calendar, Briefcase, Check } from "lucide-react";
+import {
+  Search,
+  MapPin,
+  User,
+  Calendar,
+  Briefcase,
+  Check,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -41,6 +48,7 @@ interface Client {
   id: number;
   name: string;
   properties: Property[];
+  status: string;
 }
 
 interface ArrivalImage {
@@ -102,7 +110,6 @@ const ClientProfiles = () => {
         const response = await fetch("http://localhost:8080/shifts");
         const data = await response.json();
         setShifts(data);
-        console.log(data);
       } catch (error) {
         console.error("Error fetching shifts:", error);
       }
@@ -114,7 +121,6 @@ const ClientProfiles = () => {
 
   useEffect(() => {
     let results = [...clients];
-
     if (searchTerm) {
       results = results.filter(
         (client) =>
@@ -128,7 +134,6 @@ const ClientProfiles = () => {
           )
       );
     }
-
     setFilteredClients(results);
   }, [searchTerm, clients]);
 
@@ -318,7 +323,6 @@ const ClientProfiles = () => {
       setClientShifts(validShifts);
 
       const fetchWorkers = async () => {
-        
         const workerIds = new Set<number>();
         validShifts.forEach((shift) => {
           shift.workers?.forEach((id) => workerIds.add(id));
@@ -362,7 +366,7 @@ const ClientProfiles = () => {
     return (
       <DialogContent className="max-w-4xl">
         <DialogHeader>
-          <DialogTitle>Client Shifts</DialogTitle>
+          <DialogTitle>Client Jobs</DialogTitle>
         </DialogHeader>
         <Table>
           <TableHeader>
@@ -400,6 +404,10 @@ const ClientProfiles = () => {
     );
   };
 
+  const handleRemoveClient = (clientId: number) => {
+    console.log("Removing client with ID:", clientId);
+  };
+
   return (
     <div className="container mx-auto px-4 py-8">
       <div className="flex justify-between items-center mb-8">
@@ -421,14 +429,22 @@ const ClientProfiles = () => {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {filteredClients.map((client) => (
           <Card key={client.id} className="hover:shadow-lg transition-shadow">
-            <CardHeader className="flex flex-row items-center space-x-4 pb-2">
+            <CardHeader className="flex flex-row items-center justify-between space-x-4 pb-2">
               <div className="flex-1">
                 <CardTitle className="text-lg">{client.name}</CardTitle>
+                {/* {client.status} */}
                 <div className="flex items-center text-sm text-gray-500">
                   <MapPin className="w-4 h-4 mr-1" />
                   <p className="truncate">{client.properties[0]?.address}</p>
                 </div>
               </div>
+              <Button
+              
+                className="text-red-500 hover:bg-red-50 rounded-full bg-white"
+                onClick={() => handleRemoveClient(client.id)}
+              >
+                Remove Client
+              </Button>
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
@@ -456,7 +472,7 @@ const ClientProfiles = () => {
                   <DialogTrigger asChild>
                     <Button variant="outline" className="w-full">
                       <Briefcase className="w-4 h-4 mr-2" />
-                      View Shifts
+                      View Jobs
                     </Button>
                   </DialogTrigger>
                   <ShiftsDialog clientId={client.id} />

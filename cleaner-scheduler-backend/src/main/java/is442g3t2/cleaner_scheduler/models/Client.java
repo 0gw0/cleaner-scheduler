@@ -24,6 +24,13 @@ public class Client {
     @Column(nullable = false)
     private String name;
 
+    @Column(nullable = false)
+    private String status;
+
+    {
+        this.status = "Active";
+    }
+
     @OneToMany(mappedBy = "client", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<Property> properties = new ArrayList<>();
 
