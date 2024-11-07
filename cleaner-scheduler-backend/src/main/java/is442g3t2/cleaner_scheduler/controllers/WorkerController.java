@@ -8,6 +8,7 @@ import is442g3t2.cleaner_scheduler.dto.shift.GetShiftCountResponse;
 import is442g3t2.cleaner_scheduler.dto.worker.PostWorkerRequest;
 import is442g3t2.cleaner_scheduler.dto.worker.UpdateWorker;
 import is442g3t2.cleaner_scheduler.dto.worker.TakeLeaveRequest;
+import is442g3t2.cleaner_scheduler.dto.worker.WorkerDTO;
 import is442g3t2.cleaner_scheduler.exceptions.ShiftsOverlapException;
 import is442g3t2.cleaner_scheduler.models.property.Property;
 import is442g3t2.cleaner_scheduler.models.leave.AnnualLeave;
@@ -21,6 +22,7 @@ import is442g3t2.cleaner_scheduler.repositories.AdminRepository;
 import is442g3t2.cleaner_scheduler.repositories.PropertyRepository;
 import is442g3t2.cleaner_scheduler.repositories.WorkerRepository;
 import is442g3t2.cleaner_scheduler.services.WorkerService;
+// import is442g3t2.cleaner_scheduler.services.EmailSenderService;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -33,6 +35,8 @@ import java.time.YearMonth;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
+import java.util.UUID;
+import java.util.Optional;
 
 @RestController()
 @RequestMapping(path = "/workers")
@@ -42,42 +46,44 @@ public class WorkerController {
     private final PropertyRepository propertyRepository;
     private final AdminRepository adminRepository;
     private final WorkerService workerService;
+    // private final EmailSenderService emailSenderService;
 
     public WorkerController(WorkerService workerService, WorkerRepository workerRepository,
-            AdminRepository adminRepository, PropertyRepository propertyRepository) {
+            AdminRepository adminRepository, PropertyRepository propertyRepository
+    // ,EmailSenderService emailSenderService
+    ) {
         this.workerService = workerService;
         this.workerRepository = workerRepository;
         this.adminRepository = adminRepository;
         this.propertyRepository = propertyRepository;
+        // this.emailSenderService = emailSenderService;
     }
 
     @Tag(name = "workers")
     @Operation(description = "get ALL workers or ALL workers under a superviser using their supervisor id", summary = "get ALL workers or ALL workers under a superviser using their supervisor id")
     @GetMapping("")
-    public ResponseEntity<List<Worker>> getWorkers(
+    public ResponseEntity<List<WorkerDTO>> getWorkers(
             @RequestParam(name = "supervisorId", required = false) Long supervisorId) {
         List<Worker> workers = supervisorId == null ? workerService.getAllWorkers()
                 : workerService.getWorkersBySupervisorId(supervisorId);
-
-        // if (supervisorId == null) {
-        // workers = workerRepository.findAll();
-        // } else {
-        // workers = workerRepository.findBySupervisor_Id(supervisorId);
-        // }
 
         if (workers.isEmpty()) {
             return ResponseEntity.noContent().build();
         }
 
-        return ResponseEntity.ok(workers);
+        List<WorkerDTO> workerDTOs = workers.stream()
+                .map(WorkerDTO::new)
+                .collect(Collectors.toList());
+
+        return ResponseEntity.ok(workerDTOs);
     }
 
     @Tag(name = "workers")
     @Operation(description = "get worker by worker id", summary = "get worker by worker id")
     @GetMapping("/{id}")
-    public ResponseEntity<Worker> getWorkerById(@PathVariable Long id) {
+    public ResponseEntity<WorkerDTO> getWorkerById(@PathVariable Long id) {
         return workerRepository.findById(id)
-                .map(worker -> ResponseEntity.ok().body(worker))
+                .map(worker -> ResponseEntity.ok().body(new WorkerDTO(worker)))
                 .orElseThrow(() -> new ResponseStatusException(
                         HttpStatus.NOT_FOUND, "Worker with id " + id + " not found"));
     }
@@ -101,7 +107,7 @@ public class WorkerController {
             int shiftCount = worker.getNumShiftsInMonth(yearMonth);
             shifts = shifts.stream()
                     .filter(shift -> {
-                        LocalDate shiftDate = shift.getDate(); 
+                        LocalDate shiftDate = shift.getDate();
                         return shiftDate.getYear() == year &&
                                 shiftDate.getMonthValue() == month;
                     })
@@ -116,7 +122,6 @@ public class WorkerController {
             return ResponseEntity.ok(new GetShiftCountResponse(id, shiftCount, shifts));
         }
     }
-
 
     @Tag(name = "workers - shifts")
     @Operation(description = "add shift(s) to a worker", summary = "add shift(s) to a worker")
@@ -177,7 +182,7 @@ public class WorkerController {
         LocalDate endDate = LocalDate.parse(takeLeaveRequest.getEndDate());
         Worker worker = workerRepository.findById(id).orElseThrow(
                 () -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Worker not found"));
-        
+
         workerService.removeAllShiftsByWorkerIdByDate(worker, startDate, endDate);
         worker.takeLeave(startDate, endDate);
         workerRepository.save(worker);
@@ -220,7 +225,7 @@ public class WorkerController {
         LocalDate endDate = LocalDate.parse(takeLeaveRequest.getEndDate());
         Worker worker = workerRepository.findById(id).orElseThrow(
                 () -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Worker not found"));
-        
+
         workerService.removeAllShiftsByWorkerIdByDate(worker, startDate, endDate);
         worker.takeMedicalLeave(startDate, endDate);
         workerRepository.save(worker);
@@ -306,10 +311,13 @@ public class WorkerController {
                     HttpStatus.INTERNAL_SERVER_ERROR, "Error removing shift: " + e.getMessage());
         }
     }
-    
+
+    @Tag(name = "workers")
+    @Operation(description = "Update worker's details by Id", summary = "Update worker's details by Id")
     @PatchMapping("/{id}")
     public ResponseEntity<Worker> updateWorker(@PathVariable Long id, @RequestBody UpdateWorker UpdateWorker) {
         Worker updatedWorker = workerService.updateWorker(id, UpdateWorker);
         return ResponseEntity.ok(updatedWorker);
     }
+
 }
