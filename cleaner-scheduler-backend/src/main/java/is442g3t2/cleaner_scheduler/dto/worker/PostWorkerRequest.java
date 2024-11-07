@@ -14,4 +14,5 @@ public class PostWorkerRequest {
     private String phoneNumber;
     private String bio;
     private Long supervisorId;
+    private String email;
 }

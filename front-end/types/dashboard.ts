@@ -77,7 +77,7 @@ export interface WorkerData {
 		endTime: string;
 	}>;
 	phoneNumber: number;
-	supervisor: string;
+	supervisorId: number;
 	bio: string;
 	annualLeaves: Array<{
 		id: number;
@@ -90,6 +90,7 @@ export interface WorkerData {
 		endDate: string;
 	}>;
 	homePostalCode: string;
+	status: string;
 }
 
 export interface UserData {

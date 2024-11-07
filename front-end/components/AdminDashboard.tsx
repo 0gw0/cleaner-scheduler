@@ -5,6 +5,7 @@ import JobsChart from "./JobsChart";
 import ClientsTable from "./ClientsTable";
 import WorkerTable from "./WorkerTable";
 import WorkerStatistics from "./WorkerStatistics";
+import WorkerLeaves from "./WorkerLeaves";
 import {
   Users,
   Briefcase,
@@ -31,10 +32,10 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
   workerData,
   shifts,
 }) => {
-  console.log(shifts);
   const validMonthlyData = monthlyData.filter(
     (data) => data.month !== "Invalid Date"
   );
+
   const currentMonth = validMonthlyData[validMonthlyData.length - 1] || {
     month: "",
     jobs: 0,
@@ -52,11 +53,12 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
     ).length,
   };
 
-  // Calculate client statistics
   const clientStats = {
     totalActive: clients.filter((c) => c.status === "Active").length,
     totalInactive: clients.filter((c) => c.status !== "Active").length,
   };
+
+  const adminId = JSON.parse(localStorage.getItem("user") || "{}").id;
 
   const exportToCSV = () => {
     const csvContent = [
@@ -167,6 +169,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
       </div>
 
       <WorkerStatistics shifts={shifts} />
+      <WorkerLeaves />
     </div>
   );
 };

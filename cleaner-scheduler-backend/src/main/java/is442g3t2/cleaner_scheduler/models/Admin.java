@@ -23,6 +23,13 @@ public class Admin {
     @Column(nullable = false)
     private String name;
 
+    @Column(nullable = false)
+    private String password;
+
+    {
+        this.password = "password123";
+    }
+
     @OneToMany(mappedBy = "supervisor", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<Worker> workers = new ArrayList<>();
 

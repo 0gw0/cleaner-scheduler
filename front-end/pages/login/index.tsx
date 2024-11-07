@@ -18,7 +18,7 @@ import { useAuth } from "../../contexts/AuthContext";
 export default function LoginPage() {
   const [userType, setUserType] = useState<string>("");
   const [ID, setID] = useState<string>("");
-  // const [password, setPassword] = useState<string>("");
+  const [password, setPassword] = useState<string>("");
   const [error, setError] = useState<string>("");
   const router = useRouter();
   const { login } = useAuth();
@@ -33,7 +33,7 @@ export default function LoginPage() {
           .get("http://localhost:8080/admins/" + ID)
           .then((res) => {
             console.log(res.data);
-            if (res.status === 200) {
+            if (res.status === 200 && res.data.password === password) {
               const user = {
                 id: res.data.id,
                 name: res.data.name,
@@ -55,18 +55,18 @@ export default function LoginPage() {
           .get("http://localhost:8080/workers/" + ID)
           .then((res) => {
             console.log(res.data);
-            if (res.status === 200) {
+            if (res.status === 200 && res.data.password === password) {
               const user = {
                 id: res.data.id,
                 name: res.data.name,
                 role: userType as "admin" | "worker",
                 shifts: res.data.shifts,
                 phoneNumber: res.data.phoneNumber,
-                supervisor: res.data.supervisor,
+                supervisorId: res.data.supervisorId,
                 bio: res.data.bio,
                 annualLeaves: res.data.annualLeaves,
                 medicalLeaves: res.data.medicalLeaves,
-                homePostalCode: res.data.homePostalCode,
+                status: res.data.status,
               };
               login(user);
               router.push("/dashboard");
@@ -129,7 +129,7 @@ export default function LoginPage() {
                 required
               />
             </div>
-            {/* <div>
+            <div>
               <label
                 htmlFor="password"
                 className="block text-sm font-medium text-gray-700"
@@ -146,7 +146,7 @@ export default function LoginPage() {
                 placeholder="Enter your password"
                 required
               />
-            </div> */}
+            </div>
             {error && (
               <Alert variant="destructive">
                 <AlertDescription>{error}</AlertDescription>
