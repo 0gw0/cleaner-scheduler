@@ -4,8 +4,31 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Shift, WorkerCardProps } from "@/types/workermanagement";
 import { format } from "date-fns";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { useState } from "react";
+import axios from "axios";
+import { useToast } from "@/hooks/use-toast";
 
 export const WorkerCard = ({ worker, onActionClick }: WorkerCardProps) => {
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [isUpdating, setIsUpdating] = useState(false);
+  const [formData, setFormData] = useState({
+    name: worker.name,
+    phoneNumber: worker.phoneNumber,
+    bio: worker.bio,
+    status: worker.status
+  });
+  const { toast } = useToast();
   // Calculate active MC count
   const activeMCCount = worker.medicalLeaves.filter(
     (leave) => new Date(leave.endDate) >= new Date()
@@ -70,6 +93,38 @@ export const WorkerCard = ({ worker, onActionClick }: WorkerCardProps) => {
 
   const status = getWorkerStatus();
 
+  const handleInputChange = (
+    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
+  ) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({
+      ...prev,
+      [name]: value
+    }));
+  };
+
+  const handleUpdateWorker = async () => {
+    setIsUpdating(true);
+    try {
+      await axios.patch(`http://localhost:8080/workers/${worker.id}`, formData);
+      Object.assign(worker, formData);
+      
+      setIsDialogOpen(false);
+      toast({
+        title: "Success",
+        description: "Worker details updated successfully",
+      });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to update worker details",
+        variant: "destructive",
+      });
+    } finally {
+      setIsUpdating(false);
+    }
+  };
+
   const handleScheduleClick = () => {
     onActionClick("showSchedule", worker);
   };
@@ -80,10 +135,6 @@ export const WorkerCard = ({ worker, onActionClick }: WorkerCardProps) => {
 
   const handleSubmitMCClick = () => {
     onActionClick("showMC", worker);
-  };
-
-  const handleRemoveWorker = (workerId: number) => {
-    console.log("Removing worker with ID:", workerId);
   };
 
   return (
@@ -112,11 +163,17 @@ export const WorkerCard = ({ worker, onActionClick }: WorkerCardProps) => {
             <Building className="w-4 h-4" />
             <span>ID: {worker.id}</span>
           </div>
+          
           <div className="flex items-center gap-1 text-gray-600">
             <Calendar className="w-4 h-4" />
             <span>Shifts: {worker.shifts.length}</span>
           </div>
+          
         </div>
+        <div className="flex items-center gap-1 text-gray-600 text-sm">
+            <Building className="w-4 h-4" />
+            <span>Status: {worker.status}</span>
+          </div>
 
         {/* Action Buttons */}
         <div className="grid grid-cols-2 gap-2">
@@ -144,12 +201,74 @@ export const WorkerCard = ({ worker, onActionClick }: WorkerCardProps) => {
 
           
         </div>
-        <Button
-            className="text-red-500 hover:bg-red-50 bg-white w-full"
-            onClick={() => handleRemoveWorker(worker.id)}
-          >
-            Modify Worker Details
-          </Button>
+        <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+          <DialogTrigger asChild>
+            <Button
+              className="text-red-500 hover:bg-red-50 bg-white w-full"
+            >
+              Modify Worker Details
+            </Button>
+          </DialogTrigger>
+          <DialogContent className="sm:max-w-[425px]">
+            <DialogHeader>
+              <DialogTitle>Edit Worker Details</DialogTitle>
+            </DialogHeader>
+            <div className="grid gap-4 py-4">
+              <div className="grid gap-2">
+                <Label htmlFor="name">Name</Label>
+                <Input
+                  id="name"
+                  name="name"
+                  value={formData.name}
+                  onChange={handleInputChange}
+                />
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="phoneNumber">Phone Number</Label>
+                <Input
+                  id="phoneNumber"
+                  name="phoneNumber"
+                  value={formData.phoneNumber}
+                  onChange={handleInputChange}
+                />
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="bio">Bio</Label>
+                <Textarea
+                  id="bio"
+                  name="bio"
+                  value={formData.bio}
+                  onChange={handleInputChange}
+                  className="h-20"
+                />
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="status">Status</Label>
+                <Input
+                  id="status"
+                  name="status"
+                  value={formData.status}
+                  onChange={handleInputChange}
+                />
+              </div>
+            </div>
+            <DialogFooter>
+              <Button
+                variant="outline"
+                onClick={() => setIsDialogOpen(false)}
+                className="mr-2"
+              >
+                Cancel
+              </Button>
+              <Button
+                onClick={handleUpdateWorker}
+                disabled={isUpdating}
+              >
+                {isUpdating ? "Updating..." : "Save Changes"}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
 
         <Button
           variant="default"

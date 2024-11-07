@@ -8,11 +8,12 @@ interface User {
   workers?: string[];
   shifts?: Array<object>;
   phoneNumber?: string;
-  supervisor?: number;
+  supervisorId?: number;
   bio?: string;
   annualLeaves?: Array<object>;
   medicalLeaves?: Array<object>;
   homePostalCode?: string;
+  status? : string;
 }
 
 interface AuthContextType {

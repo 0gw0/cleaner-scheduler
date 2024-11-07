@@ -62,11 +62,11 @@ export default function LoginPage() {
                 role: userType as "admin" | "worker",
                 shifts: res.data.shifts,
                 phoneNumber: res.data.phoneNumber,
-                supervisor: res.data.supervisor,
+                supervisorId: res.data.supervisorId,
                 bio: res.data.bio,
                 annualLeaves: res.data.annualLeaves,
                 medicalLeaves: res.data.medicalLeaves,
-                homePostalCode: res.data.homePostalCode,
+                status: res.data.status,
               };
               login(user);
               router.push("/dashboard");
