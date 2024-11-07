@@ -102,13 +102,13 @@ const MCApplicationForm = ({
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     try {
-      await axios.post(
-        `http://localhost:8080/workers/${user.id}/medical-leaves`,
-        {
-          startDate: format(selectedStartDate, 'yyyy-MM-dd'),
-          endDate: format(selectedEndDate, 'yyyy-MM-dd'),
-        }
-      );
+      // await axios.post(
+      //   `http://localhost:8080/workers/${user.id}/medical-leaves`,
+      //   {
+      //     startDate: format(selectedStartDate, 'yyyy-MM-dd'),
+      //     endDate: format(selectedEndDate, 'yyyy-MM-dd'),
+      //   }
+      // );
       let base64Data;
       if (selectedFile) {
         const reader = new FileReader();

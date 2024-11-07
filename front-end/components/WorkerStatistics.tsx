@@ -65,7 +65,21 @@ const WorkerStatistics: React.FC<WorkerStatisticsProps> = ({ shifts }) => {
   };
 
   useEffect(() => {
-    const workerIds = JSON.parse(localStorage.getItem("user") || "{}").workers || [];
+    const fetchWorkerIds = async () => {
+      try {
+      const response = await axios.get('http://localhost:8080/workers');
+      const fetchedWorkerIds = response.data.map((worker: { id: number }) => worker.id);
+      const uniqueWorkerIds = Array.from(new Set([...workerIds, ...fetchedWorkerIds]));
+      uniqueWorkerIds.forEach(id => {
+        fetchWorkerName(id);
+      });
+      } catch (error) {
+      console.error('Error fetching worker IDs:', error);
+      }
+    };
+
+    fetchWorkerIds();
+    const workerIds = [1,2,3]
     
     workerIds.forEach(id => {
       fetchWorkerName(id);

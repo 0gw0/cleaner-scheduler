@@ -169,7 +169,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
       </div>
 
       <WorkerStatistics shifts={shifts} />
-      <WorkerLeaves supervisorId={adminId} />
+      <WorkerLeaves />
     </div>
   );
 };
