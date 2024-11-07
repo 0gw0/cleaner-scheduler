@@ -13,6 +13,19 @@ import {
 import { Dialogs } from '@/components/Dialogs';
 import axios from 'axios';
 
+// Helper function to validate shift data
+const isValidShift = (shift: Shift): shift is Shift => {
+	return (
+		shift &&
+		typeof shift === 'object' &&
+		'id' in shift &&
+		'property' in shift &&
+		'date' in shift &&
+		'startTime' in shift &&
+		'endTime' in shift
+	);
+};
+
 const WorkerManagement = () => {
 	const [searchTerm, setSearchTerm] = useState('');
 	const [currentPage, setCurrentPage] = useState(1);
@@ -56,7 +69,7 @@ const WorkerManagement = () => {
 		}
 	}, []);
 
-	// Fetch worker data
+	// Fetch worker data and clean it
 	useEffect(() => {
 		const fetchWorkerData = async () => {
 			if (!supervisorId) return;
@@ -65,8 +78,17 @@ const WorkerManagement = () => {
 				const response = await axios.get<WorkerData[]>(
 					`http://localhost:8080/workers?supervisorId=${supervisorId}`
 				);
-				setWorkerData(response.data);
-				setFilteredWorkers(response.data);
+
+				// Clean and validate the worker data
+				const cleanedData = response.data.map((worker) => ({
+					...worker,
+					shifts: Array.isArray(worker.shifts)
+						? worker.shifts.filter(isValidShift)
+						: [],
+				}));
+
+				setWorkerData(cleanedData);
+				setFilteredWorkers(cleanedData);
 			} catch (error) {
 				console.error('Error fetching worker data:', error);
 				setWorkerData([]);
@@ -100,7 +122,14 @@ const WorkerManagement = () => {
 		dialogType: keyof typeof dialogState,
 		worker: WorkerData
 	) => {
-		setSelectedWorker(worker);
+		// Clean the worker's shifts before setting
+		const cleanedWorker = {
+			...worker,
+			shifts: Array.isArray(worker.shifts)
+				? worker.shifts.filter(isValidShift)
+				: [],
+		};
+		setSelectedWorker(cleanedWorker);
 		setDialogState((prev) => ({
 			...prev,
 			[dialogType]: true,
@@ -143,12 +172,6 @@ const WorkerManagement = () => {
 		setIsSubmitting(true);
 		const tempResults: ReallocationResult[] = [];
 		try {
-			console.log('1. Submitting MC with data:', {
-				workerId: selectedWorker.id,
-				startDate: mcDates.startDate,
-				endDate: mcDates.endDate,
-			});
-
 			const mcResponse = await fetch(
 				`http://localhost:8080/workers/${selectedWorker.id}/medical-leaves`,
 				{
@@ -164,20 +187,20 @@ const WorkerManagement = () => {
 			);
 
 			if (!mcResponse.ok) {
-				console.error(
-					'MC submission failed with status:',
-					mcResponse.status
-				);
 				throw new Error(`HTTP error! status: ${mcResponse.status}`);
 			}
 
 			const updatedWorker = await mcResponse.json();
-			console.log(
-				'MC submission successful. Updated worker data:',
-				updatedWorker
-			);
 
-			const affectedShifts = updatedWorker.shifts.filter(
+			// Clean the shifts data from the response
+			const cleanedUpdatedWorker = {
+				...updatedWorker,
+				shifts: Array.isArray(updatedWorker.shifts)
+					? updatedWorker.shifts.filter(isValidShift)
+					: [],
+			};
+
+			const affectedShifts = cleanedUpdatedWorker.shifts.filter(
 				(shift: Shift) => {
 					const shiftDate = new Date(shift.date);
 					const startDate = new Date(mcDates.startDate);
@@ -313,7 +336,9 @@ const WorkerManagement = () => {
 
 			setWorkerData((prevData) =>
 				prevData.map((worker) =>
-					worker.id === selectedWorker.id ? updatedWorker : worker
+					worker.id === selectedWorker.id
+						? cleanedUpdatedWorker
+						: worker
 				)
 			);
 
@@ -369,7 +394,6 @@ const WorkerManagement = () => {
 				</div>
 			)}
 
-			{/* Centralized Dialog Management */}
 			<Dialogs
 				dialogState={dialogState}
 				onClose={handleDialogClose}
