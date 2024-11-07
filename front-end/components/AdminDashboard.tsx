@@ -31,7 +31,6 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
   workerData,
   shifts,
 }) => {
-
   console.log(shifts);
   const validMonthlyData = monthlyData.filter(
     (data) => data.month !== "Invalid Date"
@@ -61,17 +60,26 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
 
   const exportToCSV = () => {
     const csvContent = [
-      ["Month", "Total Jobs", "Active Clients"],
+      [
+        "Month",
+        "Total Jobs",
+        "Total Workers under me",
+        "Number of workers on leave",
+        "Active Clients",
+        "Inactive Clients",
+      ],
       ...validMonthlyData.map((month) => [
         month.month,
         month.jobs,
+        workerStats.totalWorkers,
+        workerStats.onLeave,
         clientStats.totalActive,
+        clientStats.totalInactive,
       ]),
     ]
       .map((row) => row.join(","))
       .join("\n");
 
-    // Create and trigger download
     const blob = new Blob([csvContent], { type: "text/csv" });
     const url = window.URL.createObjectURL(blob);
     const a = document.createElement("a");
@@ -152,12 +160,12 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
           No monthly data available. The chart will appear when data is present.
         </div>
       )}
-      
+
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
         <ClientsTable clients={clients} />
         <WorkerTable workerData={workerData} />
       </div>
-      
+
       <WorkerStatistics shifts={shifts} />
     </div>
   );
