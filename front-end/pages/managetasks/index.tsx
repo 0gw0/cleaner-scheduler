@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { TaskCard } from '@/components/TaskCard';
 import { TaskDetailModal } from '@/components/TaskDetailModal';
-import { Worker, Shift } from '@/types/task';
+import { Shift } from '@/types/task'; // Assume Shift type is updated to match new structure
 import AddTaskForm from '@/components/AddTaskForm';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Card, CardContent } from "@/components/ui/card";
@@ -16,14 +16,14 @@ const ManageTasks: React.FC = () => {
   const [statusFilter, setStatusFilter] = useState<"ALL" | "COMPLETED" | "PENDING" | "UPCOMING">("ALL");
   const [selectedTask, setSelectedTask] = useState<Shift | null>(null);
   const [isTaskDetailModalOpen, setIsTaskDetailModalOpen] = useState(false);
-  const [workers, setWorkers] = useState<Worker[]>([]);
-  const [selectedWorker, setSelectedWorker] = useState<number | null>(null); // Initially null
+  const [workers, setWorkers] = useState<number[]>([]); // Array of worker IDs
+  const [selectedWorker, setSelectedWorker] = useState<number | null>(null);
   const [shiftData, setShiftData] = useState<Shift[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    const fetchWorkers = async () => {
+    const fetchShifts = async () => {
       try {
         const userDetails = localStorage.getItem('user');
         const supervisorId = userDetails ? JSON.parse(userDetails).id : null;
@@ -32,50 +32,40 @@ const ManageTasks: React.FC = () => {
           throw new Error('No supervisor ID found in localStorage');
         }
 
-        const response = await axios.get<Worker[]>(
-          `http://localhost:8080/workers?supervisorId=${supervisorId}`
+        // Fetch shifts directly based on supervisor ID
+        const response = await axios.get<Shift[]>(
+          `http://localhost:8080/workers/supervisor/${supervisorId}/shifts`
         );
 
-        setWorkers(response.data);
+        // Set shift data directly
+        setShiftData(response.data);
 
-        // Set the initial selected worker after workers are fetched
-        if (response.data.length > 0) {
-          setSelectedWorker(response.data[0].id);
+        // Extract worker IDs for dropdown filter (unique worker IDs)
+        const uniqueWorkerIds = Array.from(new Set(response.data.flatMap(shift => shift.workerIds)));
+        setWorkers(uniqueWorkerIds);
+
+        // Set default selected worker to the first one
+        if (uniqueWorkerIds.length > 0) {
+          setSelectedWorker(uniqueWorkerIds[0]);
         }
       } catch (error) {
-        console.error('Failed to fetch workers:', error);
-        setError('Failed to load workers');
+        console.error('Failed to fetch shifts:', error);
+        setError('Failed to load shifts');
       } finally {
         setIsLoading(false);
       }
     };
 
-    fetchWorkers();
+    fetchShifts();
   }, []);
 
-  useEffect(() => {
-    // Update shift data whenever workers or selected worker changes
-    const allShifts = workers.flatMap(worker =>
-      worker.shifts.map(shift => ({
-        ...shift,
-      }))
-    );
-    setShiftData(allShifts);
-  }, [workers]);
-
-  if (isLoading) {
-    return <p>Loading workers...</p>;
-  }
-
-  if (error) {
-    return <p className="text-red-500">{error}</p>;
-  }
+  console.log("shiftData",shiftData)
 
   const filteredTasks = shiftData.filter(
     (task) =>
       task.property.address.toLowerCase().includes(searchTerm.toLowerCase()) &&
       (statusFilter === "ALL" || task.status === statusFilter) &&
-      (selectedWorker === null || task.worker === selectedWorker)
+      (selectedWorker === null || task.workerIds.includes(selectedWorker))
   );
 
   const sortedTasks = filteredTasks.sort((a, b) => {
@@ -104,6 +94,14 @@ const ManageTasks: React.FC = () => {
     setSelectedWorker(workerId);
   };
 
+  if (isLoading) {
+    return <p>Loading shifts...</p>;
+  }
+
+  if (error) {
+    return <p className="text-red-500">{error}</p>;
+  }
+
   return (
     <div className="container mx-auto px-4 py-8 space-y-6">
       <div className="flex flex-wrap items-center justify-between space-y-4 md:space-y-0">
@@ -116,9 +114,9 @@ const ManageTasks: React.FC = () => {
               <SelectValue placeholder="Select worker" />
             </SelectTrigger>
             <SelectContent>
-              {workers.map((worker) => (
-                <SelectItem key={worker.id} value={worker.id.toString()}>
-                  {worker.name}
+              {workers.map((workerId) => (
+                <SelectItem key={workerId} value={workerId.toString()}>
+                  Worker {workerId}
                 </SelectItem>
               ))}
             </SelectContent>
@@ -147,21 +145,18 @@ const ManageTasks: React.FC = () => {
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
           />
-
           <div className="flex items-center ml-2">
-          <Button variant="outline" onClick={handleSortToggle}>
-            <Filter className="mr-2 h-4 w-4" />
-            {sortOrder === 'asc' ? 'Oldest First' : 'Newest First'}
-          </Button>
+            <Button variant="outline" onClick={handleSortToggle}>
+              <Filter className="mr-2 h-4 w-4" />
+              {sortOrder === 'asc' ? 'Oldest First' : 'Newest First'}
+            </Button>
           </div>
-
         </div>
 
         <div className="flex-shrink-0">
           <AddTaskForm />
         </div>
       </div>
-
 
       {sortedTasks.length === 0 ? (
         <Card>
@@ -179,9 +174,12 @@ const ManageTasks: React.FC = () => {
 
       {selectedTask && (
         <TaskDetailModal
-          shiftData={selectedTask}
-          isOpen={isTaskDetailModalOpen}
-          onClose={handleCloseTaskDetailModal}
+        shiftData={selectedTask}
+        isOpen={isTaskDetailModalOpen}
+        onClose={handleCloseTaskDetailModal}
+        onEdit={(selectedTask: Shift) => {
+          return Promise.resolve();
+        }}
         />
       )}
     </div>
