@@ -10,23 +10,21 @@ interface TaskDetailModalProps {
   shiftData: Shift;
   isOpen: boolean;
   onClose: () => void;
-  onEdit: (updatedData: Shift) => Promise<void>; // API call function
+  onEdit: (updatedData: Shift) => Promise<void>;
 }
 
 export const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ shiftData, isOpen, onClose, onEdit }) => {
-  const [isEditing, setIsEditing] = useState(false); // Track edit mode
-  const [updatedShift, setUpdatedShift] = useState(shiftData); // Track changes
+  const [isEditing, setIsEditing] = useState(false); 
+  const [updatedShift, setUpdatedShift] = useState(shiftData); 
 
-  // Handle field changes
   const handleChange = (field: keyof Shift, value: any) => {
     setUpdatedShift((prev) => ({ ...prev, [field]: value }));
   };
 
-  // Save changes and call the API
   const handleSave = async () => {
     try {
-      await onEdit(updatedShift); // Call API to save changes
-      setIsEditing(false); // Exit edit mode on success
+      await onEdit(updatedShift); 
+      setIsEditing(false); 
     } catch (error) {
       console.error('Failed to update shift:', error);
     }
@@ -142,12 +140,12 @@ export const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ shiftData, isO
               {isEditing ? (
                 <input
                   type="text"
-                  value={updatedShift.worker}
-                  onChange={(e) => handleChange('worker', e.target.value)}
+                  value={updatedShift.workers}
+                  onChange={(e) => handleChange('workers', e.target.value)}
                   className="border rounded px-2"
                 />
               ) : (
-                `Worker ID: ${shiftData.worker}`
+                `Worker ID: ${shiftData.workerIds.join(', ')}`
               )}
             </span>
           </div>
