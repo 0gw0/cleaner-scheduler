@@ -62,6 +62,18 @@ public class Worker {
         this.status = "Active";
     }
 
+    @Column(nullable = true)
+    private String email;
+
+    @Column(nullable = false)
+    private Boolean isVerified;
+    {
+        this.isVerified = false;
+    }
+
+    
+    private String verificationToken;
+
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "supervisor_id")
@@ -76,10 +88,11 @@ public class Worker {
     @OneToMany(mappedBy = "worker", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<MedicalLeave> medicalLeaves = new ArrayList<>();
 
-    public Worker(String name, String phoneNumber, String bio) {
+    public Worker(String name, String phoneNumber, String bio, String email) {
         this.name = name;
         this.phoneNumber = phoneNumber;
         this.bio = bio;
+        this.email = email;
     }
 
     public Long getSupervisor() {

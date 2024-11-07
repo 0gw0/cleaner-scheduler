@@ -22,11 +22,12 @@ public class WorkerDTO {
     
     private Long id;
     private String name;
-    private ArrayList<Shift> shifts;  
+    private List<Shift> shifts;  
     private String phoneNumber;
     private String status;
     private Long supervisorId;  
     private String bio;
+    private Boolean isVerified;
     private List<AnnualLeave> annualLeaves;
     private List<MedicalLeave> medicalLeaves;
 
@@ -34,12 +35,16 @@ public class WorkerDTO {
     public WorkerDTO(Worker worker) {
         this.id = worker.getId();
         this.name = worker.getName();
-        this.shifts = new ArrayList<>(worker.getShifts());
+        this.shifts = worker.getShifts().stream()
+            .filter(obj -> obj instanceof Shift)
+            .map(obj -> (Shift) obj)
+            .collect(Collectors.toList());
         this.phoneNumber = worker.getPhoneNumber();
         this.status = worker.getStatus();
         this.supervisorId = worker.getSupervisor(); 
         this.bio = worker.getBio();
         this.annualLeaves = new ArrayList<>(worker.getAnnualLeaves());
         this.medicalLeaves = new ArrayList<>(worker.getMedicalLeaves());
+        this.isVerified = worker.getIsVerified();
     }
 }
