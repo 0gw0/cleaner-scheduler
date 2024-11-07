@@ -33,6 +33,7 @@ const Navbar = () => {
     { href: "/payrolls", label: "Manage Payrolls Requests", roles: ["admin"] },
     { href: "/managetasks", label: "Manage Tasks", roles: ["admin"] },
     { href: "/profile", label: "Profile", roles: ["admin", "worker"] },
+    { href: "/workermc", label: "Apply MC", roles: [ "worker"] },
   ];
 
   const filteredNavLinks = navLinks.filter((link) =>

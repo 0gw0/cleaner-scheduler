@@ -9,15 +9,12 @@ import { Users, Home } from "lucide-react";
 interface WorkerDashboardProps {
   workerData: WorkerData;
 }
-const WorkerDashboard: React.FC<WorkerDashboardProps> = ({
-  workerData,
-}) => {
-  console.log(workerData);
-  const getUpcomingShiftsCount = (shifts: WorkerData['shifts']): number => {
+const WorkerDashboard: React.FC<WorkerDashboardProps> = ({ workerData }) => {
+  const getUpcomingShiftsCount = (shifts: WorkerData["shifts"]): number => {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
 
-    return shifts.filter(shift => {
+    return shifts.filter((shift) => {
       const shiftDate = new Date(shift.date);
       return shiftDate >= today;
     }).length;
@@ -36,9 +33,10 @@ const WorkerDashboard: React.FC<WorkerDashboardProps> = ({
         />
         <StatusCard
           title="Supervisor ID"
-          value={workerData.supervisor}
+          value={workerData.supervisorId}
           icon={Users}
         />
+        <StatusCard title="Status" value={workerData.status} icon={Users} />
       </div>
       <div className="mb-6">
         <WorkerCalendar workerData={workerData} />
@@ -60,9 +58,7 @@ const WorkerDashboard: React.FC<WorkerDashboardProps> = ({
         </CardContent>
       </Card>
       <div className="mt-6">
-        <WorkerSchedule
-          schedule={workerData.shifts}
-        />
+        <WorkerSchedule schedule={workerData.shifts} />
       </div>
     </div>
   );

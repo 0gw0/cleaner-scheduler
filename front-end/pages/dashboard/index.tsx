@@ -17,6 +17,7 @@ const Dashboard: React.FC = () => {
   const [worker] = useState<WorkerData>({
     ...JSON.parse(localStorage.getItem("user") || "{}"),
   });
+
   const [monthlyData, setMonthlyData] = useState<MonthlyData[]>([]);
   const [shifts, setShifts] = useState<Shift[]>([]);
 

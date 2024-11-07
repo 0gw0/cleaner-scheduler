@@ -26,7 +26,7 @@ export interface WorkerData {
 	name: string;
 	shifts: Shift[];
 	phoneNumber: string;
-	supervisor: number;
+	supervisorId: number;
 	bio: string;
 	annualLeaves: Leave[];
 	medicalLeaves: Leave[];
