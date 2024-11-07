@@ -22,7 +22,7 @@ import is442g3t2.cleaner_scheduler.repositories.AdminRepository;
 import is442g3t2.cleaner_scheduler.repositories.PropertyRepository;
 import is442g3t2.cleaner_scheduler.repositories.WorkerRepository;
 import is442g3t2.cleaner_scheduler.services.WorkerService;
-// import is442g3t2.cleaner_scheduler.services.EmailSenderService;
+import is442g3t2.cleaner_scheduler.services.EmailSenderService;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -38,6 +38,8 @@ import java.util.stream.Collectors;
 import java.util.UUID;
 import java.util.Optional;
 
+
+
 @RestController()
 @RequestMapping(path = "/workers")
 public class WorkerController {
@@ -46,37 +48,37 @@ public class WorkerController {
     private final PropertyRepository propertyRepository;
     private final AdminRepository adminRepository;
     private final WorkerService workerService;
-    // private final EmailSenderService emailSenderService;
+    private final EmailSenderService emailSenderService;
 
     public WorkerController(WorkerService workerService, WorkerRepository workerRepository,
             AdminRepository adminRepository, PropertyRepository propertyRepository
-    // ,EmailSenderService emailSenderService
-    ) {
+             ,EmailSenderService emailSenderService
+             ) {
         this.workerService = workerService;
         this.workerRepository = workerRepository;
         this.adminRepository = adminRepository;
         this.propertyRepository = propertyRepository;
-        // this.emailSenderService = emailSenderService;
+        this.emailSenderService = emailSenderService;
     }
 
     @Tag(name = "workers")
     @Operation(description = "get ALL workers or ALL workers under a superviser using their supervisor id", summary = "get ALL workers or ALL workers under a superviser using their supervisor id")
     @GetMapping("")
     public ResponseEntity<List<WorkerDTO>> getWorkers(
-            @RequestParam(name = "supervisorId", required = false) Long supervisorId) {
-        List<Worker> workers = supervisorId == null ? workerService.getAllWorkers()
-                : workerService.getWorkersBySupervisorId(supervisorId);
+        @RequestParam(name = "supervisorId", required = false) Long supervisorId) {
+    List<Worker> workers = supervisorId == null ? workerService.getAllWorkers()
+            : workerService.getWorkersBySupervisorId(supervisorId);
 
-        if (workers.isEmpty()) {
-            return ResponseEntity.noContent().build();
-        }
-
-        List<WorkerDTO> workerDTOs = workers.stream()
-                .map(WorkerDTO::new)
-                .collect(Collectors.toList());
-
-        return ResponseEntity.ok(workerDTOs);
+    if (workers.isEmpty()) {
+        return ResponseEntity.noContent().build();
     }
+
+    List<WorkerDTO> workerDTOs = workers.stream()
+            .map(WorkerDTO::new).distinct()
+            .collect(Collectors.toList());
+
+    return ResponseEntity.ok(workerDTOs);
+}
 
     @Tag(name = "workers")
     @Operation(description = "get worker by worker id", summary = "get worker by worker id")
@@ -107,7 +109,7 @@ public class WorkerController {
             int shiftCount = worker.getNumShiftsInMonth(yearMonth);
             shifts = shifts.stream()
                     .filter(shift -> {
-                        LocalDate shiftDate = shift.getDate();
+                        LocalDate shiftDate = shift.getDate(); 
                         return shiftDate.getYear() == year &&
                                 shiftDate.getMonthValue() == month;
                     })
@@ -122,6 +124,7 @@ public class WorkerController {
             return ResponseEntity.ok(new GetShiftCountResponse(id, shiftCount, shifts));
         }
     }
+
 
     @Tag(name = "workers - shifts")
     @Operation(description = "add shift(s) to a worker", summary = "add shift(s) to a worker")
@@ -182,7 +185,7 @@ public class WorkerController {
         LocalDate endDate = LocalDate.parse(takeLeaveRequest.getEndDate());
         Worker worker = workerRepository.findById(id).orElseThrow(
                 () -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Worker not found"));
-
+        
         workerService.removeAllShiftsByWorkerIdByDate(worker, startDate, endDate);
         worker.takeLeave(startDate, endDate);
         workerRepository.save(worker);
@@ -225,7 +228,7 @@ public class WorkerController {
         LocalDate endDate = LocalDate.parse(takeLeaveRequest.getEndDate());
         Worker worker = workerRepository.findById(id).orElseThrow(
                 () -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Worker not found"));
-
+        
         workerService.removeAllShiftsByWorkerIdByDate(worker, startDate, endDate);
         worker.takeMedicalLeave(startDate, endDate);
         workerRepository.save(worker);
@@ -280,11 +283,19 @@ public class WorkerController {
         Worker worker = new Worker(
                 postWorkerRequest.getName(),
                 postWorkerRequest.getPhoneNumber(),
-                postWorkerRequest.getBio());
+                postWorkerRequest.getBio(),
+                postWorkerRequest.getEmail());
 
         Admin supervisor = adminRepository.findById(postWorkerRequest.getSupervisorId())
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Supervisor not found"));
         worker.setSupervisor(supervisor);
+        String token = UUID.randomUUID().toString();
+
+        worker.setEmail(postWorkerRequest.getEmail());
+        worker.setVerificationToken(token);
+        workerRepository.save(worker);
+
+        emailSenderService.sendVerificationEmail(postWorkerRequest.getEmail(), token);
 
         Worker savedWorker = workerRepository.save(worker);
         return ResponseEntity.status(HttpStatus.CREATED).body(savedWorker);
@@ -311,7 +322,7 @@ public class WorkerController {
                     HttpStatus.INTERNAL_SERVER_ERROR, "Error removing shift: " + e.getMessage());
         }
     }
-
+    
     @Tag(name = "workers")
     @Operation(description = "Update worker's details by Id", summary = "Update worker's details by Id")
     @PatchMapping("/{id}")
@@ -320,4 +331,35 @@ public class WorkerController {
         return ResponseEntity.ok(updatedWorker);
     }
 
+    // @Tag(name = "workers")
+    // @Operation(description = "Send registration email to new worker", summary = "Send registration email to new worker")
+    // @PostMapping("/auth/register")
+    // public ResponseEntity<String> registerWorker(@RequestParam String email) {
+    //     String token = UUID.randomUUID().toString();
+    //     Worker newWorker = new Worker();
+    //     newWorker.setEmail(email);
+    //     newWorker.setVerificationToken(token);
+    //     workerRepository.save(newWorker);
+
+    //     emailSenderService.sendVerificationEmail(email, token);
+
+    //     return ResponseEntity.ok("Verification email sent to " + email);
+    // }
+
+    @Tag(name = "workers")
+    @Operation(description = "Verify new worker", summary = "Verify new worker")
+    @GetMapping("/verify")
+    public ResponseEntity<String> verifyUser(@RequestParam String token) {
+        Optional<Worker> workerOptional = workerRepository.findByVerificationToken(token);
+
+        if (workerOptional.isPresent()) {
+            Worker newWorker = workerOptional.get();
+            newWorker.setIsVerified(true);
+            newWorker.setVerificationToken(null);
+            workerRepository.save(newWorker);
+            return ResponseEntity.ok("User verified successfully!");
+        } else {
+            return ResponseEntity.badRequest().body("Invalid verification token");
+        }
+    }
 }

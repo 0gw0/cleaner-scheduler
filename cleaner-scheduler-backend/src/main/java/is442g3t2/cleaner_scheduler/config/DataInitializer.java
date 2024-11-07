@@ -45,9 +45,9 @@ public class DataInitializer {
             clientRepository.save(client2);
 
             // Create Workers
-            Worker worker1 = new Worker("Mati", "1234567890", "eg bio 1");
-            Worker worker2 = new Worker("Yati", "0987654321", "eg bio 2");
-            Worker worker3 = new Worker("Wati", "1122334455", "eg bio 3");
+            Worker worker1 = new Worker("Mati", "1234567890", "eg bio 1", "fakeemail.com");
+            Worker worker2 = new Worker("Yati", "0987654321", "eg bio 2", "fakeemail.com");
+            Worker worker3 = new Worker("Wati", "1122334455", "eg bio 3", "fakeemail.com");
 
             worker1.setSupervisor(admin1);
             worker2.setSupervisor(admin1);
