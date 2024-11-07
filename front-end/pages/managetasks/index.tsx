@@ -9,6 +9,7 @@ import AddTaskForm from '@/components/AddTaskForm';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Card, CardContent } from "@/components/ui/card";
 import axios from "axios";
+import { CustomPagination } from '@/components/CustomPagination';
 
 const ManageTasks: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState<string>('');
@@ -19,6 +20,7 @@ const ManageTasks: React.FC = () => {
   const [workers, setWorkers] = useState<number[]>([]); // Array of worker IDs
   const [selectedWorker, setSelectedWorker] = useState<number | null>(null);
   const [shiftData, setShiftData] = useState<Shift[]>([]);
+  const [currentPage, setCurrentPage] = useState(1);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -59,7 +61,8 @@ const ManageTasks: React.FC = () => {
     fetchShifts();
   }, []);
 
-  console.log("shiftData",shiftData)
+
+  const tasksPerPage = 12;
 
   const filteredTasks = shiftData.filter(
     (task) =>
@@ -75,6 +78,11 @@ const ManageTasks: React.FC = () => {
       return new Date(b.date).getTime() - new Date(a.date).getTime();
     }
   });
+
+  const indexOfLastTask = currentPage * tasksPerPage;
+	const indexOfFirstWorker = indexOfLastTask - tasksPerPage;
+	const currentTasks = sortedTasks.slice(indexOfFirstWorker,indexOfLastTask);
+	const totalPages = Math.ceil(sortedTasks.length / tasksPerPage);
 
   const handleCardClick = (task: Shift) => {
     setSelectedTask(task);
@@ -166,11 +174,20 @@ const ManageTasks: React.FC = () => {
         </Card>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-          {sortedTasks.map((task) => (
+          {currentTasks.map((task) => (
             <TaskCard key={task.id} shiftData={task} onCardClick={() => handleCardClick(task)} />
           ))}
         </div>
       )}
+
+      {/* Pagination */}
+			{filteredTasks.length > 0 && (
+				<CustomPagination
+					currentPage={currentPage}
+					totalPages={totalPages}
+					onPageChange={setCurrentPage}
+				/>
+			)}
 
       {selectedTask && (
         <TaskDetailModal
