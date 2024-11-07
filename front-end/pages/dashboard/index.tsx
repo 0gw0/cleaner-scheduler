@@ -76,9 +76,7 @@ const Dashboard: React.FC = () => {
       if (!userData || userData.role !== "admin") return;
 
       try {
-        const url = userData.id
-          ? `http://localhost:8080/workers?supervisorId=${userData.id}`
-          : "http://localhost:8080/workers";
+        const url =  "http://localhost:8080/workers";
 
         const response = await axios.get<WorkerData[]>(url);
         const workers = response.data;
@@ -94,11 +92,10 @@ const Dashboard: React.FC = () => {
       if (!userData || userData.role !== "admin") return;
 
       try {
-        const url = userData.id
-          ? `http://localhost:8080/workers/supervisor/${userData.id}/shifts`
-          : "http://localhost:8080/shifts";
+        const url = "http://localhost:8080/shifts";
         const response = await axios.get<Shift[]>(url);
         const shiftsData = response.data;
+        console.log(shiftsData);
         const currentYear = new Date().getFullYear();
         const currentYearShifts = shiftsData.filter((shift) => {
           const shiftDate = new Date(shift.date);

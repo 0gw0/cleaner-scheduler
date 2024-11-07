@@ -17,11 +17,8 @@ interface Worker {
   medicalLeaves: Leave[];
 }
 
-interface WorkerLeavesProps {
-  supervisorId: number;
-}
 
-const WorkerLeaves: React.FC<WorkerLeavesProps> = ({ supervisorId }) => {
+const WorkerLeaves: React.FC<Record<string, never>> = () => {
   const [workers, setWorkers] = useState<Worker[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
@@ -29,7 +26,7 @@ const WorkerLeaves: React.FC<WorkerLeavesProps> = ({ supervisorId }) => {
   useEffect(() => {
     const fetchWorkers = async () => {
       try {
-        const response = await fetch(`http://localhost:8080/workers?supervisorId=${supervisorId}`);
+        const response = await fetch(`http://localhost:8080/workers`);
         if (!response.ok) {
           throw new Error('Failed to fetch workers');
         }
@@ -42,10 +39,10 @@ const WorkerLeaves: React.FC<WorkerLeavesProps> = ({ supervisorId }) => {
       }
     };
 
-    if (supervisorId) {
+  
       fetchWorkers();
-    }
-  }, [supervisorId]);
+    
+  });
 
   const formatDate = (dateString: string) => {
     try {
