@@ -6,6 +6,7 @@ import {
   Calendar,
   Briefcase,
   Check,
+  Filter,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -16,6 +17,8 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
+  DialogDescription,
+  DialogFooter,
 } from "@/components/ui/dialog";
 import {
   Table,
@@ -25,6 +28,13 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import AddClientForm from "@/components/AddClientForm";
 import { Label } from "@/components/ui/label";
@@ -92,7 +102,13 @@ const ClientProfiles = () => {
   const [clients, setClients] = useState<Client[]>([]);
   const [shifts, setShifts] = useState<Shift[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
+  const [statusFilter, setStatusFilter] = useState<string>("ALL");
   const [filteredClients, setFilteredClients] = useState<Client[]>([]);
+  const [isTerminating, setIsTerminating] = useState(false);
+  const [clientToTerminate, setClientToTerminate] = useState<number | null>(
+    null
+  );
+  const [terminationError, setTerminationError] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchClients = async () => {
@@ -134,8 +150,16 @@ const ClientProfiles = () => {
           )
       );
     }
+    if (statusFilter !== "ALL") {
+      results = results.filter((client) => client.status === statusFilter);
+    }
     setFilteredClients(results);
-  }, [searchTerm, clients]);
+  }, [searchTerm, clients, statusFilter]);
+
+  const getUniqueStatuses = () => {
+    const statuses = new Set(clients.map((client) => client.status));
+    return Array.from(statuses);
+  };
 
   const getStatusBadge = (status: string) => {
     const statusColors: { [key: string]: string } = {
@@ -238,7 +262,6 @@ const ClientProfiles = () => {
                   onChange={(e) => {
                     const value = e.target.value;
                     if (/^\d*$/.test(value) && value.length <= 6) {
-                      // Allow only digits and max length 8
                       handleInputChange(e);
                     }
                   }}
@@ -404,24 +427,105 @@ const ClientProfiles = () => {
     );
   };
 
-  const handleRemoveClient = (clientId: number) => {
-    console.log("Removing client with ID:", clientId);
+  const handleRemoveClient = async (clientId: number) => {
+    try {
+      setIsTerminating(true);
+      setTerminationError(null);
+
+      const response = await axios.patch(
+        `http://localhost:8080/clients/${clientId}/terminate`
+      );
+
+      if (response.status === 200) {
+        // Update the client's status in the state instead of removing them
+        setClients((prevClients) =>
+          prevClients.map((client) =>
+            client.id === clientId
+              ? { ...client, status: response.data.status || "TERMINATED" }
+              : client
+          )
+        );
+        setClientToTerminate(null);
+      }
+    } catch (error) {
+      console.error("Error terminating client:", error);
+      setTerminationError(
+        error.response?.data?.message ||
+          "Failed to terminate client. Please try again."
+      );
+    } finally {
+      setIsTerminating(false);
+    }
   };
+
+  const TerminationDialog = () => (
+    <Dialog
+      open={clientToTerminate !== null}
+      onOpenChange={() => setClientToTerminate(null)}
+    >
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Confirm Client Termination</DialogTitle>
+          <DialogDescription>
+            Are you sure you want to terminate this client? This action cannot
+            be undone.
+          </DialogDescription>
+        </DialogHeader>
+        {terminationError && (
+          <div className="text-red-500 text-sm mt-2">{terminationError}</div>
+        )}
+        <DialogFooter>
+          <Button
+            variant="outline"
+            onClick={() => setClientToTerminate(null)}
+            disabled={isTerminating}
+          >
+            Cancel
+          </Button>
+          <Button
+            variant="destructive"
+            onClick={() =>
+              clientToTerminate && handleRemoveClient(clientToTerminate)
+            }
+            disabled={isTerminating}
+          >
+            {isTerminating ? "Terminating..." : "Confirm Termination"}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
 
   return (
     <div className="container mx-auto px-4 py-8">
       <div className="flex justify-between items-center mb-8">
         <h1 className="text-2xl font-bold">Client Profiles</h1>
-        <div className="relative w-64">
-          <Search className="absolute left-2 top-2.5 h-4 w-4 text-gray-500" />
-          <Input
-            placeholder="Search clients..."
-            className="pl-8"
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-          />
-        </div>
-        <div>
+        <div className="flex items-center gap-4">
+          <div className="relative w-64">
+            <Search className="absolute left-2 top-2.5 h-4 w-4 text-gray-500" />
+            <Input
+              placeholder="Search clients..."
+              className="pl-8"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+            />
+          </div>
+          <Select value={statusFilter} onValueChange={setStatusFilter}>
+            <SelectTrigger className="w-[180px]">
+              <div className="flex items-center gap-2">
+                <Filter className="w-4 h-4" />
+                <SelectValue placeholder="Filter by status" />
+              </div>
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="ALL">All Statuses</SelectItem>
+              {getUniqueStatuses().map((status) => (
+                <SelectItem key={status} value={status}>
+                  {status}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
           <AddClientForm />
         </div>
       </div>
@@ -432,19 +536,22 @@ const ClientProfiles = () => {
             <CardHeader className="flex flex-row items-center justify-between space-x-4 pb-2">
               <div className="flex-1">
                 <CardTitle className="text-lg">{client.name}</CardTitle>
-                {/* {client.status} */}
-                <div className="flex items-center text-sm text-gray-500">
+                <Badge variant="secondary" className="mt-1">
+                  {client.status}
+                </Badge>
+                <div className="flex items-center text-sm text-gray-500 mt-2">
                   <MapPin className="w-4 h-4 mr-1" />
                   <p className="truncate">{client.properties[0]?.address}</p>
                 </div>
               </div>
-              <Button
-              
-                className="text-red-500 hover:bg-red-50 rounded-full bg-white"
-                onClick={() => handleRemoveClient(client.id)}
-              >
-                Remove Client
-              </Button>
+              {client.status === "Active" && (
+                <Button
+                  className="text-red-500 hover:bg-red-50 rounded-full bg-white"
+                  onClick={() => setClientToTerminate(client.id)}
+                >
+                  Remove Client
+                </Button>
+              )}
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
@@ -482,6 +589,7 @@ const ClientProfiles = () => {
           </Card>
         ))}
       </div>
+      <TerminationDialog />
     </div>
   );
 };

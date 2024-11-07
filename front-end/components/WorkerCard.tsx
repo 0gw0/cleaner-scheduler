@@ -98,12 +98,7 @@ export const WorkerCard = ({ worker, onActionClick }: WorkerCardProps) => {
         </div>
         <div className="flex items-center gap-2">
           <Badge className={status.className}>{status.label}</Badge>
-          <Button
-            className="text-red-500 hover:bg-red-50 rounded-full bg-white"
-            onClick={() => handleRemoveWorker(worker.id)}
-          >
-            Remove Worker
-          </Button>
+        
         </div>
       </CardHeader>
 
@@ -146,7 +141,15 @@ export const WorkerCard = ({ worker, onActionClick }: WorkerCardProps) => {
               <span className="truncate">MCs ({activeMCCount})</span>
             </div>
           </Button>
+
+          
         </div>
+        <Button
+            className="text-red-500 hover:bg-red-50 bg-white w-full"
+            onClick={() => handleRemoveWorker(worker.id)}
+          >
+            Modify Worker Details
+          </Button>
 
         <Button
           variant="default"

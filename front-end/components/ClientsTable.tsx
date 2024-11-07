@@ -42,7 +42,7 @@ const ClientsTable: React.FC<ClientsTableProps> = ({ clients }) => (
                     {client.status}
                   </Badge>
                 </td>
-                <td className="p-2">{client.cleaningJobs.length}</td>
+                <td className="p-2">{client.jobs}</td>
                 <td className="p-2">{client.preferredCleaner}</td>
               </tr>
             ))}
