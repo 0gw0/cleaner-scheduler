@@ -103,6 +103,21 @@ const WorkerSchedule: React.FC<WorkerScheduleProps> = ({ schedule }) => {
     }
   };
 
+  function addMinutesToTime(timeString: string, minutesToAdd: number) {
+    const [hours, minutes, seconds] = timeString.split(':').map(Number);
+
+    const date = new Date();
+    date.setHours(hours);
+    date.setMinutes(minutes + minutesToAdd); 
+    date.setSeconds(seconds || 0);
+
+    const updatedHours = String(date.getHours()).padStart(2, '0');
+    const updatedMinutes = String(date.getMinutes()).padStart(2, '0');
+    const updatedSeconds = String(date.getSeconds()).padStart(2, '0');
+
+    return `${updatedHours}:${updatedMinutes}:${updatedSeconds}`;
+}
+
   const ScheduleSection = ({ title, items }: { title: string; items: ScheduleItem[] }) => (
     <Card className="mb-6">
       <CardHeader>
@@ -125,12 +140,16 @@ const WorkerSchedule: React.FC<WorkerScheduleProps> = ({ schedule }) => {
                 <p>{`Client ID: ${item.property.clientId}`}</p>
 
                 {title === 'Current Schedule' && (
+                  <div className="mt-4">
+                    <p className="text-red-800">Remember to submit your photo by {addMinutesToTime(item.startTime,5)}</p>
                   <Button
-                    className="mt-4"
+                    className="mt-1"
                     onClick={() => handleOpenPhotoDialog(item.id)}
                   >
                     Submit Photo
                   </Button>
+                  </div>
+                  
                 )}
               </CardContent>
             </Card>
