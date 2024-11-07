@@ -21,6 +21,17 @@ type ClientData = {
 type ClientResponse = {
   id: number
   name: string
+  status: string
+  properties: Property[]
+}
+
+
+interface Client extends ClientResponse {}
+
+interface AddClientFormProps {
+
+  onClientAdded: (client: Client) => void;
+
 }
 
 const initialClientData: ClientData = {
@@ -28,7 +39,7 @@ const initialClientData: ClientData = {
   properties: [{ address: '', postalCode: '', client: 0 }],
 }
 
-export default function AddClientForm() {
+export default function AddClientForm({ onClientAdded }: AddClientFormProps) {
   const [isOpen, setIsOpen] = useState(false)
   const [formData, setFormData] = useState<ClientData>(initialClientData)
   const [showSuccess, setShowSuccess] = useState(false)
@@ -93,7 +104,16 @@ export default function AddClientForm() {
         })
       )
 
-      await Promise.all(propertyPromises)
+      const propertyResponses = await Promise.all(propertyPromises)
+      
+      // Construct the complete client object with properties
+      const newClient: ClientResponse = {
+        ...clientResponse.data,
+        properties: propertyResponses.map(response => response.data)
+      }
+
+      // Call the callback to update the parent component
+      onClientAdded(newClient)
 
       setShowSuccess(true)
       
