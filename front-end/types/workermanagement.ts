@@ -31,6 +31,7 @@ export interface WorkerData {
 	annualLeaves: Leave[];
 	medicalLeaves: Leave[];
 	homePostalCode: string;
+	status: string;
 }
 
 export interface WorkerCardProps {
