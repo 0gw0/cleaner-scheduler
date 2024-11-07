@@ -32,7 +32,13 @@ interface WorkerNames {
 }
 
 const WorkerStatistics: React.FC<WorkerStatisticsProps> = ({ shifts }) => {
-  const [statistics, setStatistics] = useState({
+  const [statistics, setStatistics] = useState<{
+    weeklyHours: { [key: string]: { [workerId: number]: number } };
+    monthlyHours: { [key: string]: { [workerId: number]: number } };
+    annualHours: { [key: string]: { [workerId: number]: number } };
+    leaveStats: { [key: string]: { [workerId: number]: number } };
+    overtimeHours: { [key: string]: { [workerId: number]: number } };
+  }>({
     weeklyHours: {},
     monthlyHours: {},
     annualHours: {},
@@ -53,7 +59,7 @@ const WorkerStatistics: React.FC<WorkerStatisticsProps> = ({ shifts }) => {
       console.error(`Error fetching worker name for ID ${workerId}:`, error);
       setWorkerNames(prev => ({
         ...prev,
-        [workerId]: `Worker ${workerId}`  // Fallback if API call fails
+        [workerId]: `Worker ${workerId}`  
       }));
     }
   };
@@ -61,7 +67,6 @@ const WorkerStatistics: React.FC<WorkerStatisticsProps> = ({ shifts }) => {
   useEffect(() => {
     const workerIds = JSON.parse(localStorage.getItem("user") || "{}").workers || [];
     
-    // Fetch names for all workers
     workerIds.forEach(id => {
       fetchWorkerName(id);
     });
@@ -74,7 +79,13 @@ const WorkerStatistics: React.FC<WorkerStatisticsProps> = ({ shifts }) => {
         shift.workers.some(id => workerIds.includes(id))
       );
 
-      const stats = {
+      const stats: {
+        weeklyHours: { [key: string]: { [workerId: number]: number } };
+        monthlyHours: { [key: string]: { [workerId: number]: number } };
+        annualHours: { [key: string]: { [workerId: number]: number } };
+        leaveStats: { [key: string]: { [workerId: number]: number } };
+        overtimeHours: { [key: string]: { [workerId: number]: number } };
+      } = {
         weeklyHours: {},
         monthlyHours: {},
         annualHours: {},
@@ -86,7 +97,7 @@ const WorkerStatistics: React.FC<WorkerStatisticsProps> = ({ shifts }) => {
         const date = new Date(shift.date);
         const startTime = new Date(`${shift.date}T${shift.startTime}`);
         const endTime = new Date(`${shift.date}T${shift.endTime}`);
-        const hoursWorked = (endTime - startTime) / (1000 * 60 * 60);
+        const hoursWorked = (endTime.getTime() - startTime.getTime()) / (1000 * 60 * 60);
 
         shift.workers.forEach(workerId => {
           if (workerIds.includes(workerId)) {
@@ -125,13 +136,13 @@ const WorkerStatistics: React.FC<WorkerStatisticsProps> = ({ shifts }) => {
     d.setHours(0, 0, 0, 0);
     d.setDate(d.getDate() + 4 - (d.getDay() || 7));
     const yearStart = new Date(d.getFullYear(), 0, 1);
-    return Math.ceil((((d - yearStart) / 86400000) + 1) / 7);
+    return Math.ceil((((d.getTime() - yearStart.getTime()) / 86400000) + 1) / 7);
   };
 
-  const prepareChartData = (data: any, type: string) => {
+  const prepareChartData = (data: any) => {
     return Object.entries(data).map(([period, workerHours]) => ({
       period,
-      ...workerHours
+      ...(typeof workerHours === 'object' ? workerHours : {})
     }));
   };
 

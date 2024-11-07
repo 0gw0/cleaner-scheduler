@@ -8,6 +8,7 @@ import is442g3t2.cleaner_scheduler.repositories.ClientRepository;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -54,7 +55,18 @@ public class ClientController {
         return ResponseEntity.status(HttpStatus.CREATED).body(newClient);
     }
     
-
+    @Tag(name = "clients")
+    @Operation(description = "Update client status to 'Terminated'", summary = "Update client status")
+    @PatchMapping("/{id}/terminate")
+    public ResponseEntity<Client> terminateClient(@PathVariable Long id) {
+        return clientRepository.findById(id).map(client -> {
+            client.setStatus("Terminated");
+            clientRepository.save(client);
+            return ResponseEntity.ok(client);
+        }).orElseThrow(() -> new ResponseStatusException(
+                HttpStatus.NOT_FOUND, "Client with id " + id + " not found"
+        ));
+    }
 
 
 }
