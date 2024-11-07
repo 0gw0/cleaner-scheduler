@@ -46,6 +46,8 @@ public class Worker {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    
+
     @Column(nullable = false)
     private String name;
 
@@ -62,6 +64,11 @@ public class Worker {
         this.status = "Active";
     }
 
+    @Column(nullable = false)
+    private String password;
+    {
+        this.password = "password123";
+    }
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "supervisor_id")

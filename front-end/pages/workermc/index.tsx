@@ -33,7 +33,7 @@ interface User {
 interface LeaveCardProps {
   title: string;
   leaves: { id: string; startDate: string; endDate: string; reason?: string; pdfUploaded?: boolean }[];
-  renderLeaveItem: (leave: any) => React.ReactNode;
+  renderLeaveItem: (leave: { id: string; startDate: string; endDate: string; reason?: string; pdfUploaded?: boolean }) => React.ReactNode;
 }
 
 const LeaveCard: React.FC<LeaveCardProps> = ({

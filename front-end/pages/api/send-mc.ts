@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { NextApiRequest, NextApiResponse } from 'next';
 import { Resend } from 'resend';
 
@@ -28,7 +29,7 @@ interface ApiResponse {
     from?: boolean;
     providedEmail?: string;
     [key: string]: boolean | string | undefined;
-  } | string | CreateEmailResponse;
+  } | string | Partial<CreateEmailResponse>;
 }
 
 export default async function handler(
@@ -75,7 +76,13 @@ export default async function handler(
     console.log('Attempting to send email to:', to);
     console.log('Using API key starting with:', process.env.RESEND_API_KEY?.substring(0, 5));
 
-    const emailData = {
+    const emailData: {
+      from: string;
+      to: string[];
+      subject: string;
+      html: string;
+      attachments?: { filename: string; content: Buffer }[];
+    } = {
       from: 'onboarding@resend.dev',
       to: [to],
       subject: subject,
@@ -100,7 +107,7 @@ export default async function handler(
     const data = await resend.emails.send(emailData);
 
     console.log('Email sent successfully:', data);
-    res.status(200).json({ success: true, details: data });
+    res.status(200).json({ success: true, details: data as unknown as Partial<CreateEmailResponse> });
   } catch (error: any) {
     console.error('Detailed error:', error);
     res.status(500).json({

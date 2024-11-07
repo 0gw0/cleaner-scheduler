@@ -29,6 +29,7 @@ public class WorkerDTO {
     private String bio;
     private List<AnnualLeave> annualLeaves;
     private List<MedicalLeave> medicalLeaves;
+    private String password;
 
     
     public WorkerDTO(Worker worker) {
@@ -41,5 +42,6 @@ public class WorkerDTO {
         this.bio = worker.getBio();
         this.annualLeaves = new ArrayList<>(worker.getAnnualLeaves());
         this.medicalLeaves = new ArrayList<>(worker.getMedicalLeaves());
+        this.password = worker.getPassword();
     }
 }
