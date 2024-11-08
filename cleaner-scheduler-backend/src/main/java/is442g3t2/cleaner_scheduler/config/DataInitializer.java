@@ -31,8 +31,13 @@ public class DataInitializer {
             // Create and save Admins
             Admin admin1 = new Admin("Mr Admin");
             Admin admin2 = new Admin("Mrs VeryAdmin");
+            Admin admin3 = new Admin("Super Admin");
             adminRepository.save(admin1);
             adminRepository.save(admin2);
+            admin3.setRoot(true);
+            adminRepository.save(admin3);
+           
+            
 
             // Create and save clients with properties
             Client client1 = new Client("Mrs Client1");

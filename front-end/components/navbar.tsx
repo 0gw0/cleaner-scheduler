@@ -27,13 +27,14 @@ const Navbar = () => {
   }
 
   const navLinks = [
-    { href: "/schedule", label: "Schedule", roles: ["worker", "admin"] },
-    { href: "/clientprofile", label: "Client Profiles", roles: ["admin"] },
-    { href: "/workermanagement", label: "Worker Management", roles: ["admin"] },
-    { href: "/payrolls", label: "Manage Payrolls Requests", roles: ["admin"] },
-    { href: "/managetasks", label: "Manage Tasks", roles: ["admin"] },
+    { href: "/schedule", label: "Schedule", roles: ["worker", "admin", "root"] },
+    { href: "/clientprofile", label: "Client Profiles", roles: ["admin", "root"] },
+    { href: "/workermanagement", label: "Worker Management", roles: ["admin", "root"] },
+    { href: "/payrolls", label: "Manage Payrolls Requests", roles: ["admin", "root"] },
+    { href: "/managetasks", label: "Manage Tasks", roles: ["admin", "root"] },
     { href: "/profile", label: "Profile", roles: ["admin", "worker"] },
     { href: "/workermc", label: "Apply MC", roles: [ "worker"] },
+    { href: "/manageAdmins", label: "Manage Admins", roles: [ "root"] },
   ];
 
   const filteredNavLinks = navLinks.filter((link) =>

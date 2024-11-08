@@ -32,12 +32,21 @@ export default function LoginPage() {
         axios
           .get("http://localhost:8080/admins/" + ID)
           .then((res) => {
-            console.log(res.data);
-            if (res.status === 200 && res.data.password === password) {
+            if (res.status === 200 && res.data.password === password && !res.data.root) {
               const user = {
                 id: res.data.id,
                 name: res.data.name,
                 role: userType as "admin" | "worker",
+                workers: res.data.workers,
+              };
+              login(user);
+              router.push("/dashboard");
+            }
+            else if(res.status === 200 && res.data.password === password && res.data.root){
+              const user = {
+                id: res.data.id,
+                name: res.data.name,
+                role: "root",
                 workers: res.data.workers,
               };
               login(user);
