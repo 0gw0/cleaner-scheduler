@@ -1,4 +1,4 @@
-import { Phone, Calendar, FileText, Building} from "lucide-react";
+import { Phone, Calendar, FileText, Building, Briefcase } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -18,10 +18,31 @@ import { Textarea } from "@/components/ui/textarea";
 import { useState } from "react";
 import axios from "axios";
 import { useToast } from "@/hooks/use-toast";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+
+interface AnnualLeave {
+  id: number;
+  startDate: string;
+  endDate: string;
+  status: string;
+}
 
 export const WorkerCard = ({ worker, onActionClick }: WorkerCardProps) => {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [isAnnualLeavesDialogOpen, setIsAnnualLeavesDialogOpen] = useState(false);
   const [isUpdating, setIsUpdating] = useState(false);
+  const [annualLeaves, setAnnualLeaves] = useState<AnnualLeave[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [selectedLeave, setSelectedLeave] = useState<{ id: number; action: 'APPROVED' | 'REJECTED' } | null>(null);
   const [formData, setFormData] = useState({
     name: worker.name,
     phoneNumber: worker.phoneNumber,
@@ -29,6 +50,49 @@ export const WorkerCard = ({ worker, onActionClick }: WorkerCardProps) => {
     status: worker.status
   });
   const { toast } = useToast();
+
+  const fetchAnnualLeaves = async () => {
+    setIsLoading(true);
+    try {
+      const response = await axios.get(`http://localhost:8080/workers/${worker.id}/annual-leaves`);
+      setAnnualLeaves(response.data);
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to fetch annual leaves",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleAnnualLeaveAction = async (leaveId: number, action: 'APPROVED' | 'REJECTED') => {
+    try {
+      await axios.patch(
+        `http://localhost:8080/workers/${worker.id}/annual-leaves/${leaveId}`,
+        { status: action }
+      );
+      
+      setAnnualLeaves(prevLeaves =>
+        prevLeaves.map(leave =>
+          leave.id === leaveId ? { ...leave, status: action } : leave
+        )
+      );
+
+      toast({
+        title: "Success",
+        description: `Annual leave ${action.toLowerCase()} successfully`,
+      });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: `Failed to ${action.toLowerCase()} annual leave`,
+        variant: "destructive",
+      });
+    }
+    setSelectedLeave(null);
+  };
   // Calculate active MC count
   const activeMCCount = worker.medicalLeaves.filter(
     (leave) => new Date(leave.endDate) >= new Date()
@@ -198,8 +262,6 @@ export const WorkerCard = ({ worker, onActionClick }: WorkerCardProps) => {
               <span className="truncate">MCs ({activeMCCount})</span>
             </div>
           </Button>
-
-          
         </div>
         <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
           <DialogTrigger asChild>
@@ -269,6 +331,100 @@ export const WorkerCard = ({ worker, onActionClick }: WorkerCardProps) => {
             </DialogFooter>
           </DialogContent>
         </Dialog>
+
+        <Dialog 
+          open={isAnnualLeavesDialogOpen} 
+          onOpenChange={(open) => {
+            setIsAnnualLeavesDialogOpen(open);
+            if (open) fetchAnnualLeaves();
+          }}
+        >
+          <DialogTrigger asChild>
+            <Button
+              variant="outline"
+              className="w-full"
+            >
+              <Briefcase className="w-4 h-4 mr-2" />
+              Manage Annual Leaves
+            </Button>
+          </DialogTrigger>
+          <DialogContent className="sm:max-w-[600px]">
+            <DialogHeader>
+              <DialogTitle>Annual Leaves Management</DialogTitle>
+            </DialogHeader>
+            <div className="py-4">
+              {isLoading ? (
+                <div className="text-center py-4">Loading annual leaves...</div>
+              ) : annualLeaves.length === 0 ? (
+                <div className="text-center py-4">No annual leaves found</div>
+              ) : (
+                <div className="space-y-4">
+                  {annualLeaves.map((leave) => (
+                    <div
+                      key={leave.id}
+                      className="flex items-center justify-between p-4 rounded-lg border"
+                    >
+                      <div className="space-y-1">
+                        <div className="font-medium">
+                          {format(new Date(leave.startDate), 'dd MMM yyyy')} - {format(new Date(leave.endDate), 'dd MMM yyyy')}
+                        </div>
+                        <Badge 
+                          variant={leave.status === 'PENDING' ? 'outline' : leave.status === 'APPROVED' ? 'default' : 'destructive'}
+                        >
+                          {leave.status}
+                        </Badge>
+                      </div>
+                      {leave.status === 'PENDING' && (
+                        <div className="flex gap-2">
+                          <Button
+                            size="sm"
+                            variant="default"
+                            onClick={() => setSelectedLeave({ id: leave.id, action: 'APPROVED' })}
+                          >
+                            Approve
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="destructive"
+                            onClick={() => setSelectedLeave({ id: leave.id, action: 'REJECTED' })}
+                          >
+                            Reject
+                          </Button>
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </DialogContent>
+        </Dialog>
+
+        <AlertDialog
+          open={selectedLeave !== null}
+          onOpenChange={(open) => !open && setSelectedLeave(null)}
+        >
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Confirm Action</AlertDialogTitle>
+              <AlertDialogDescription>
+                Are you sure you want to {selectedLeave?.action.toLowerCase()} this annual leave request?
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancel</AlertDialogCancel>
+              <AlertDialogAction
+                onClick={() => {
+                  if (selectedLeave) {
+                    handleAnnualLeaveAction(selectedLeave.id, selectedLeave.action);
+                  }
+                }}
+              >
+                Confirm
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
 
         <Button
           variant="default"
