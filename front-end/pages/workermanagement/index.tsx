@@ -31,7 +31,6 @@ const WorkerManagement = () => {
 	const [currentPage, setCurrentPage] = useState(1);
 	const [workerData, setWorkerData] = useState<WorkerData[]>([]);
 	const [filteredWorkers, setFilteredWorkers] = useState<WorkerData[]>([]);
-	const [supervisorId, setSupervisorId] = useState<string | null>(null);
 	const [isSubmitting, setIsSubmitting] = useState(false);
 	const [reallocationResults, setReallocationResults] = useState<
 		ReallocationResult[]
@@ -54,29 +53,12 @@ const WorkerManagement = () => {
 
 	const workersPerPage = 9;
 
-	// Get supervisor ID from localStorage when component mounts
-	useEffect(() => {
-		const userStr = localStorage.getItem('user');
-		if (userStr) {
-			try {
-				const userData = JSON.parse(userStr);
-				if (userData.id) {
-					setSupervisorId(userData.id);
-				}
-			} catch (error) {
-				console.error('Error parsing user data:', error);
-			}
-		}
-	}, []);
-
 	// Fetch worker data and clean it
 	useEffect(() => {
 		const fetchWorkerData = async () => {
-			if (!supervisorId) return;
-
 			try {
 				const response = await axios.get<WorkerData[]>(
-					`http://localhost:8080/workers?supervisorId=${supervisorId}`
+					`http://localhost:8080/workers`
 				);
 
 				// Clean and validate the worker data
@@ -97,7 +79,7 @@ const WorkerManagement = () => {
 		};
 
 		fetchWorkerData();
-	}, [supervisorId]);
+	}, []);
 
 	const indexOfLastWorker = currentPage * workersPerPage;
 	const indexOfFirstWorker = indexOfLastWorker - workersPerPage;
