@@ -54,12 +54,14 @@ interface PropertyPayload {
   clientId: number;
 }
 
-interface Client {
+interface ClientResponse {
   id: number;
   name: string;
   properties: Property[];
   status: string;
 }
+
+interface Client extends ClientResponse {}
 
 interface ArrivalImage {
   s3Key: string;
@@ -109,6 +111,21 @@ const ClientProfiles = () => {
     null
   );
   const [terminationError, setTerminationError] = useState<string | null>(null);
+
+  const handleClientAdded = (newClient: Client) => {
+    setClients(prevClients => [...prevClients, newClient]);
+  };
+
+  const handlePropertyAdded = (clientId: number, newProperty: Property) => {
+    setClients(prevClients =>
+      prevClients.map(client =>
+        client.id === clientId
+          ? { ...client, properties: [...client.properties, newProperty] }
+          : client
+      )
+    );
+  };
+
 
   useEffect(() => {
     const fetchClients = async () => {
@@ -203,6 +220,8 @@ const ClientProfiles = () => {
       setPropertyData((prev) => ({ ...prev, [name]: value }));
     };
 
+   
+
     const handleAddProperty = async () => {
       try {
         const response = await axios.post(
@@ -211,6 +230,7 @@ const ClientProfiles = () => {
         );
         setIsSuccess(true);
         onAdd(response.data);
+        handlePropertyAdded(clientId, response.data);
 
         setTimeout(() => {
           setIsSuccess(false);
@@ -292,9 +312,10 @@ const ClientProfiles = () => {
     );
   };
 
-  const PropertiesDialog: React.FC<{ properties: Property[] }> = ({
-    properties: initialProperties,
-  }) => {
+  const PropertiesDialog: React.FC<{ 
+    properties: Property[];
+    clientId: number;
+  }> = ({ properties: initialProperties, clientId }) => {
     const [properties, setProperties] = useState<Property[]>(initialProperties);
 
     const handleAddProperty = (newProperty: Property) => {
@@ -306,7 +327,7 @@ const ClientProfiles = () => {
         <DialogHeader>
           <DialogTitle>Client Properties</DialogTitle>
           <AddProperty
-            clientId={initialProperties[0].client}
+            clientId={clientId}
             onAdd={handleAddProperty}
           />
         </DialogHeader>
@@ -437,7 +458,6 @@ const ClientProfiles = () => {
       );
 
       if (response.status === 200) {
-        // Update the client's status in the state instead of removing them
         setClients((prevClients) =>
           prevClients.map((client) =>
             client.id === clientId
@@ -450,7 +470,7 @@ const ClientProfiles = () => {
     } catch (error) {
       console.error("Error terminating client:", error);
       setTerminationError(
-        error.response?.data?.message ||
+        (axios.isAxiosError(error) && error.response?.data?.message) ||
           "Failed to terminate client. Please try again."
       );
     } finally {
@@ -526,7 +546,7 @@ const ClientProfiles = () => {
               ))}
             </SelectContent>
           </Select>
-          <AddClientForm />
+          <AddClientForm onClientAdded={handleClientAdded} />
         </div>
       </div>
 
@@ -572,7 +592,8 @@ const ClientProfiles = () => {
                       View Properties ({client.properties.length})
                     </Button>
                   </DialogTrigger>
-                  <PropertiesDialog properties={client.properties} />
+                  <PropertiesDialog properties={client.properties} 
+                    clientId={client.id} />
                 </Dialog>
 
                 <Dialog>
