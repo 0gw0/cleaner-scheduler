@@ -31,6 +31,13 @@ public class AnnualLeave implements Leave{
     @Column(nullable = false)
     private LocalDate endDate;
 
+    @Column(nullable=false)
+    private String status;
+
+    {
+        this.status = "PENDING";
+    }
+
     public AnnualLeave(Worker worker, LocalDate startDate, LocalDate endDate) {
         this.worker = worker;
         this.startDate = startDate;

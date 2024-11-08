@@ -33,7 +33,7 @@ const Navbar = () => {
     { href: "/payrolls", label: "Manage Payrolls Requests", roles: ["admin", "root"] },
     { href: "/managetasks", label: "Manage Tasks", roles: ["admin", "root"] },
     { href: "/profile", label: "Profile", roles: ["admin", "worker"] },
-    { href: "/workermc", label: "Apply MC", roles: [ "worker"] },
+    { href: "/workermc", label: "Manage Leaves", roles: [ "worker"] },
     { href: "/manageAdmins", label: "Manage Admins", roles: [ "root"] },
   ];
 

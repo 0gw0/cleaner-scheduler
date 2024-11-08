@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, ReactNode } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -14,12 +14,12 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '@/components/ui/dialog';
-import { Plus } from 'lucide-react';
+import { Plus, Calendar } from 'lucide-react';
 
 interface User {
   id: string;
   name: string;
-  annualLeaves: { id: string; startDate: string; endDate: string }[];
+  annualLeaves: { id: string; startDate: string; endDate: string; status?:string }[];
   medicalLeaves: {
     id: string;
     startDate: string;
@@ -31,9 +31,121 @@ interface User {
 
 interface LeaveCardProps {
   title: string;
-  leaves: { id: string; startDate: string; endDate: string; reason?: string; pdfUploaded?: boolean }[];
-  renderLeaveItem: (leave: { id: string; startDate: string; endDate: string; reason?: string; pdfUploaded?: boolean }) => React.ReactNode;
+  leaves: { id: string; startDate: string; endDate: string; reason?: string; pdfUploaded?: boolean; }[];
+  renderLeaveItem: (leave: {
+    [x: string]: ReactNode; id: string; startDate: string; endDate: string; reason?: string; pdfUploaded?: boolean 
+}) => React.ReactNode;
 }
+
+const AnnualLeaveDialog = ({
+  user,
+  onSuccess,
+}: {
+  user: User;
+  onSuccess: () => void;
+}) => {
+  const [selectedStartDate, setSelectedStartDate] = useState(new Date());
+  const [selectedEndDate, setSelectedEndDate] = useState(new Date());
+  const [submitStatus, setSubmitStatus] = useState({
+    success: false,
+    message: '',
+  });
+  const [isOpen, setIsOpen] = useState(false);
+
+  const resetForm = () => {
+    setSelectedStartDate(new Date());
+    setSelectedEndDate(new Date());
+    setSubmitStatus({ success: false, message: '' });
+  };
+
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    try {
+      const response = await fetch(`http://localhost:8080/workers/${user.id}/annual-leaves`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          startDate: format(selectedStartDate, 'yyyy-MM-dd'),
+          endDate: format(selectedEndDate, 'yyyy-MM-dd'),
+        }),
+      });
+
+      if (response.ok) {
+        setSubmitStatus({
+          success: true,
+          message: 'Annual leave application submitted successfully',
+        });
+        setTimeout(() => {
+          setIsOpen(false);
+          resetForm();
+          onSuccess();
+        }, 2000);
+      } else {
+        throw new Error('Failed to submit annual leave');
+      }
+    } catch (err) {
+      setSubmitStatus({
+        success: false,
+        message: 'Failed to submit annual leave',
+      });
+    }
+  };
+
+  return (
+    <Dialog open={isOpen} onOpenChange={setIsOpen}>
+      <DialogTrigger asChild>
+        <Button variant="outline" className="w-full flex items-center gap-2">
+          <Calendar size={16} />
+          Apply for Annual Leave
+        </Button>
+      </DialogTrigger>
+      <DialogContent className="sm:max-w-md">
+        <DialogHeader>
+          <DialogTitle>Annual Leave Application</DialogTitle>
+          <DialogDescription>
+            Submit your annual leave request below.
+          </DialogDescription>
+        </DialogHeader>
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div className="space-y-2">
+            <label className="text-sm font-medium">Start Date</label>
+            <Input
+              type="date"
+              value={format(selectedStartDate, 'yyyy-MM-dd')}
+              onChange={(e) => setSelectedStartDate(new Date(e.target.value))}
+              className="w-full"
+            />
+          </div>
+
+          <div className="space-y-2">
+            <label className="text-sm font-medium">End Date</label>
+            <Input
+              type="date"
+              value={format(selectedEndDate, 'yyyy-MM-dd')}
+              onChange={(e) => setSelectedEndDate(new Date(e.target.value))}
+              className="w-full"
+            />
+          </div>
+
+          {submitStatus.message && (
+            <Alert variant={submitStatus.success ? "default" : "destructive"}>
+              <AlertTitle>
+                {submitStatus.success ? "Success" : "Error"}
+              </AlertTitle>
+              <AlertDescription>{submitStatus.message}</AlertDescription>
+            </Alert>
+          )}
+
+          <DialogFooter>
+            <Button type="submit" className="w-full">
+              Submit Annual Leave
+            </Button>
+          </DialogFooter>
+        </form>
+      </DialogContent>
+    </Dialog>
+  );
+};
 
 const MCUploadDialog = ({
   isOpen,
@@ -44,7 +156,7 @@ const MCUploadDialog = ({
 }: {
   isOpen: boolean;
   onOpenChange: (open: boolean) => void;
-  leave: { id: string; startDate: string; endDate: string };
+  leave: { id: string; startDate: string; endDate: string; status?:string };
   user: User;
   onSuccess: () => void;
 }) => {
@@ -396,59 +508,90 @@ const WorkerMCPage = () => {
     setIsUploadDialogOpen(true);
   };
 
-  if (loading) return <div className="p-4">Loading...</div>;
-  if (error) return <div className="p-4 text-red-500">{error}</div>;
-  if (!user) return <div className="p-4">Please log in to view this page</div>;
+  if (loading) return <div className="p-8 text-center">Loading...</div>;
+  if (error) return <div className="p-8 text-center text-red-500">{error}</div>;
+  if (!user) return <div className="p-8 text-center">Please log in to view this page</div>;
 
   return (
-    <div className="p-4 space-y-6">
-      <LeaveCard
-        title="Annual Leaves"
-        leaves={user.annualLeaves}
-        renderLeaveItem={(leave) => (
-          <div
-            key={leave.id}
-            className="flex justify-between items-center p-4 bg-gray-50 rounded shadow"
-          >
-            <div className="flex flex-col">
-              <span>Start Date: {leave.startDate}</span>
-              <span>End Date: {leave.endDate}</span>
-            </div>
-          </div>
-        )}
-      />
-
-      <LeaveCard
-        title="Medical Leaves"
-        leaves={user.medicalLeaves}
-        renderLeaveItem={(leave) => (
-          <div
-            key={leave.id}
-            className="flex justify-between items-center p-4 bg-gray-50 rounded shadow"
-          >
-            <div className="flex flex-col">
-              <span>Start Date: {leave.startDate}</span>
-              <span>End Date: {leave.endDate}</span>
-            </div>
-            {!leave.pdfUploaded && (
-              <Button
-                onClick={() =>
-                  handleUploadClick({
-                    id: leave.id,
-                    startDate: leave.startDate,
-                    endDate: leave.endDate,
-                  })
-                }
+    <div className=" mx-auto p-8 space-y-8">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+        <div className="space-y-4">
+          <LeaveCard
+            title="Annual Leaves"
+            leaves={user.annualLeaves}
+            renderLeaveItem={(leave) => (
+              <div
+                key={leave.id}
+                className="flex flex-col p-4 bg-white rounded-lg border border-gray-200 hover:border-gray-300 transition-colors"
               >
-                Upload Medical Certificate
-              </Button>
+                <div className="flex justify-between items-start mb-2">
+                  <div className="space-y-1">
+                    <div className="text-sm text-gray-600">Start Date:</div>
+                    <div className="font-medium">{leave.startDate}</div>
+                  </div>
+                  <div className="space-y-1 text-right">
+                    <div className="text-sm text-gray-600">End Date:</div>
+                    <div className="font-medium">{leave.endDate}</div>
+                  </div>
+                </div>
+                <div className="mt-2 pt-2 border-t border-gray-100">
+                  <span className={`text-sm px-2 py-1 rounded-full ${
+                    leave.status === 'APPROVED' 
+                      ? 'bg-green-100 text-green-800' 
+                      : leave.status === 'REJECTED'
+                      ? 'bg-red-100 text-red-800'
+                      : 'bg-yellow-100 text-yellow-800'
+                  }`}>
+                    {leave.status || 'PENDING'}
+                  </span>
+                </div>
+              </div>
             )}
-          </div>
-        )}
-      />
+          />
+          <AnnualLeaveDialog user={user} onSuccess={fetchUserData} />
+        </div>
 
-      <div className="flex justify-end">
-        <MCApplicationForm user={user} onSuccess={fetchUserData} />
+        <div className="space-y-4">
+          <LeaveCard
+            title="Medical Leaves"
+            leaves={user.medicalLeaves}
+            renderLeaveItem={(leave) => (
+              <div
+                key={leave.id}
+                className="flex flex-col p-4 bg-white rounded-lg border border-gray-200 hover:border-gray-300 transition-colors"
+              >
+                <div className="flex justify-between items-start mb-2">
+                  <div className="space-y-1">
+                    <div className="text-sm text-gray-600">Start Date:</div>
+                    <div className="font-medium">{leave.startDate}</div>
+                  </div>
+                  <div className="space-y-1 text-right">
+                    <div className="text-sm text-gray-600">End Date:</div>
+                    <div className="font-medium">{leave.endDate}</div>
+                  </div>
+                </div>
+                {!leave.pdfUploaded && (
+                  <div className="mt-2 pt-2 border-t border-gray-100">
+                    <Button
+                      variant="secondary"
+                      className="w-full"
+                      onClick={() =>
+                        handleUploadClick({
+                          id: leave.id,
+                          startDate: leave.startDate,
+                          endDate: leave.endDate,
+                        })
+                      }
+                    >
+                      Upload Medical Certificate
+                    </Button>
+                  </div>
+                )}
+              </div>
+            )}
+          />
+          <MCApplicationForm user={user} onSuccess={fetchUserData} />
+        </div>
       </div>
 
       {selectedLeave && (
