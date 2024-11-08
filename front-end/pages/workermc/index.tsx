@@ -15,7 +15,6 @@ import {
   DialogTrigger,
 } from '@/components/ui/dialog';
 import { Plus } from 'lucide-react';
-import axios from 'axios';
 
 interface User {
   id: string;
@@ -35,6 +34,130 @@ interface LeaveCardProps {
   leaves: { id: string; startDate: string; endDate: string; reason?: string; pdfUploaded?: boolean }[];
   renderLeaveItem: (leave: { id: string; startDate: string; endDate: string; reason?: string; pdfUploaded?: boolean }) => React.ReactNode;
 }
+
+const MCUploadDialog = ({
+  isOpen,
+  onOpenChange,
+  leave,
+  user,
+  onSuccess,
+}: {
+  isOpen: boolean;
+  onOpenChange: (open: boolean) => void;
+  leave: { id: string; startDate: string; endDate: string };
+  user: User;
+  onSuccess: () => void;
+}) => {
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [submitStatus, setSubmitStatus] = useState({
+    success: false,
+    message: '',
+  });
+
+  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const files = event.target.files;
+    if (!files) {
+      setSubmitStatus({ success: false, message: 'No file selected' });
+      return;
+    }
+    const file = files[0];
+    if (file && file.type === 'application/pdf') {
+      setSelectedFile(file);
+      setSubmitStatus({ success: false, message: '' });
+    } else {
+      setSubmitStatus({ success: false, message: 'Please upload a PDF file' });
+    }
+  };
+
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    if (!selectedFile) {
+      setSubmitStatus({ success: false, message: 'Please select a file' });
+      return;
+    }
+
+    try {
+      const reader = new FileReader();
+      reader.onloadend = async () => {
+        const base64Data = (reader.result as string).split(',')[1];
+        const emailResponse = await fetch('/api/send-mc', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            to: 'adrian.koh.2022@scis.smu.edu.sg',
+            subject: `Medical Certificate Upload - ${leave.startDate} to ${leave.endDate}`,
+            from: `${user?.name} - worker ID: ${user?.id}`,
+            pdfData: base64Data,
+            filename: 'medical-certificate.pdf',
+            leaveId: leave.id,
+          }),
+        });
+
+        if (emailResponse.ok) {
+          setSubmitStatus({
+            success: true,
+            message: 'Medical certificate uploaded successfully',
+          });
+          setTimeout(() => {
+            onOpenChange(false);
+            setSelectedFile(null);
+            setSubmitStatus({ success: false, message: '' });
+            onSuccess();
+          }, 2000);
+        } else {
+          throw new Error('Failed to upload medical certificate');
+        }
+      };
+      reader.readAsDataURL(selectedFile);
+    } catch (err) {
+      setSubmitStatus({
+        success: false,
+        message: 'Failed to upload medical certificate',
+      });
+    }
+  };
+
+  return (
+    <Dialog open={isOpen} onOpenChange={onOpenChange}>
+      <DialogContent className="sm:max-w-md">
+        <DialogHeader>
+          <DialogTitle>Upload Medical Certificate</DialogTitle>
+          <DialogDescription>
+            Please upload the medical certificate for your leave from {leave.startDate} to {leave.endDate}.
+          </DialogDescription>
+        </DialogHeader>
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div className="space-y-2">
+            <label className="text-sm font-medium">
+              Medical Certificate (PDF only)
+            </label>
+            <Input
+              type="file"
+              accept=".pdf"
+              onChange={handleFileChange}
+              className="w-full"
+            />
+          </div>
+
+          {submitStatus.message && (
+            <Alert variant={submitStatus.success ? "default" : "destructive"}>
+              <AlertTitle>
+                {submitStatus.success ? "Success" : "Error"}
+              </AlertTitle>
+              <AlertDescription>{submitStatus.message}</AlertDescription>
+            </Alert>
+          )}
+
+          <DialogFooter>
+            <Button type="submit" className="w-full">
+              Upload Certificate
+            </Button>
+          </DialogFooter>
+        </form>
+      </DialogContent>
+    </Dialog>
+  );
+};
 
 const LeaveCard: React.FC<LeaveCardProps> = ({
   title,
@@ -102,13 +225,6 @@ const MCApplicationForm = ({
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     try {
-      // await axios.post(
-      //   `http://localhost:8080/workers/${user.id}/medical-leaves`,
-      //   {
-      //     startDate: format(selectedStartDate, 'yyyy-MM-dd'),
-      //     endDate: format(selectedEndDate, 'yyyy-MM-dd'),
-      //   }
-      // );
       let base64Data;
       if (selectedFile) {
         const reader = new FileReader();
@@ -175,7 +291,7 @@ const MCApplicationForm = ({
           </DialogDescription>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">
-        <div className="space-y-2">
+          <div className="space-y-2">
             <label className="text-sm font-medium">Start Date</label>
             <Input
               type="date"
@@ -241,6 +357,12 @@ const WorkerMCPage = () => {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [selectedLeave, setSelectedLeave] = useState<{
+    id: string;
+    startDate: string;
+    endDate: string;
+  } | null>(null);
+  const [isUploadDialogOpen, setIsUploadDialogOpen] = useState(false);
 
   const fetchUserData = async () => {
     try {
@@ -264,6 +386,15 @@ const WorkerMCPage = () => {
   useEffect(() => {
     fetchUserData();
   }, []);
+
+  const handleUploadClick = (leave: {
+    id: string;
+    startDate: string;
+    endDate: string;
+  }) => {
+    setSelectedLeave(leave);
+    setIsUploadDialogOpen(true);
+  };
 
   if (loading) return <div className="p-4">Loading...</div>;
   if (error) return <div className="p-4 text-red-500">{error}</div>;
@@ -291,16 +422,40 @@ const WorkerMCPage = () => {
         renderLeaveItem={(leave) => (
           <div
             key={leave.id}
-            className="flex justify-between p-2 bg-gray-50 rounded"
+            className="flex justify-between items-center p-2 bg-gray-50 rounded"
           >
-            <span>Start Date: {leave.startDate}</span>
-            <span>End Date: {leave.endDate}</span>
-            {!leave.pdfUploaded && <Button>Upload Medical Certificate</Button>}
+            <div className="flex flex-col">
+              <span>Start Date: {leave.startDate}</span>
+              <span>End Date: {leave.endDate}</span>
+            </div>
+            {!leave.pdfUploaded && (
+              <Button
+                onClick={() =>
+                  handleUploadClick({
+                    id: leave.id,
+                    startDate: leave.startDate,
+                    endDate: leave.endDate,
+                  })
+                }
+              >
+                Upload Medical Certificate
+              </Button>
+            )}
           </div>
         )}
       />
 
       <MCApplicationForm user={user} onSuccess={fetchUserData} />
+
+      {selectedLeave && (
+        <MCUploadDialog
+          isOpen={isUploadDialogOpen}
+          onOpenChange={setIsUploadDialogOpen}
+          leave={selectedLeave}
+          user={user}
+          onSuccess={fetchUserData}
+        />
+      )}
     </div>
   );
 };
