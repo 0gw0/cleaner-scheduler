@@ -12,43 +12,59 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Plus, Loader2, Trash2 } from 'lucide-react';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Plus, Loader2, Ban } from 'lucide-react';
 import { toast } from "@/hooks/use-toast";
 
 const ManageAdmins = () => {
-  const [admins, setAdmins] = useState<{ id: string; name: string; workers: any[] }[]>([]);
+  const [admins, setAdmins] = useState<{ id: string; name: string; root: boolean; workers: any[] }[]>([]);
   const [workerDetails, setWorkerDetails] = useState<{ [key: string]: any[] }>({});
   const [loading, setLoading] = useState(true);
   const [newAdminName, setNewAdminName] = useState('');
+  const [newSupervisorId, setNewSupervisorId] = useState('');
   const [dialogOpen, setDialogOpen] = useState(false);
-  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
-  const [adminToDelete, setAdminToDelete] = useState<{ id: string; name: string } | null>(null);
+  const [terminateDialogOpen, setTerminateDialogOpen] = useState(false);
+  const [adminToTerminate, setAdminToTerminate] = useState<{ id: string; name: string } | null>(null);
   const [creating, setCreating] = useState(false);
-  const [deleting, setDeleting] = useState(false);
+  const [terminating, setTerminating] = useState(false);
 
-  // Fetch admins
+  const fetchAdmins = async () => {
+    try {
+      setLoading(true);
+      const response = await fetch('http://localhost:8080/admins');
+      const data = await response.json();
+      const nonRootAdmins = data.filter((admin: { root: boolean }) => !admin.root);
+      setAdmins(data);
+    
+      setWorkerDetails({});
+      
+      nonRootAdmins.forEach((admin: { id: string; workers: any[] }) => {
+        if (admin.workers.length > 0) {
+          fetchWorkerDetails(admin.id);
+        }
+      });
+    } catch (error) {
+      console.error('Error fetching admins:', error);
+      toast({
+        title: "Error",
+        description: "Failed to fetch administrators",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
-    const fetchAdmins = async () => {
-      try {
-        const response = await fetch('http://localhost:8080/admins');
-        const data = await response.json();
-        const nonRootAdmins = data.filter((admin: { root: boolean }) => !admin.root);
-        setAdmins(nonRootAdmins);
-        
-        nonRootAdmins.forEach((admin: { id: string; workers: any[] }) => {
-          if (admin.workers.length > 0) {
-            fetchWorkerDetails(admin.id);
-          }
-        });
-      } catch (error) {
-        console.error('Error fetching admins:', error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
     fetchAdmins();
   }, []);
+
+  const getAvailableSupervisors = (excludeId?: string) => {
+    return admins.filter(admin => 
+      !admin.root && 
+      admin.id !== excludeId
+    );
+  };
 
   const fetchWorkerDetails = async (adminId: string) => {
     try {
@@ -63,7 +79,6 @@ const ManageAdmins = () => {
     }
   };
 
-  // Create new admin
   const handleCreateAdmin = async () => {
     if (!newAdminName.trim()) return;
 
@@ -74,12 +89,13 @@ const ManageAdmins = () => {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ name: newAdminName }),
+        body: JSON.stringify({ 
+          name: newAdminName,
+        }),
       });
 
       if (response.ok) {
-        const newAdmin = await response.json();
-        setAdmins(prev => [...prev, newAdmin]);
+        await fetchAdmins(); 
         setNewAdminName('');
         setDialogOpen(false);
         toast({
@@ -99,34 +115,40 @@ const ManageAdmins = () => {
     }
   };
 
-  // Delete admin
-  const handleDeleteAdmin = async () => {
-    if (!adminToDelete) return;
+  const handleTerminateAdmin = async () => {
+    if (!adminToTerminate || !newSupervisorId) return;
 
-    setDeleting(true);
+    setTerminating(true);
     try {
-      const response = await fetch(`http://localhost:8080/admins/${adminToDelete.id}`, {
+      const response = await fetch(`http://localhost:8080/admins/${adminToTerminate.id}/terminate`, {
         method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          supervisorId: newSupervisorId
+        })
       });
 
       if (response.ok) {
-        setAdmins(prev => prev.filter(admin => admin.id !== adminToDelete.id));
-        setDeleteDialogOpen(false);
-        setAdminToDelete(null);
+        await fetchAdmins(); 
+        setTerminateDialogOpen(false);
+        setAdminToTerminate(null);
+        setNewSupervisorId('');
         toast({
           title: "Success",
-          description: "Administrator deleted successfully",
+          description: "Administrator terminated successfully",
         });
       }
     } catch (error) {
-      console.error('Error deleting admin:', error);
+      console.error('Error terminating admin:', error);
       toast({
         title: "Error",
-        description: "Failed to delete administrator",
+        description: "Failed to terminate administrator",
         variant: "destructive",
       });
     } finally {
-      setDeleting(false);
+      setTerminating(false);
     }
   };
 
@@ -138,18 +160,20 @@ const ManageAdmins = () => {
     );
   }
 
+  const nonRootAdmins = admins.filter(admin => !admin.root);
+
   return (
-    <div className="p-6">
-      <div className="flex justify-between items-center mb-6">
-        <h1 className="text-2xl font-bold">Manage Administrators</h1>
+    <div className="p-4 sm:p-6">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
+        <h1 className="text-xl sm:text-2xl font-bold">Manage Administrators</h1>
         <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
           <DialogTrigger asChild>
-            <Button>
+            <Button className="w-full sm:w-auto">
               <Plus className="w-4 h-4 mr-2" />
               Add Admin
             </Button>
           </DialogTrigger>
-          <DialogContent>
+          <DialogContent className="sm:max-w-md">
             <DialogHeader>
               <DialogTitle>Create New Administrator</DialogTitle>
             </DialogHeader>
@@ -176,74 +200,97 @@ const ManageAdmins = () => {
         </Dialog>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {admins.map((admin) => (
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
+        {nonRootAdmins.map((admin) => (
           <Card key={admin.id} className="shadow-lg">
             <CardHeader>
-              <CardTitle>{admin.name}</CardTitle>
+              <CardTitle className="text-lg sm:text-xl">{admin.name}</CardTitle>
             </CardHeader>
             <CardContent>
               <div className="space-y-2">
-                <p className="text-sm text-gray-500">ID: {admin.id}</p>
+                <p className="text-xs sm:text-sm text-gray-500">ID: {admin.id}</p>
                 <div>
-                  <p className="font-medium">Workers ({admin.workers.length}):</p>
+                  <p className="font-medium text-sm sm:text-base">Workers ({admin.workers.length}):</p>
                   {workerDetails[admin.id] ? (
                     <ul className="list-disc list-inside">
                       {workerDetails[admin.id].map(worker => (
-                        <li key={worker.id} className="text-sm">
+                        <li key={worker.id} className="text-xs sm:text-sm">
                           {worker.name} - {worker.status}
                         </li>
                       ))}
                     </ul>
                   ) : admin.workers.length > 0 ? (
-                    <p className="text-sm text-gray-500">Loading worker details...</p>
+                    <p className="text-xs sm:text-sm text-gray-500">Loading worker details...</p>
                   ) : (
-                    <p className="text-sm text-gray-500">No workers assigned</p>
+                    <p className="text-xs sm:text-sm text-gray-500">No workers assigned</p>
                   )}
                 </div>
               </div>
             </CardContent>
             <CardFooter>
               <Button 
-                variant="destructive" 
+                variant="secondary" 
                 size="sm"
                 onClick={() => {
-                  setAdminToDelete(admin);
-                  setDeleteDialogOpen(true);
+                  setAdminToTerminate(admin);
+                  setTerminateDialogOpen(true);
                 }}
                 className="w-full"
               >
-                <Trash2 className="w-4 h-4 mr-2" />
-                Delete Admin
+                <Ban className="w-4 h-4 mr-2" />
+                Terminate
               </Button>
             </CardFooter>
           </Card>
         ))}
       </div>
 
-      <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
-        <DialogContent>
+      <Dialog open={terminateDialogOpen} onOpenChange={setTerminateDialogOpen}>
+        <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle>Delete Administrator</DialogTitle>
+            <DialogTitle>Terminate Administrator</DialogTitle>
             <DialogDescription>
-              Are you sure you want to delete administrator "{adminToDelete && adminToDelete.name}"? This action cannot be undone.
+              To terminate {adminToTerminate?.name}, please select a new supervisor for their workers:
             </DialogDescription>
           </DialogHeader>
+          <div className="py-4">
+            <Label htmlFor="newSupervisor">New Supervisor</Label>
+            <Select
+              value={newSupervisorId}
+              onValueChange={setNewSupervisorId}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Select a new supervisor" />
+              </SelectTrigger>
+              <SelectContent>
+                {getAvailableSupervisors(adminToTerminate?.id).map((admin) => (
+                  <SelectItem key={admin.id} value={admin.id.toString()}>
+                    {admin.name} (ID: {admin.id})
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
           <DialogFooter>
             <Button
               variant="outline"
-              onClick={() => setDeleteDialogOpen(false)}
-              disabled={deleting}
+              onClick={() => {
+                setTerminateDialogOpen(false);
+                setNewSupervisorId('');
+              }}
+              disabled={terminating}
+              className="w-full sm:w-auto"
             >
               Cancel
             </Button>
             <Button
-              variant="destructive"
-              onClick={handleDeleteAdmin}
-              disabled={deleting}
+              variant="secondary"
+              onClick={handleTerminateAdmin}
+              disabled={terminating || !newSupervisorId}
+              className="w-full sm:w-auto"
             >
-              {deleting && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
-              Delete
+              {terminating && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+              Terminate
             </Button>
           </DialogFooter>
         </DialogContent>

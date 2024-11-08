@@ -107,6 +107,8 @@ public class Worker {
         return supervisor.getId();
     }
 
+   
+
     public int getNumShiftsInMonth(YearMonth yearMonth) {
         return (int) shifts.stream()
                 .filter(shift -> YearMonth.from(shift.getDate()).equals(yearMonth))
