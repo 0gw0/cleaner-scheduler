@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -7,10 +7,13 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
+  DialogDescription,
+  DialogFooter,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Plus, Loader2 } from 'lucide-react';
+import { Plus, Loader2, Trash2 } from 'lucide-react';
+import { toast } from "@/hooks/use-toast";
 
 const ManageAdmins = () => {
   const [admins, setAdmins] = useState<{ id: string; name: string; workers: any[] }[]>([]);
@@ -18,7 +21,10 @@ const ManageAdmins = () => {
   const [loading, setLoading] = useState(true);
   const [newAdminName, setNewAdminName] = useState('');
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [adminToDelete, setAdminToDelete] = useState<{ id: string; name: string } | null>(null);
   const [creating, setCreating] = useState(false);
+  const [deleting, setDeleting] = useState(false);
 
   // Fetch admins
   useEffect(() => {
@@ -76,11 +82,51 @@ const ManageAdmins = () => {
         setAdmins(prev => [...prev, newAdmin]);
         setNewAdminName('');
         setDialogOpen(false);
+        toast({
+          title: "Success",
+          description: "Administrator created successfully",
+        });
       }
     } catch (error) {
       console.error('Error creating admin:', error);
+      toast({
+        title: "Error",
+        description: "Failed to create administrator",
+        variant: "destructive",
+      });
     } finally {
       setCreating(false);
+    }
+  };
+
+  // Delete admin
+  const handleDeleteAdmin = async () => {
+    if (!adminToDelete) return;
+
+    setDeleting(true);
+    try {
+      const response = await fetch(`http://localhost:8080/admins/${adminToDelete.id}`, {
+        method: 'DELETE',
+      });
+
+      if (response.ok) {
+        setAdmins(prev => prev.filter(admin => admin.id !== adminToDelete.id));
+        setDeleteDialogOpen(false);
+        setAdminToDelete(null);
+        toast({
+          title: "Success",
+          description: "Administrator deleted successfully",
+        });
+      }
+    } catch (error) {
+      console.error('Error deleting admin:', error);
+      toast({
+        title: "Error",
+        description: "Failed to delete administrator",
+        variant: "destructive",
+      });
+    } finally {
+      setDeleting(false);
     }
   };
 
@@ -157,9 +203,51 @@ const ManageAdmins = () => {
                 </div>
               </div>
             </CardContent>
+            <CardFooter>
+              <Button 
+                variant="destructive" 
+                size="sm"
+                onClick={() => {
+                  setAdminToDelete(admin);
+                  setDeleteDialogOpen(true);
+                }}
+                className="w-full"
+              >
+                <Trash2 className="w-4 h-4 mr-2" />
+                Delete Admin
+              </Button>
+            </CardFooter>
           </Card>
         ))}
       </div>
+
+      <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Delete Administrator</DialogTitle>
+            <DialogDescription>
+              Are you sure you want to delete administrator "{adminToDelete && adminToDelete.name}"? This action cannot be undone.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setDeleteDialogOpen(false)}
+              disabled={deleting}
+            >
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={handleDeleteAdmin}
+              disabled={deleting}
+            >
+              {deleting && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+              Delete
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
