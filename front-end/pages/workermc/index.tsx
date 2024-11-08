@@ -169,7 +169,7 @@ const LeaveCard: React.FC<LeaveCardProps> = ({
       <CardTitle>{title}</CardTitle>
     </CardHeader>
     <CardContent>
-      <div className="space-y-2">
+      <div className="space-y-4">
         {leaves.length > 0 ? (
           leaves.map(renderLeaveItem)
         ) : (
@@ -205,7 +205,7 @@ const MCApplicationForm = ({
     setSelectedStartDate(new Date());
     setSelectedEndDate(new Date());
     setSubmitStatus({ success: false, message: '' });
-  };  
+  };
 
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const files = event.target.files;
@@ -253,7 +253,7 @@ const MCApplicationForm = ({
         subject: `Medical Leave Application - ${format(
           selectedStartDate,
           'yyyy-MM-dd'
-        )} to ${format(selectedEndDate, 'yyyy-MM-dd')}`,
+        )} to ${format(selectedEndDate, 'yyyy-MM-dd')} for this reason: ${reason}`,
         from: `${user?.name} - worker ID: ${user?.id}`,
         pdfData,
         filename: 'medical-certificate.pdf',
@@ -408,10 +408,12 @@ const WorkerMCPage = () => {
         renderLeaveItem={(leave) => (
           <div
             key={leave.id}
-            className="flex justify-between p-2 bg-gray-50 rounded"
+            className="flex justify-between items-center p-4 bg-gray-50 rounded shadow"
           >
-            <span>From: {leave.startDate}</span>
-            <span>To: {leave.endDate}</span>
+            <div className="flex flex-col">
+              <span>Start Date: {leave.startDate}</span>
+              <span>End Date: {leave.endDate}</span>
+            </div>
           </div>
         )}
       />
@@ -422,7 +424,7 @@ const WorkerMCPage = () => {
         renderLeaveItem={(leave) => (
           <div
             key={leave.id}
-            className="flex justify-between items-center p-2 bg-gray-50 rounded"
+            className="flex justify-between items-center p-4 bg-gray-50 rounded shadow"
           >
             <div className="flex flex-col">
               <span>Start Date: {leave.startDate}</span>
@@ -445,7 +447,9 @@ const WorkerMCPage = () => {
         )}
       />
 
-      <MCApplicationForm user={user} onSuccess={fetchUserData} />
+      <div className="flex justify-end">
+        <MCApplicationForm user={user} onSuccess={fetchUserData} />
+      </div>
 
       {selectedLeave && (
         <MCUploadDialog
