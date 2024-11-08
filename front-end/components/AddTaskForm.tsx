@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useRef } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -6,7 +6,7 @@ import { Label } from '@/components/ui/label'
 import { Switch } from '@/components/ui/switch'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { ChevronLeft, ChevronRight, Plus, Check, X } from 'lucide-react'
-
+import { useToast } from '@/hooks/use-toast'
 import { WorkerTravelData } from '@/types/task'
 
 type FormData = {
@@ -17,6 +17,7 @@ type FormData = {
   date: string
   isRecurring: boolean
   recurringType: 'weekly' | 'monthly' | ''
+  numberOfWorkers : number
   selectedWorker: WorkerTravelData | null
 }
 
@@ -29,6 +30,7 @@ const initialFormData: FormData = {
   isRecurring: false,
   recurringType: '',
   selectedWorker: null,
+  numberOfWorkers : 0
 }
 
 const fakeWorkerTravelData: WorkerTravelData[] = [
@@ -114,13 +116,17 @@ export default function AddTaskForm() {
   const [currentStep, setCurrentStep] = useState(0)
   const [formData, setFormData] = useState<FormData>(initialFormData)
   const [showSuccess, setShowSuccess] = useState(false)
-
+  const [availableWorkers, setAvailableWorkers] = useState(fakeWorkerTravelData)
+  const [error, setError] = useState("")
+  const { toast } = useToast();
+  
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value, type } = e.target
+    const { name, value, type } = e.target;
     setFormData(prev => ({
       ...prev,
       [name]: type === 'checkbox' ? (e.target as HTMLInputElement).checked : value,
-    }))
+    }));
+    setError('');
   }
 
   const handleWorkerSelect = (worker: WorkerTravelData) => {
@@ -129,11 +135,19 @@ export default function AddTaskForm() {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
+
+    const now = new Date();
+    const threeHoursLater = new Date(now.getTime() + 3 * 60 * 60 * 1000); // 3 hours from now
+    const selectedDateTime = new Date(`${formData.date}T${formData.startTime}`);
+
+    if (selectedDateTime < threeHoursLater) {
+      setError('The start time must be at least 3 hours from now.');
+      return;
+    }
+
     if (currentStep < 2) {
       setCurrentStep(prev => prev + 1)
     } else {
-      // Handle form submission
-      console.log('Form submitted:', formData)
       setShowSuccess(true)
       
       setTimeout(() => {
@@ -147,7 +161,7 @@ export default function AddTaskForm() {
 
   const steps = [
     { title: 'Task Details', description: 'Enter the basic task information' },
-    { title: 'Worker Selection', description: 'Choose a worker for the task' },
+    { title: 'Worker assignment', description: 'Helping you choose the best worker(s) for the task' },
     { title: 'Confirmation', description: 'Review and confirm task details' },
   ]
 
@@ -222,6 +236,31 @@ export default function AddTaskForm() {
                                   required
                                 />
                               </div>
+                              <div>
+                                <Label htmlFor="numberOfWorkers">Number of workers needed</Label>
+                                <Input
+                                  type = "number"
+                                  max = "5"
+                                  min = "1"
+                                  id="numberOfWorkers"
+                                  name="numberOfWorkers"
+                                  value={formData.numberOfWorkers}
+                                  onChange={handleInputChange}
+                                  required
+                                />
+                              </div>
+                              <div>
+                                <Label htmlFor="date">Date</Label>
+                                <Input
+                                  id="date"
+                                  name="date"
+                                  type="date"
+                                  min={new Date().toISOString().split('T')[0]}
+                                  value={formData.date}
+                                  onChange={handleInputChange}
+                                  required
+                                />
+                              </div>
                               <div className="grid grid-cols-2 gap-4">
                                 <div>
                                   <Label htmlFor="startTime">Start Time</Label>
@@ -233,6 +272,9 @@ export default function AddTaskForm() {
                                     onChange={handleInputChange}
                                     required
                                   />
+                                  {error && (
+                                  <p className="text-red-500 text-sm mt-1">{error}</p>
+                                  )}
                                 </div>
                                 <div>
                                   <Label htmlFor="endTime">End Time</Label>
@@ -245,17 +287,6 @@ export default function AddTaskForm() {
                                     required
                                   />
                                 </div>
-                              </div>
-                              <div>
-                                <Label htmlFor="date">Date</Label>
-                                <Input
-                                  id="date"
-                                  name="date"
-                                  type="date"
-                                  value={formData.date}
-                                  onChange={handleInputChange}
-                                  required
-                                />
                               </div>
                               <div className="flex items-center space-x-2">
                                 <Switch
@@ -300,7 +331,7 @@ export default function AddTaskForm() {
 
                           {currentStep === 1 && (
                             <div className="space-y-4">
-                              {fakeWorkerTravelData.map((worker) => (
+                                {fakeWorkerTravelData.map((worker) => (
                                 <div
                                   key={worker.id}
                                   className={`p-4 rounded-lg cursor-pointer transition-colors ${
@@ -329,7 +360,7 @@ export default function AddTaskForm() {
                               <p>Time: {formData.startTime} - {formData.endTime}</p>
                               <p>Recurring: {formData.isRecurring ? 'Yes' : 'No'}</p>
                               {formData.isRecurring && <p>Recurring Type: {formData.recurringType}</p>}
-                              <p>Selected Worker: {formData.selectedWorker?.name}</p>
+                              <p>Assigned Worker: {formData.selectedWorker?.name}</p>
                             </div>
                           )}
                         </motion.div>
