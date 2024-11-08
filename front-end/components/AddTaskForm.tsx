@@ -55,22 +55,6 @@ const workerShiftRequest = {
   propertyId: 0 
 };
 
-const availableWorkersRequest = {
-  postalCode: "string", 
-  startTime: {
-    hour: 0,
-    minute: 0,
-    second: 0,
-    nano: 0
-  },
-  endTime: {
-    hour: 0,
-    minute: 0,
-    second: 0,
-    nano: 0
-  },
-  date: "2024-11-08"
-};
 
 const fakeWorkerTravelData: WorkerTravelData[] = [
   {
@@ -158,6 +142,7 @@ export default function AddTaskForm() {
   const [availableWorkers, setAvailableWorkers] = useState(fakeWorkerTravelData)
   const [error, setError] = useState("")
   const [properties, setProperties] = useState([]);
+  const [selectedProperty, setSelectedProperty] = useState<Property | null>(null);
 
   
   const handleInputChange = async (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
@@ -170,9 +155,9 @@ export default function AddTaskForm() {
     if (name === 'clientId' && value) {
       try {
         const response = await axios.get('http://localhost:8080/properties', {
-          params: { clientID: value }
+          params: { clientId: value }
         });
-        setProperties(response.data); // Assuming the API returns an array of properties
+        setProperties(response.data);
       } catch (error) {
         console.error('Failed to fetch properties:', error);
         setProperties([]);
@@ -198,37 +183,62 @@ export default function AddTaskForm() {
       return;
     }
 
-    if (currentStep === 0) {
-      try {
-        const requestData = {
-          postalCode: formData.propertyId,
-          startTime: {
-            hour: parseInt(formData.startTime.split(':')[0], 10),
-            minute: parseInt(formData.startTime.split(':')[1], 10),
-            second: 0,
-            nano: 0
-          },
-          endTime: {
-            hour: parseInt(formData.endTime.split(':')[0], 10),
-            minute: parseInt(formData.endTime.split(':')[1], 10),
-            second: 0,
-            nano: 0
-          },
-          date: formData.date
-        };
-  
-        const response = await axios.post('http://localhost:8080/shifts/available-workers', requestData);
-        const workersData = response.data;
-  
-        const selectedWorkers = workersData.slice(0, formData.numberOfWorkers);
-  
-        // Update state with the selected workers
-        setAvailableWorkers(selectedWorkers);
-      } catch (error) {
-        console.error('Failed to fetch available workers:', error);
-        setAvailableWorkers([]);
-      }
 
+    if (currentStep === 0) {
+      // Step 0 logic: Set selected property based on propertyId
+      const propertyId = formData.propertyId;
+      const foundProperty = properties.find(
+        (property: Property) => property.address === propertyId
+      );
+  
+      if (foundProperty) {
+        setSelectedProperty(foundProperty);
+      } else {
+        console.error("Property not found");
+        setError("Property not found");
+        return;
+      }
+    
+      if (selectedProperty) {
+        try {
+          const requestData = {
+            postalCode: selectedProperty.postalCode,
+            startTime: {
+              hour: parseInt(formData.startTime.split(':')[0], 10),
+              minute: parseInt(formData.startTime.split(':')[1], 10),
+              second: 0,
+              nano: 0,
+            },
+            endTime: {
+              hour: parseInt(formData.endTime.split(':')[0], 10),
+              minute: parseInt(formData.endTime.split(':')[1], 10),
+              second: 0,
+              nano: 0,
+            },
+            date: formData.date,
+          };
+  
+          //TO DO: add the s after available-worker
+          // const response = await axios.post('http://localhost:8080/shifts/available-worker', requestData);
+          // const workersData: WorkerTravelData[] = response.data;
+          //TO DO: change bottom to workersData
+          const selectedWorkers = fakeWorkerTravelData.slice(0, formData.numberOfWorkers);
+          setAvailableWorkers(selectedWorkers);
+        } catch (error) {
+          console.error('Failed to fetch available workers:', error);
+          setAvailableWorkers([]);
+        }
+      } else {
+        console.error('No selected property found for fetching workers');
+        setError('Please select a property before proceeding.');
+        return;
+      }
+    }
+
+    console.log("availableWorkers",availableWorkers)
+
+    
+      
     if (currentStep < 2) {
       setCurrentStep(prev => prev + 1)
     } else {
@@ -242,7 +252,7 @@ export default function AddTaskForm() {
       }, 1500)
     }
   }
-  }
+
 
   const steps = [
     { title: 'Task Details', description: 'Enter the basic task information' },
@@ -273,8 +283,8 @@ export default function AddTaskForm() {
             >
               <Card>
                 <CardHeader>
-                  <CardTitle>{showSuccess ? 'Task Confirmed!' : 'Task Details'}</CardTitle>
-                  <CardDescription>{showSuccess ? 'Your task has been successfully added.' : 'Enter the basic task information'}</CardDescription>
+                  <CardTitle>{showSuccess ? 'Task Confirmed!' : steps[currentStep].title}</CardTitle>
+                  <CardDescription>{showSuccess ? 'Your task has been successfully added.' : steps[currentStep].description}</CardDescription>
                 </CardHeader>
                 <CardContent>
                   <AnimatePresence mode="wait">
@@ -325,7 +335,7 @@ export default function AddTaskForm() {
                                   >
                                     <option value="">Select a property</option>
                                     {properties.map((property: Property) => (
-                                      <option key={property.postalCode} value={property.postalCode}>
+                                      <option key={property.address} value={property.propertyId}>
                                         {property.address}
                                       </option>
                                     ))}
@@ -427,26 +437,26 @@ export default function AddTaskForm() {
                           )}
   
                           {currentStep === 1 && (
-                            <div className="space-y-4">
-                              {fakeWorkerTravelData.map((worker) => (
-                                <div
-                                  key={worker.id}
-                                  className={`p-4 rounded-lg cursor-pointer transition-colors ${
-                                    formData.selectedWorker?.id === worker.id
-                                      ? 'bg-black text-white'
-                                      : 'bg-slate-200 hover:bg-slate-300'
-                                  }`}
-                                  onClick={() => handleWorkerSelect(worker)}
-                                >
-                                  <h3 className="font-semibold">{worker.name}</h3>
-                                  <p className="text-sm">Location: {worker.originLocation}</p>
-                                  <p className="text-sm">
-                                    Travel Time: {worker.travelTimeToTarget.totalTravelTime} mins
-                                  </p>
-                                </div>
-                              ))}
-                            </div>
-                          )}
+                          <div className="space-y-4">
+                            <p>The following workers have been assigned:</p>
+                            {availableWorkers.slice(0, formData.numberOfWorkers).map((worker, index) => (
+                              <motion.div
+                                key={worker.id}
+                                className="p-4 rounded-lg bg-black text-white"
+                                initial={{ opacity: 0, y: 20 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                exit={{ opacity: 0, y: -20 }}
+                                transition={{ duration: 0.5, delay: index * 0.2 }} // Sequential delay for staggered appearance
+                              >
+                                <h3 className="font-semibold">{worker.name}</h3>
+                                <p className="text-sm">Location: {worker.originLocation}</p>
+                                <p className="text-sm">
+                                  Travel Time: {worker.travelTimeToTarget.totalTravelTime} mins
+                                </p>
+                              </motion.div>
+                            ))}
+                          </div>
+                        )}
   
                           {currentStep === 2 && (
                             <div className="space-y-4">
@@ -457,7 +467,7 @@ export default function AddTaskForm() {
                               <p>Time: {formData.startTime} - {formData.endTime}</p>
                               <p>Recurring: {formData.isRecurring ? 'Yes' : 'No'}</p>
                               {formData.isRecurring && <p>Recurring Type: {formData.recurringType}</p>}
-                              <p>Assigned Worker: {formData.selectedWorker?.name}</p>
+                              <p>Assigned Worker: {availableWorkers.map(worker => worker.name).join(', ')}</p>
                             </div>
                           )}
                         </motion.div>
@@ -504,5 +514,5 @@ export default function AddTaskForm() {
       </AnimatePresence>
     </div>
   );
-                            };
+};
   
