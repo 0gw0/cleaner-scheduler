@@ -1,15 +1,14 @@
 package is442g3t2.cleaner_scheduler.dto.worker;
 
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 import java.util.stream.Collectors;
 
+import is442g3t2.cleaner_scheduler.dto.leave.MedicalLeaveDTO;
 import is442g3t2.cleaner_scheduler.models.leave.AnnualLeave;
 import is442g3t2.cleaner_scheduler.models.leave.MedicalLeave;
 import is442g3t2.cleaner_scheduler.models.shift.Shift;
 import is442g3t2.cleaner_scheduler.models.worker.Worker;
+import is442g3t2.cleaner_scheduler.services.S3Service;
 import jakarta.persistence.OneToMany;
 import lombok.NoArgsConstructor;
 import lombok.Getter;
@@ -19,34 +18,51 @@ import lombok.Setter;
 @Setter
 @NoArgsConstructor
 public class WorkerDTO {
-    
+
     private Long id;
     private String name;
-    private List<Shift> shifts;  
+    private List<Shift> shifts;
     private String phoneNumber;
     private String status;
-    private Long supervisorId;  
+    private Long supervisorId;
     private String bio;
     private Boolean isVerified;
     private List<AnnualLeave> annualLeaves;
-    private List<MedicalLeave> medicalLeaves;
     private String password;
+    private List<MedicalLeaveDTO> medicalLeaves;  // Changed from List<MedicalLeave>
 
-    
-    public WorkerDTO(Worker worker) {
+    public WorkerDTO(Worker worker, S3Service s3Service) {  // Added S3Service parameter
         this.id = worker.getId();
         this.name = worker.getName();
         this.shifts = worker.getShifts().stream()
-            .filter(obj -> obj instanceof Shift)
-            .map(obj -> (Shift) obj)
-            .collect(Collectors.toList());
+                .filter(Objects::nonNull)
+                .map(obj -> (Shift) obj)
+                .collect(Collectors.toList());
         this.phoneNumber = worker.getPhoneNumber();
         this.status = worker.getStatus();
-        this.supervisorId = worker.getSupervisor(); 
+        this.supervisorId = worker.getSupervisor();
         this.bio = worker.getBio();
         this.annualLeaves = new ArrayList<>(worker.getAnnualLeaves());
-        this.medicalLeaves = new ArrayList<>(worker.getMedicalLeaves());
+
+        // Convert MedicalLeaves to MedicalLeaveDTO with presigned URLs
+        this.medicalLeaves = worker.getMedicalLeaves().stream()
+                .map(medicalLeave -> {
+                    String presignedUrl = null;
+                    if (medicalLeave.getMedicalCertificate() != null) {
+                        try {
+                            presignedUrl = s3Service.getPresignedUrl(
+                                    medicalLeave.getMedicalCertificate().getS3Key(),
+                                    3600  // URL valid for 1 hour
+                            ).toString();
+                        } catch (Exception e) {
+                        }
+                    }
+                    return new MedicalLeaveDTO(medicalLeave, presignedUrl);
+                })
+                .collect(Collectors.toList());
+
         this.password = worker.getPassword();
         this.isVerified = worker.getIsVerified();
     }
+
 }

@@ -14,27 +14,17 @@ import java.time.LocalDate;
 @NoArgsConstructor
 @Entity
 @Table(name = "medical_leaves")
-public class MedicalLeave implements Leave {
+public class MedicalLeave extends Leave {
 
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
-
-    @JsonIgnore
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "worker_id", nullable = false)
-    private Worker worker;
-
-    @Column(nullable = false)
-    private LocalDate startDate;
-
-    @Column(nullable = false)
-    private LocalDate endDate;
+    @Embedded
+    private MedicalCertificate medicalCertificate;
 
     public MedicalLeave(Worker worker, LocalDate startDate, LocalDate endDate) {
-        this.worker = worker;
-        this.startDate = startDate;
-        this.endDate = endDate;
+        super(worker, startDate, endDate);
+    }
 
+    public void setMedicalCertificate(MedicalCertificate medicalCertificate) {
+        this.medicalCertificate = medicalCertificate;
+        isApproved = true;
     }
 }

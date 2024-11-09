@@ -191,9 +191,8 @@ public class Worker {
         return calculateTotalLeaveDays(getMedicalLeavesByYear(year), year);
     }
 
-    public void takeMedicalLeave(LocalDate startDate, LocalDate endDate) {
-        MedicalLeave leave = new MedicalLeave(this, startDate, endDate);
-        medicalLeaves.add(leave);
+    public void takeMedicalLeave(MedicalLeave medicalLeave) {
+        medicalLeaves.add(medicalLeave);
     }
 
     public void addRecurringShifts(LocalDate startDate, LocalDate endDate, LocalTime startTime, LocalTime endTime, Property property, Frequency frequency) throws ShiftsOverlapException {

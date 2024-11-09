@@ -8,7 +8,6 @@ import is442g3t2.cleaner_scheduler.models.Admin;
 
 import is442g3t2.cleaner_scheduler.repositories.AdminRepository;
 import is442g3t2.cleaner_scheduler.services.WorkerService;
-import is442g3t2.cleaner_scheduler.services.WorkerService.java;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
