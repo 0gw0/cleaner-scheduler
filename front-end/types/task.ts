@@ -61,7 +61,7 @@ export interface ArrivalImage {
 
 // Represents an individual property linked to a shift.
 export interface Property {
-  propertyId: number;
+  id: number;
   clientId: number;
   address: string;
   postalCode: string;

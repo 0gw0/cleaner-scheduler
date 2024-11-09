@@ -283,7 +283,7 @@ export const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ shiftData, isO
                   {/* Step 3: Summary and Confirmation */}
                   <h3 className="font-semibold">Task Summary</h3>
                   <p>Client ID: {shiftData.property.clientId}</p>
-                  <p>Property ID: {shiftData.property.propertyId}</p>
+                  <p>Property Address: {shiftData.property.id}</p>
                   <p>Date: {updatedShift.date}</p>
                   <p>Time: {updatedShift.startTime} - {updatedShift.endTime}</p>
                   <p>Selected workers: {availableWorkers.map(worker => worker.name).join(', ')}</p>
