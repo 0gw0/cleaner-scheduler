@@ -48,8 +48,7 @@ public class Worker {
     private String name;
 
     @ManyToMany(mappedBy = "workers")
-    @JsonIdentityReference(alwaysAsId = true)
-    private Set<Shift> shifts = new HashSet<>();
+    private List<Shift> shifts = new ArrayList<>();
 
     @Column(nullable = false)
     private String phoneNumber;
@@ -191,15 +190,36 @@ public class Worker {
         medicalLeaves.add(medicalLeave);
     }
 
-    public void addRecurringShifts(LocalDate startDate, LocalDate endDate, LocalTime startTime, LocalTime endTime, Property property, Frequency frequency) throws ShiftsOverlapException {
+    public List<Shift> addRecurringShifts(LocalDate startDate, LocalDate endDate, LocalTime startTime,
+                                          LocalTime endTime, Property property, Frequency frequency)
+            throws ShiftsOverlapException {
+        List<Shift> newShifts = new ArrayList<>();
         LocalDate currentDate = startDate;
 
+        // Create all shifts first to validate them as a batch
         while (!currentDate.isAfter(endDate)) {
             Shift shift = new Shift(currentDate, startTime, endTime, property, ShiftStatus.UPCOMING);
-            addShift(shift);
+
+            // Validate against existing shifts
+            if (!isNewShiftValid(shift)) {
+                throw new ShiftsOverlapException(
+                        String.format("Shift on %s from %s to %s overlaps with an existing shift",
+                                currentDate, startTime, endTime));
+            }
+
+            newShifts.add(shift);
             currentDate = currentDate.plus(frequency.getInterval(), frequency.getUnit());
         }
+
+        // If all shifts are valid, add them to the worker
+        for (Shift shift : newShifts) {
+            shifts.add(shift);
+            shift.getWorkers().add(this);
+        }
+
+        return newShifts;
     }
+
 
     public String getHomePostalCode() {
         return "188065";

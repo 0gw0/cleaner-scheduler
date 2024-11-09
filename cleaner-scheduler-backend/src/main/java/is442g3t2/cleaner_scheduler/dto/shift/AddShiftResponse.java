@@ -15,10 +15,11 @@ import java.util.List;
 public class AddShiftResponse {
     private boolean success;
     private String message;
-    private List<Shift> shifts;
+    private List<ShiftDTO> shifts;
 
     public AddShiftResponse(boolean success, String message) {
         this.success = success;
         this.message = message;
     }
+
 }

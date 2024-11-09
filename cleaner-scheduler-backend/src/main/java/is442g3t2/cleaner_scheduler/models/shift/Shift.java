@@ -14,7 +14,9 @@ import lombok.Setter;
 
 import java.time.LocalDate;
 import java.time.LocalTime;
+import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 
 @Entity
@@ -38,8 +40,7 @@ public class Shift {
             joinColumns = @JoinColumn(name = "shift_id"),
             inverseJoinColumns = @JoinColumn(name = "worker_id")
     )
-    @JsonIdentityReference(alwaysAsId = true)
-    private Set<Worker> workers = new HashSet<>();
+    private List<Worker> workers = new ArrayList<>();
 
     @ManyToOne
     @JoinColumn(name = "property_id")

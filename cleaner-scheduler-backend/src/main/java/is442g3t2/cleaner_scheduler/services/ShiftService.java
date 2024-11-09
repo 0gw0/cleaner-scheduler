@@ -8,6 +8,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
+import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -19,17 +20,20 @@ import is442g3t2.cleaner_scheduler.repositories.ShiftRepository;
 
 @Service
 public class ShiftService {
-    @Autowired
-    private ShiftRepository shiftRepository;
+    private final ShiftRepository shiftRepository;
 
-    @Autowired
-    private WorkerRepository workerRepository;
+    private final WorkerRepository workerRepository;
+
+    public ShiftService(ShiftRepository shiftRepository, WorkerRepository workerRepository) {
+        this.shiftRepository = shiftRepository;
+        this.workerRepository = workerRepository;
+    }
 
     @Transactional
     public Shift updateShiftDetails(Long shiftId, List<Long> workerIds, LocalDate newDate, LocalTime newStartTime, LocalTime newEndTime) {
         return shiftRepository.findById(shiftId).map(shift -> {
             List<Worker> workers = workerRepository.findAllById(workerIds);
-            shift.setWorkers(new HashSet<>(workers));
+            shift.setWorkers(new ArrayList<>(workers));
     
             shift.setDate(newDate);
             shift.setStartTime(newStartTime);
