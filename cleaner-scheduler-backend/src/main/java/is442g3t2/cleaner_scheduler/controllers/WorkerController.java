@@ -2,6 +2,7 @@ package is442g3t2.cleaner_scheduler.controllers;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import is442g3t2.cleaner_scheduler.dto.leave.MedicalLeaveDTO;
 import is442g3t2.cleaner_scheduler.dto.shift.AddShiftRequest;
 import is442g3t2.cleaner_scheduler.dto.shift.AddShiftResponse;
 import is442g3t2.cleaner_scheduler.dto.shift.GetShiftCountResponse;
@@ -45,7 +46,6 @@ import java.util.List;
 import java.util.stream.Collectors;
 import java.util.UUID;
 import java.util.Optional;
-
 
 
 @RestController()
@@ -306,10 +306,21 @@ public class WorkerController {
     @Tag(name = "workers - medical leaves")
     @Operation(description = "get ALL medical leaves for a worker with worker id", summary = "get ALL medical leaves for a worker with worker id")
     @GetMapping("/{id}/medical-leaves")
-    public ResponseEntity<List<MedicalLeave>> getWorkerMedicalLeaves(@PathVariable Long id) {
+    public ResponseEntity<List<MedicalLeaveDTO>> getWorkerMedicalLeaves(@PathVariable Long id) {
         Worker worker = workerRepository.findById(id).orElseThrow(
                 () -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Worker not found"));
-        return ResponseEntity.ok(worker.getMedicalLeaves());
+
+        // Convert each MedicalLeave to MedicalLeaveDTO
+        List<MedicalLeaveDTO> medicalLeaveDTOs = worker.getMedicalLeaves().stream()
+                .map(medicalLeave -> new MedicalLeaveDTO(
+                        medicalLeave,
+                        medicalLeave.getMedicalCertificate() != null
+                                ? s3Service.getPresignedUrl(medicalLeave.getMedicalCertificate().getS3Key(), 3600).toString()
+                                : null
+                ))
+                .collect(Collectors.toList());
+
+        return ResponseEntity.ok(medicalLeaveDTOs);
     }
 
     @Tag(name = "workers - medical leaves")
