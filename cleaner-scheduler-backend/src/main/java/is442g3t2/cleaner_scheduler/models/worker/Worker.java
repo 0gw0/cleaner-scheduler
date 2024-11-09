@@ -110,7 +110,7 @@ public class Worker {
                 .count();
     }
 
-    private boolean isNewShiftValid(Shift newShift) {
+    public boolean isNewShiftValid(Shift newShift) {
         return shifts.stream()
                 .noneMatch(existingShift -> existingShift.getDate().equals(newShift.getDate()) && shiftsOverlap(newShift, existingShift));
     }

@@ -567,4 +567,47 @@ public class WorkerController {
         }
     }
 
+    @Tag(name = "workers - availability")
+    @Operation(description = "Get all available workers at a specific date and time",
+            summary = "get available workers")
+    @GetMapping("/available")
+    public ResponseEntity<List<WorkerDTO>> getAvailableWorkers(
+            @RequestParam LocalDate date,
+            @RequestParam LocalTime startTime,
+            @RequestParam LocalTime endTime,
+            @RequestParam(required = false) Long supervisorId) {
+
+        // temporary shift object JUST TOI CHECK overlap
+        Shift tempShift = new Shift(date, startTime, endTime, null, ShiftStatus.UPCOMING);
+
+        List<Worker> allWorkers = workerRepository.findAll();
+
+        // Filter available workers
+        List<WorkerDTO> availableWorkers = allWorkers.stream()
+                .filter(worker -> {
+                    boolean noShiftConflict = worker.isNewShiftValid(tempShift);
+
+                    boolean noLeaveConflict =
+                            worker.getAnnualLeavesByYear(date.getYear()).stream()
+                                    .noneMatch(leave ->
+                                            !date.isBefore(leave.getStartDate()) &&
+                                                    !date.isAfter(leave.getEndDate())) &&
+                                    worker.getMedicalLeavesByYear(date.getYear()).stream()
+                                            .noneMatch(leave ->
+                                                    !date.isBefore(leave.getStartDate()) &&
+                                                            !date.isAfter(leave.getEndDate()));
+
+                    return noShiftConflict && noLeaveConflict && worker.getStatus().equals("Active");
+                })
+                // Filter by supervisor if supervisorId is provided
+                .filter(worker -> supervisorId == null ||
+                        (worker.getSupervisor() != null &&
+                                worker.getSupervisor().equals(supervisorId)))
+                .map(worker -> new WorkerDTO(worker, s3Service))
+                .collect(Collectors.toList());
+
+        return ResponseEntity.ok(availableWorkers);
+    }
+
+
 }
