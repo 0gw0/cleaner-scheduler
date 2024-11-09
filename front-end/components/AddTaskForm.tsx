@@ -164,6 +164,21 @@ export default function AddTaskForm() {
       }
     }
 
+    if (name === "propertyId" && value){
+      const propertyId = value;
+      const foundProperty = properties.find(
+        (property: Property) => property.address === propertyId
+      );
+  
+      if (foundProperty) {
+        setSelectedProperty(foundProperty);
+      } else {
+        console.error("Property not found");
+        setError("Property not found");
+        return;
+      }
+    }
+
     setError('');
   };
 
@@ -185,19 +200,6 @@ export default function AddTaskForm() {
 
 
     if (currentStep === 0) {
-      // Step 0 logic: Set selected property based on propertyId
-      const propertyId = formData.propertyId;
-      const foundProperty = properties.find(
-        (property: Property) => property.address === propertyId
-      );
-  
-      if (foundProperty) {
-        setSelectedProperty(foundProperty);
-      } else {
-        console.error("Property not found");
-        setError("Property not found");
-        return;
-      }
     
       if (selectedProperty) {
         try {
