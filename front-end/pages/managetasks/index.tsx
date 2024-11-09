@@ -24,52 +24,52 @@ const ManageTasks: React.FC = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    const fetchShifts = async () => {
-      try {
-        const userDetails = localStorage.getItem('user');
-        const supervisorId = userDetails ? JSON.parse(userDetails).id : null;
-
-        if (!supervisorId) {
-          throw new Error('No supervisor ID found in localStorage');
-        }
-
-        // Fetch shifts directly based on supervisor ID
-        const response = await axios.get<Shift[]>(
-          `http://localhost:8080/workers/supervisor/${supervisorId}/shifts`
-        );
-
-        // Set shift data directly
-        setShiftData(response.data);
-
-        // Extract worker IDs for dropdown filter (unique worker IDs)
-        const uniqueWorkerIds = Array.from(new Set(response.data.flatMap(shift => shift.workerIds)));
-        setWorkers(uniqueWorkerIds);
-
-        // Set default selected worker to the first one
-        if (uniqueWorkerIds.length > 0) {
-          setSelectedWorker(uniqueWorkerIds[0]);
-        }
-      } catch (error) {
-        console.error('Failed to fetch shifts:', error);
-        setError('Failed to load shifts');
-      } finally {
-        setIsLoading(false);
+  const fetchShifts = async () => {
+    try {
+      const userDetails = localStorage.getItem('user');
+      const supervisorId = userDetails ? JSON.parse(userDetails).id : null;
+  
+      if (!supervisorId) {
+        throw new Error('No supervisor ID found in localStorage');
       }
-    };
-
+  
+      const response = await axios.get<Shift[]>(
+        `http://localhost:8080/workers/supervisor/${supervisorId}/shifts`
+      );
+  
+      setShiftData(response.data);
+  
+      const uniqueWorkerIds = Array.from(new Set(response.data.flatMap(shift => shift.workerIds)));
+      setWorkers(uniqueWorkerIds);
+  
+      if (uniqueWorkerIds.length > 0) {
+        setSelectedWorker(uniqueWorkerIds[0]);
+      }
+    } catch (error) {
+      console.error('Failed to fetch shifts:', error);
+      setError('Failed to load shifts');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+  
+  useEffect(() => {
     fetchShifts();
   }, []);
 
-
   const tasksPerPage = 12;
 
-  const filteredTasks = shiftData.filter(
+  const filteredTasks = Array.isArray(shiftData) ? shiftData.filter(
     (task) =>
       task.property.address.toLowerCase().includes(searchTerm.toLowerCase()) &&
       (statusFilter === "ALL" || task.status === statusFilter) &&
       (selectedWorker === null || task.workerIds.includes(selectedWorker))
-  );
+  ) : [];
+  
+
+  const handleTaskUpdate = () => {
+    fetchShifts(); 
+  };
 
   const sortedTasks = filteredTasks.sort((a, b) => {
     if (sortOrder === 'asc') {
@@ -191,6 +191,7 @@ const ManageTasks: React.FC = () => {
 
       {selectedTask && (
         <TaskDetailModal
+        onTaskUpdate={handleTaskUpdate}
         shiftData={selectedTask}
         isOpen={isTaskDetailModalOpen}
         onClose={handleCloseTaskDetailModal}

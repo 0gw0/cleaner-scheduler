@@ -139,7 +139,7 @@ export default function AddTaskForm() {
   const [currentStep, setCurrentStep] = useState(0)
   const [formData, setFormData] = useState<FormData>(initialFormData)
   const [showSuccess, setShowSuccess] = useState(false)
-  const [availableWorkers, setAvailableWorkers] = useState(fakeWorkerTravelData)
+  const [availableWorkers, setAvailableWorkers] = useState<WorkerTravelData[]>([]);
   const [error, setError] = useState("")
   const [properties, setProperties] = useState([]);
   const [selectedProperty, setSelectedProperty] = useState<Property | null>(null);

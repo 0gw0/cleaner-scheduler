@@ -6,6 +6,7 @@ import is442g3t2.cleaner_scheduler.dto.leave.MedicalLeaveDTO;
 import is442g3t2.cleaner_scheduler.dto.shift.AddShiftRequest;
 import is442g3t2.cleaner_scheduler.dto.shift.AddShiftResponse;
 import is442g3t2.cleaner_scheduler.dto.shift.GetShiftCountResponse;
+import is442g3t2.cleaner_scheduler.dto.shift.ShiftDTO;
 import is442g3t2.cleaner_scheduler.dto.worker.PostWorkerRequest;
 import is442g3t2.cleaner_scheduler.dto.worker.UpdateWorker;
 import is442g3t2.cleaner_scheduler.dto.worker.TakeLeaveRequest;
@@ -345,14 +346,21 @@ public class WorkerController {
     @Tag(name = "workers - shifts")
     @Operation(description = "get ALL shifts of all workers under a supervisor", summary = "get ALL shifts by supervisor ID")
     @GetMapping("/supervisor/{supervisorId}/shifts")
-    public ResponseEntity<List<Shift>> getShiftsBySupervisorId(@PathVariable Long supervisorId) {
-        List<Shift> shifts = workerService.getAllShiftsBySupervisorId(supervisorId);
+    public ResponseEntity<List<ShiftDTO>> getShiftsBySupervisorId(@PathVariable Long supervisorId) {
+        List<ShiftDTO> shiftDTOs = workerService.getAllShiftsBySupervisorId(supervisorId)
+        .stream()
+        .map(shift -> new ShiftDTO(shift,
+        shift.getArrivalImage() != null
+            ? s3Service.getPresignedUrl(shift.getArrivalImage().getS3Key(), 3600).toString()
+            : null)) 
+        .collect(Collectors.toList());
 
-        if (shifts.isEmpty()) {
+
+        if (shiftDTOs.isEmpty()) {
             return ResponseEntity.noContent().build();
         }
 
-        return ResponseEntity.ok(shifts);
+        return ResponseEntity.ok(shiftDTOs);
     }
 
     @Tag(name = "workers")
