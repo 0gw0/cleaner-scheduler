@@ -102,10 +102,6 @@ export const WorkerCard = ({ worker, onActionClick }: WorkerCardProps) => {
 		}
 		setSelectedLeave(null);
 	};
-	// Calculate active MC count
-	const activeMCCount = worker.medicalLeaves.filter(
-		(leave) => new Date(leave.endDate) >= new Date()
-	).length;
 
 	// Get the next scheduled shift
 	const getNextShift = (shifts: Shift[]): Shift | null => {
@@ -280,9 +276,7 @@ export const WorkerCard = ({ worker, onActionClick }: WorkerCardProps) => {
 							className="h-11 rounded-none hover:bg-gray-50"
 						>
 							<FileText className="w-4 h-4 mr-2" />
-							<span className="truncate">
-								MCs ({activeMCCount})
-							</span>
+							<span className="truncate">MCs</span>
 						</Button>
 
 						<Dialog
