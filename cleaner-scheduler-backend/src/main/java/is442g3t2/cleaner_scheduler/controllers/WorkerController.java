@@ -10,6 +10,7 @@ import is442g3t2.cleaner_scheduler.dto.worker.UpdateWorker;
 import is442g3t2.cleaner_scheduler.dto.worker.TakeLeaveRequest;
 import is442g3t2.cleaner_scheduler.dto.worker.WorkerDTO;
 import is442g3t2.cleaner_scheduler.exceptions.ShiftsOverlapException;
+import is442g3t2.cleaner_scheduler.models.leave.MedicalCertificate;
 import is442g3t2.cleaner_scheduler.models.property.Property;
 import is442g3t2.cleaner_scheduler.models.leave.AnnualLeave;
 import is442g3t2.cleaner_scheduler.models.leave.MedicalLeave;
@@ -21,14 +22,18 @@ import is442g3t2.cleaner_scheduler.models.shift.Shift;
 import is442g3t2.cleaner_scheduler.repositories.AdminRepository;
 import is442g3t2.cleaner_scheduler.repositories.PropertyRepository;
 import is442g3t2.cleaner_scheduler.repositories.WorkerRepository;
+import is442g3t2.cleaner_scheduler.services.S3Service;
 import is442g3t2.cleaner_scheduler.services.WorkerService;
 import is442g3t2.cleaner_scheduler.services.EmailSenderService;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.server.ResponseStatusException;
 
+import java.io.IOException;
 import java.time.LocalDate;
 import java.time.LocalTime;
 import java.time.YearMonth;
@@ -37,7 +42,6 @@ import java.util.List;
 import java.util.stream.Collectors;
 import java.util.UUID;
 import java.util.Optional;
-
 
 
 @RestController()
@@ -49,43 +53,45 @@ public class WorkerController {
     private final AdminRepository adminRepository;
     private final WorkerService workerService;
     private final EmailSenderService emailSenderService;
+    private final S3Service s3Service;
 
     public WorkerController(WorkerService workerService, WorkerRepository workerRepository,
-            AdminRepository adminRepository, PropertyRepository propertyRepository
-             ,EmailSenderService emailSenderService
-             ) {
+                            AdminRepository adminRepository, PropertyRepository propertyRepository
+            , EmailSenderService emailSenderService, S3Service s3Service
+    ) {
         this.workerService = workerService;
         this.workerRepository = workerRepository;
         this.adminRepository = adminRepository;
         this.propertyRepository = propertyRepository;
         this.emailSenderService = emailSenderService;
+        this.s3Service = s3Service;
     }
 
     @Tag(name = "workers")
     @Operation(description = "get ALL workers or ALL workers under a superviser using their supervisor id", summary = "get ALL workers or ALL workers under a superviser using their supervisor id")
     @GetMapping("")
     public ResponseEntity<List<WorkerDTO>> getWorkers(
-        @RequestParam(name = "supervisorId", required = false) Long supervisorId) {
-    List<Worker> workers = supervisorId == null ? workerService.getAllWorkers()
-            : workerService.getWorkersBySupervisorId(supervisorId);
+            @RequestParam(name = "supervisorId", required = false) Long supervisorId) {
+        List<Worker> workers = supervisorId == null ? workerService.getAllWorkers()
+                : workerService.getWorkersBySupervisorId(supervisorId);
 
-    if (workers.isEmpty()) {
-        return ResponseEntity.noContent().build();
+        if (workers.isEmpty()) {
+            return ResponseEntity.noContent().build();
+        }
+
+        List<WorkerDTO> workerDTOs = workers.stream()
+                .map(worker -> new WorkerDTO(worker, s3Service)).distinct()
+                .collect(Collectors.toList());
+
+        return ResponseEntity.ok(workerDTOs);
     }
-
-    List<WorkerDTO> workerDTOs = workers.stream()
-            .map(WorkerDTO::new).distinct()
-            .collect(Collectors.toList());
-
-    return ResponseEntity.ok(workerDTOs);
-}
 
     @Tag(name = "workers")
     @Operation(description = "get worker by worker id", summary = "get worker by worker id")
     @GetMapping("/{id}")
     public ResponseEntity<WorkerDTO> getWorkerById(@PathVariable Long id) {
         return workerRepository.findById(id)
-                .map(worker -> ResponseEntity.ok().body(new WorkerDTO(worker)))
+                .map(worker -> ResponseEntity.ok().body(new WorkerDTO(worker, s3Service)))
                 .orElseThrow(() -> new ResponseStatusException(
                         HttpStatus.NOT_FOUND, "Worker with id " + id + " not found"));
     }
@@ -109,7 +115,7 @@ public class WorkerController {
             int shiftCount = worker.getNumShiftsInMonth(yearMonth);
             shifts = shifts.stream()
                     .filter(shift -> {
-                        LocalDate shiftDate = shift.getDate(); 
+                        LocalDate shiftDate = shift.getDate();
                         return shiftDate.getYear() == year &&
                                 shiftDate.getMonthValue() == month;
                     })
@@ -130,7 +136,7 @@ public class WorkerController {
     @Operation(description = "add shift(s) to a worker", summary = "add shift(s) to a worker")
     @PostMapping("/{id}/shifts")
     public ResponseEntity<AddShiftResponse> addShifts(@Valid @RequestBody AddShiftRequest addShiftRequest,
-            @PathVariable Long id) {
+                                                      @PathVariable Long id) {
 
         Worker worker = workerRepository.findById(id)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Worker not found"));
@@ -180,12 +186,12 @@ public class WorkerController {
     @Operation(description = "take annual leave for a worker with worker id with START DATE AND END DATE", summary = "take annual leave for a worker with worker id with START DATE AND END DATE")
     @PostMapping("/{id}/annual-leaves")
     public ResponseEntity<Worker> takeLeave(@PathVariable Long id,
-            @RequestBody TakeLeaveRequest takeLeaveRequest) {
+                                            @RequestBody TakeLeaveRequest takeLeaveRequest) {
         LocalDate startDate = LocalDate.parse(takeLeaveRequest.getStartDate());
         LocalDate endDate = LocalDate.parse(takeLeaveRequest.getEndDate());
         Worker worker = workerRepository.findById(id).orElseThrow(
                 () -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Worker not found"));
-        
+
         workerService.removeAllShiftsByWorkerIdByDate(worker, startDate, endDate);
         worker.takeLeave(startDate, endDate);
         workerRepository.save(worker);
@@ -220,19 +226,51 @@ public class WorkerController {
     }
 
     @Tag(name = "workers - medical leaves")
-    @Operation(description = "take medical leave for a worker with worker id with START DATE AND END DATE", summary = "take medical leave for a worker with worker id with START DATE AND END DATE")
-    @PostMapping("/{id}/medical-leaves")
-    public ResponseEntity<Worker> takeMedicalLeave(@PathVariable Long id,
-            @RequestBody TakeLeaveRequest takeLeaveRequest) {
-        LocalDate startDate = LocalDate.parse(takeLeaveRequest.getStartDate());
-        LocalDate endDate = LocalDate.parse(takeLeaveRequest.getEndDate());
+    @Operation(description = "take medical leave for a worker with worker id with START DATE, END DATE and optional MC PDF",
+            summary = "take medical leave for a worker with worker id with START DATE, END DATE and optional MC PDF")
+    @PostMapping(value = "/{id}/medical-leaves", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<WorkerDTO> takeMedicalLeave(
+            @PathVariable Long id,
+            @RequestParam("startDate") String startDateStr,
+            @RequestParam("endDate") String endDateStr,
+            @RequestParam(value = "medicalCertificate", required = false) MultipartFile medicalCertificate) {
+
+        if (medicalCertificate != null && !medicalCertificate.getContentType().equals("application/pdf")) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Only PDF files are accepted");
+        }
+
+        LocalDate startDate = LocalDate.parse(startDateStr);
+        LocalDate endDate = LocalDate.parse(endDateStr);
         Worker worker = workerRepository.findById(id).orElseThrow(
                 () -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Worker not found"));
-        
-        workerService.removeAllShiftsByWorkerIdByDate(worker, startDate, endDate);
-        worker.takeMedicalLeave(startDate, endDate);
-        workerRepository.save(worker);
-        return ResponseEntity.ok(worker);
+
+        try {
+            MedicalLeave medicalLeave = new MedicalLeave(worker, startDate, endDate);
+
+            if (medicalCertificate != null && !medicalCertificate.isEmpty()) {
+                String s3Key = String.format("medical-certificates/%d_%s_%s.pdf",
+                        worker.getId(),
+                        startDate.toString(),
+                        UUID.randomUUID().toString());
+
+                s3Service.saveToS3(s3Key, medicalCertificate.getInputStream(), medicalCertificate.getContentType());
+
+                MedicalCertificate mc = new MedicalCertificate(s3Key, medicalCertificate.getOriginalFilename());
+                medicalLeave.setMedicalCertificate(mc);
+            }
+
+            // Update worker schedule
+            workerService.removeAllShiftsByWorkerIdByDate(worker, startDate, endDate);
+            worker.takeMedicalLeave(medicalLeave);
+
+            workerRepository.save(worker);
+            WorkerDTO workerDTO = new WorkerDTO(worker, s3Service);
+            return ResponseEntity.ok(workerDTO);
+
+        } catch (IOException e) {
+            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR,
+                    "Failed to process medical certificate", e);
+        }
     }
 
     @Tag(name = "workers - medical leaves")
@@ -248,7 +286,7 @@ public class WorkerController {
     @Operation(description = "get ALL medical leaves for a worker with worker id in A SPECIFIC YEAR", summary = "get ALL medical leaves for a worker with worker id in A SPECIFIC YEAR")
     @GetMapping("/{id}/medical-leaves/{year}")
     public ResponseEntity<List<MedicalLeave>> getWorkerMedicalLeavesByYear(@PathVariable Long id,
-            @PathVariable int year) {
+                                                                           @PathVariable int year) {
         Worker worker = workerRepository.findById(id).orElseThrow(
                 () -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Worker not found"));
         return ResponseEntity.ok(worker.getMedicalLeavesByYear(year));
@@ -322,7 +360,7 @@ public class WorkerController {
                     HttpStatus.INTERNAL_SERVER_ERROR, "Error removing shift: " + e.getMessage());
         }
     }
-    
+
     @Tag(name = "workers")
     @Operation(description = "Update worker's details by Id", summary = "Update worker's details by Id")
     @PatchMapping("/{id}")
@@ -362,4 +400,5 @@ public class WorkerController {
             return ResponseEntity.badRequest().body("Invalid verification token");
         }
     }
+
 }
