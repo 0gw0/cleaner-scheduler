@@ -71,6 +71,10 @@ const ManageTasks: React.FC = () => {
     fetchShifts(); 
   };
 
+  const handleTaskAdded = () => {
+    fetchShifts(); 
+  };
+
   const sortedTasks = filteredTasks.sort((a, b) => {
     if (sortOrder === 'asc') {
       return new Date(a.date).getTime() - new Date(b.date).getTime();
@@ -162,7 +166,7 @@ const ManageTasks: React.FC = () => {
         </div>
 
         <div className="flex-shrink-0">
-          <AddTaskForm />
+          <AddTaskForm onTaskAdded={handleTaskAdded}/>
         </div>
       </div>
 
