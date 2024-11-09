@@ -208,41 +208,78 @@ public class WorkerController {
                     .body(new BulkAddShiftResponse(false, "No End Date Provided", Map.of()));
         }
 
+        // Create or get existing shifts
+        List<Shift> shifts = new ArrayList<>();
+        if (bulkAddShiftRequest.getFrequency() == null) {
+            // Single shift - check if it exists
+            Shift existingShift = shiftRepository.findByDateAndStartTimeAndEndTimeAndProperty(
+                    bulkAddShiftRequest.getStartDate(),
+                    bulkAddShiftRequest.getStartTime(),
+                    bulkAddShiftRequest.getEndTime(),
+                    property
+            ).orElse(null);
+
+            if (existingShift == null) {
+                existingShift = new Shift(
+                        bulkAddShiftRequest.getStartDate(),
+                        bulkAddShiftRequest.getStartTime(),
+                        bulkAddShiftRequest.getEndTime(),
+                        property,
+                        ShiftStatus.UPCOMING
+                );
+                shiftRepository.save(existingShift);
+            }
+            shifts.add(existingShift);
+        } else {
+            // Create recurring shifts
+            LocalDate currentDate = bulkAddShiftRequest.getStartDate();
+            while (!currentDate.isAfter(bulkAddShiftRequest.getEndDate())) {
+                // Check if shift exists for this date
+                Shift existingShift = shiftRepository.findByDateAndStartTimeAndEndTimeAndProperty(
+                        currentDate,
+                        bulkAddShiftRequest.getStartTime(),
+                        bulkAddShiftRequest.getEndTime(),
+                        property
+                ).orElse(null);
+
+                if (existingShift == null) {
+                    existingShift = new Shift(
+                            currentDate,
+                            bulkAddShiftRequest.getStartTime(),
+                            bulkAddShiftRequest.getEndTime(),
+                            property,
+                            ShiftStatus.UPCOMING
+                    );
+                    shiftRepository.save(existingShift);
+                }
+                shifts.add(existingShift);
+
+                currentDate = currentDate.plus(
+                        bulkAddShiftRequest.getFrequency().getInterval(),
+                        bulkAddShiftRequest.getFrequency().getUnit()
+                );
+            }
+        }
+
         Map<Long, String> failedWorkers = new HashMap<>();
         int successCount = 0;
 
+        // Now assign workers to the shifts
         for (Long workerId : bulkAddShiftRequest.getWorkerIds()) {
             try {
                 Worker worker = workerRepository.findById(workerId)
                         .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND,
                                 "Worker not found with ID: " + workerId));
 
-                List<Shift> shiftsToAdd = new ArrayList<>();
-                if (bulkAddShiftRequest.getFrequency() == null) {
-                    // Single shift
-                    Shift shift = new Shift(
-                            bulkAddShiftRequest.getStartDate(),
-                            bulkAddShiftRequest.getStartTime(),
-                            bulkAddShiftRequest.getEndTime(),
-                            property,
-                            ShiftStatus.UPCOMING
-                    );
-                    shiftsToAdd.add(shift);
-                    worker.addShift(shift);
-                } else {
-                    // Recurring shifts
-                    shiftsToAdd = worker.addRecurringShifts(
-                            bulkAddShiftRequest.getStartDate(),
-                            bulkAddShiftRequest.getEndDate(),
-                            bulkAddShiftRequest.getStartTime(),
-                            bulkAddShiftRequest.getEndTime(),
-                            property,
-                            bulkAddShiftRequest.getFrequency()
-                    );
+                // Try to add all shifts to this worker
+                for (Shift shift : shifts) {
+                    try {
+                        worker.addShift(shift);
+                    } catch (ShiftsOverlapException e) {
+                        throw new ShiftsOverlapException("Worker " + worker.getName() + ": " + e.getMessage());
+                    }
                 }
 
-                // Save all shifts first, then save the worker
-                shiftRepository.saveAll(shiftsToAdd);
                 workerRepository.save(worker);
                 successCount++;
 
@@ -252,6 +289,9 @@ public class WorkerController {
                 failedWorkers.put(workerId, "Error: " + e.getMessage());
             }
         }
+
+        // Final save to ensure all relationships are updated
+        shiftRepository.saveAll(shifts);
 
         String message = String.format("Successfully added shifts to %d out of %d workers",
                 successCount, bulkAddShiftRequest.getWorkerIds().size());
@@ -263,7 +303,6 @@ public class WorkerController {
                     .body(new BulkAddShiftResponse(false, message, failedWorkers));
         }
     }
-
 
     @Tag(name = "workers - annual leaves")
     @Operation(description = "take annual leave for a worker with worker id with START DATE AND END DATE", summary = "take annual leave for a worker with worker id with START DATE AND END DATE")
