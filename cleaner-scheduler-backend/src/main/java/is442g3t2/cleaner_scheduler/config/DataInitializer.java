@@ -2,6 +2,8 @@ package is442g3t2.cleaner_scheduler.config;
 
 import is442g3t2.cleaner_scheduler.exceptions.ShiftsOverlapException;
 import is442g3t2.cleaner_scheduler.models.*;
+import is442g3t2.cleaner_scheduler.models.leave.MedicalCertificate;
+import is442g3t2.cleaner_scheduler.models.leave.MedicalLeave;
 import is442g3t2.cleaner_scheduler.models.property.Property;
 import is442g3t2.cleaner_scheduler.models.shift.ArrivalImage;
 import is442g3t2.cleaner_scheduler.models.shift.Shift;
@@ -36,8 +38,7 @@ public class DataInitializer {
             adminRepository.save(admin2);
             admin3.setRoot(true);
             adminRepository.save(admin3);
-           
-            
+
 
             // Create and save clients with properties
             Client client1 = new Client("Mrs Client1");
@@ -133,6 +134,13 @@ public class DataInitializer {
             // Add some leave records
             worker1.takeLeave(LocalDate.of(2024, Month.SEPTEMBER, 10), LocalDate.of(2024, Month.SEPTEMBER, 10));
             worker1.takeLeave(LocalDate.of(2023, Month.SEPTEMBER, 10), LocalDate.of(2024, Month.SEPTEMBER, 10));
+            MedicalLeave medicalLeaveWithoutMC = new MedicalLeave(worker1, LocalDate.of(2024, Month.SEPTEMBER, 10), LocalDate.of(2024, Month.SEPTEMBER, 10));
+            MedicalLeave medicalLeaveWithMC = new MedicalLeave(worker1, LocalDate.of(2024, Month.AUGUST, 10), LocalDate.of(2024, Month.AUGUST, 10));
+            MedicalCertificate mc = new MedicalCertificate("medical-certificates/1_2024-09-15_f666e8aa-81fe-4521-bb59-5a45db272194.pdf", "Week 1 Quiz.pdf");
+            medicalLeaveWithMC.setMedicalCertificate(mc);
+            worker1.takeMedicalLeave(medicalLeaveWithoutMC);
+            worker1.takeMedicalLeave(medicalLeaveWithMC);
+
 
             // Save workers again to update their relationships
             workerRepository.save(worker1);
