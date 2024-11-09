@@ -3,6 +3,7 @@ package is442g3t2.cleaner_scheduler.controllers;
 import com.google.maps.model.LatLng;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import is442g3t2.cleaner_scheduler.dto.shift.ShiftDTO;
 import is442g3t2.cleaner_scheduler.dto.shift.UpdateShift;
 import is442g3t2.cleaner_scheduler.dto.worker.FindClosestAvailableWorkersRequest;
 import is442g3t2.cleaner_scheduler.dto.worker.FindClosestAvailableWorkersResponse;
@@ -37,7 +38,7 @@ public class ShiftController {
     private final WorkerRepository workerRepository;
     private final ShiftRepository shiftRepository;
     private final S3Service s3Service;
-    private final ShiftService shiftService; 
+    private final ShiftService shiftService;
 
     public ShiftController(WorkerRepository workerRepository, ShiftRepository shiftRepository, S3Service s3Service, ShiftService shiftService) {
         this.workerRepository = workerRepository;
@@ -93,7 +94,7 @@ public class ShiftController {
     @Tag(name = "shifts")
     @Operation(description = "Get all shifts across all workers with optional filtering", summary = "Get all shifts with optional filters")
     @GetMapping
-    public ResponseEntity<List<Shift>> getAllShifts(
+    public ResponseEntity<List<ShiftDTO>> getAllShifts(
             @RequestParam(required = false) String status,
             @RequestParam(required = false) Integer year,
             @RequestParam(required = false) Integer month) {
@@ -103,11 +104,15 @@ public class ShiftController {
                 .flatMap(worker -> worker.getShifts().stream())
                 .toList();
 
-        List<Shift> filteredShifts = allShifts.stream()
+        List<ShiftDTO> filteredShifts = allShifts.stream()
                 .filter(shift -> filterByStatus(shift, status))
                 .filter(shift -> filterByYear(shift, year))
                 .filter(shift -> filterByMonth(shift, month))
                 .distinct()
+                .map(shift -> new ShiftDTO(shift,
+                        shift.getArrivalImage() != null
+                                ? s3Service.getPresignedUrl(shift.getArrivalImage().getS3Key(), 3600).toString()
+                                : null))
                 .collect(Collectors.toList());
 
         return ResponseEntity.ok(filteredShifts);
@@ -207,15 +212,15 @@ public class ShiftController {
     @Tag(name = "shifts", description = "Update workers, timing and dates of shifts")
     @Operation(summary = "Update shift URL", description = "Update workers, timing and dates for a specific shift")
     public ResponseEntity<Shift> updateShiftDetails(
-        @PathVariable Long shiftId, 
-        @RequestBody UpdateShift updateRequest) {
+            @PathVariable Long shiftId,
+            @RequestBody UpdateShift updateRequest) {
 
         Shift updatedShift = shiftService.updateShiftDetails(
-            shiftId,
-            updateRequest.getWorkerIds(),
-            updateRequest.getNewDate(),
-            updateRequest.getNewStartTime(),
-            updateRequest.getNewEndTime()
+                shiftId,
+                updateRequest.getWorkerIds(),
+                updateRequest.getNewDate(),
+                updateRequest.getNewStartTime(),
+                updateRequest.getNewEndTime()
         );
         return ResponseEntity.ok(updatedShift);
     }
