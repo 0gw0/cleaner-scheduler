@@ -51,13 +51,17 @@ public class DataInitializer {
             clientRepository.save(client2);
 
             // Create Workers
-            Worker worker1 = new Worker("Mati", "1234567890", "eg bio 1", "fakeemail.com");
-            Worker worker2 = new Worker("Yati", "0987654321", "eg bio 2", "fakeemail.com");
-            Worker worker3 = new Worker("Wati", "1122334455", "eg bio 3", "fakeemail.com");
+            Worker worker1 = new Worker("Mati", "1234567890", "eg bio 1", "email1@gmail.com", "password123");
+            Worker worker2 = new Worker("Yati", "0987654321", "eg bio 2", "email2@gmail.com", "password123");
+            Worker worker3 = new Worker("Wati", "1122334455", "eg bio 3", "email3@gmail.com", "password123");
 
             worker1.setSupervisor(admin1);
             worker2.setSupervisor(admin1);
             worker3.setSupervisor(admin2);
+
+            worker1.setIsVerified(true);
+            worker2.setIsVerified(true);
+            worker3.setIsVerified(true);
 
             // Save workers first
             workerRepository.save(worker1);

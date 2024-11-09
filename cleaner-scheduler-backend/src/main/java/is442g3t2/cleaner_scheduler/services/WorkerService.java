@@ -2,9 +2,9 @@ package is442g3t2.cleaner_scheduler.services;
 
 import is442g3t2.cleaner_scheduler.models.worker.Worker;
 import is442g3t2.cleaner_scheduler.models.shift.Shift;
-import is442g3t2.cleaner_scheduler.models.Admin;  // Add this import
+import is442g3t2.cleaner_scheduler.models.Admin;  
 import is442g3t2.cleaner_scheduler.repositories.WorkerRepository;
-import is442g3t2.cleaner_scheduler.repositories.AdminRepository;  // Add this import
+import is442g3t2.cleaner_scheduler.repositories.AdminRepository;  
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import is442g3t2.cleaner_scheduler.dto.worker.UpdateWorker;
@@ -110,6 +110,10 @@ public class WorkerService {
             worker.setSupervisor(newSupervisor);
             workerRepository.save(worker);
         }
+    }
+
+    public boolean existsByEmail(String email) {
+        return workerRepository.existsByEmail(email);
     }
 
 }

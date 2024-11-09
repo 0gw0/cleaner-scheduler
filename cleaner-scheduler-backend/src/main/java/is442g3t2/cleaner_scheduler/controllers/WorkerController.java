@@ -487,11 +487,18 @@ public class WorkerController {
     @Operation(description = "Create a new worker", summary = "Create a new worker")
     @PostMapping("")
     public ResponseEntity<Worker> createWorker(@RequestBody PostWorkerRequest postWorkerRequest) {
+
+        if (workerRepository.existsByEmail(postWorkerRequest.getEmail())) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "Email already exists");
+        }
+        
         Worker worker = new Worker(
                 postWorkerRequest.getName(),
                 postWorkerRequest.getPhoneNumber(),
                 postWorkerRequest.getBio(),
-                postWorkerRequest.getEmail());
+                postWorkerRequest.getEmail(),
+                postWorkerRequest.getPassword()
+                );
 
         Admin supervisor = adminRepository.findById(postWorkerRequest.getSupervisorId())
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Supervisor not found"));

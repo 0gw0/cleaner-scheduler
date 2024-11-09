@@ -65,7 +65,7 @@ public class Worker {
         this.password = "password123";
     }
     
-    @Column(nullable = true)
+    @Column(nullable = true, unique = true)
     private String email;
 
     @Column(nullable = false)
@@ -91,11 +91,12 @@ public class Worker {
     @OneToMany(mappedBy = "worker", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<MedicalLeave> medicalLeaves = new ArrayList<>();
 
-    public Worker(String name, String phoneNumber, String bio, String email) {
+    public Worker(String name, String phoneNumber, String bio, String email, String password) {
         this.name = name;
         this.phoneNumber = phoneNumber;
         this.bio = bio;
         this.email = email;
+        this.password = password;
     }
 
     public Long getSupervisor() {
