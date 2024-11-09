@@ -29,9 +29,26 @@ export interface WorkerData {
 	supervisorId: number;
 	bio: string;
 	annualLeaves: Leave[];
-	medicalLeaves: Leave[];
+	medicalLeaves: MedicalLeave[];
 	homePostalCode: string;
 	status: string;
+}
+
+export interface BaseLeave {
+	id: number;
+	startDate: string;
+	endDate: string;
+}
+
+// Annual Leave specific interface
+export interface AnnualLeave extends BaseLeave {
+	status: 'PENDING' | 'APPROVED' | 'REJECTED';
+}
+
+// Medical Leave specific interface
+export interface MedicalLeave extends BaseLeave {
+	medicalCertificate: string | null;
+	approved: boolean;
 }
 
 export interface WorkerCardProps {
@@ -93,31 +110,14 @@ export interface ShiftAssignmentResponse {
 }
 
 export interface DialogState {
-	showMC: boolean;
 	showSchedule: boolean;
 	showMCHistory: boolean;
-	showReallocation: boolean;
-}
-
-export interface DialogState {
-	showMC: boolean;
-	showSchedule: boolean;
-	showMCHistory: boolean;
-	showReallocation: boolean;
-}
-
-export interface MCDates {
-	startDate: string;
-	endDate: string;
 }
 
 export interface DialogsProps {
 	dialogState: DialogState;
 	onClose: (dialogType: keyof DialogState) => void;
 	selectedWorker: WorkerData | null;
-	mcDates: MCDates;
-	onMCDatesChange: (dates: MCDates) => void;
-	onSubmitMC: () => void;
 }
 
 export interface ReallocationResult {

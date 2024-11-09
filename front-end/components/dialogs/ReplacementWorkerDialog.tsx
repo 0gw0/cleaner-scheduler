@@ -16,7 +16,6 @@ import {
 	TableHeader,
 	TableRow,
 } from '@/components/ui/table';
-// import { formatTime } from '@/lib/utils';
 
 interface TravelTime {
 	totalTravelTime: number;
