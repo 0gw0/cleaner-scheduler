@@ -1,10 +1,11 @@
-import React, { useState, useEffect, ReactNode } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
-import { format } from 'date-fns';
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import React, { useState, useEffect } from "react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Badge } from "@/components/ui/badge";
+import { format } from "date-fns";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import {
   Dialog,
   DialogContent,
@@ -13,29 +14,62 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
-} from '@/components/ui/dialog';
-import { Plus, Calendar } from 'lucide-react';
+} from "@/components/ui/dialog";
+import { Plus, Calendar, FileText, X, Check } from "lucide-react";
+
+interface MedicalCertificate {
+  s3Key: string;
+  uploadTime: string;
+  fileName: string;
+  presignedUrl: string;
+}
+
+interface Leave {
+  id: string;
+  startDate: string;
+  endDate: string;
+  status?: string;
+  reason?: string;
+  approved?: boolean;
+  medicalCertificate?: MedicalCertificate | null;
+}
 
 interface User {
   id: string;
   name: string;
-  annualLeaves: { id: string; startDate: string; endDate: string; status?:string }[];
-  medicalLeaves: {
-    id: string;
-    startDate: string;
-    endDate: string;
-    reason: string;
-    pdfUploaded: boolean;
-  }[];
+  annualLeaves: Leave[];
+  medicalLeaves: Leave[];
 }
 
 interface LeaveCardProps {
   title: string;
-  leaves: { id: string; startDate: string; endDate: string; reason?: string; pdfUploaded?: boolean; }[];
-  renderLeaveItem: (leave: {
-    [x: string]: ReactNode; id: string; startDate: string; endDate: string; reason?: string; pdfUploaded?: boolean 
-}) => React.ReactNode;
+  leaves: Leave[];
+  renderLeaveItem: (leave: Leave) => React.ReactNode;
 }
+
+const PDFViewerDialog = ({
+  isOpen,
+  onOpenChange,
+  medicalCertificate,
+}: {
+  isOpen: boolean;
+  onOpenChange: (open: boolean) => void;
+  medicalCertificate: MedicalCertificate;
+}) => (
+  <Dialog open={isOpen} onOpenChange={onOpenChange}>
+    <DialogContent className="max-w-4xl h-[80vh]">
+      <DialogHeader>
+        <DialogTitle>Medical Certificate</DialogTitle>
+        <iframe
+          src={medicalCertificate.presignedUrl}
+          className="w-full h-full border rounded"
+          title={medicalCertificate.fileName}
+        />
+      </DialogHeader>
+     
+    </DialogContent>
+  </Dialog>
+);
 
 const AnnualLeaveDialog = ({
   user,
@@ -48,32 +82,35 @@ const AnnualLeaveDialog = ({
   const [selectedEndDate, setSelectedEndDate] = useState(new Date());
   const [submitStatus, setSubmitStatus] = useState({
     success: false,
-    message: '',
+    message: "",
   });
   const [isOpen, setIsOpen] = useState(false);
 
   const resetForm = () => {
     setSelectedStartDate(new Date());
     setSelectedEndDate(new Date());
-    setSubmitStatus({ success: false, message: '' });
+    setSubmitStatus({ success: false, message: "" });
   };
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     try {
-      const response = await fetch(`http://localhost:8080/workers/${user.id}/annual-leaves`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          startDate: format(selectedStartDate, 'yyyy-MM-dd'),
-          endDate: format(selectedEndDate, 'yyyy-MM-dd'),
-        }),
-      });
+      const response = await fetch(
+        `http://localhost:8080/workers/${user.id}/annual-leaves`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            startDate: format(selectedStartDate, "yyyy-MM-dd"),
+            endDate: format(selectedEndDate, "yyyy-MM-dd"),
+          }),
+        }
+      );
 
       if (response.ok) {
         setSubmitStatus({
           success: true,
-          message: 'Annual leave application submitted successfully',
+          message: "Annual leave application submitted successfully",
         });
         setTimeout(() => {
           setIsOpen(false);
@@ -81,12 +118,12 @@ const AnnualLeaveDialog = ({
           onSuccess();
         }, 2000);
       } else {
-        throw new Error('Failed to submit annual leave');
+        throw new Error("Failed to submit annual leave");
       }
     } catch (err) {
       setSubmitStatus({
         success: false,
-        message: 'Failed to submit annual leave',
+        message: "Failed to submit annual leave",
       });
     }
   };
@@ -111,7 +148,7 @@ const AnnualLeaveDialog = ({
             <label className="text-sm font-medium">Start Date</label>
             <Input
               type="date"
-              value={format(selectedStartDate, 'yyyy-MM-dd')}
+              value={format(selectedStartDate, "yyyy-MM-dd")}
               onChange={(e) => setSelectedStartDate(new Date(e.target.value))}
               className="w-full"
             />
@@ -121,7 +158,7 @@ const AnnualLeaveDialog = ({
             <label className="text-sm font-medium">End Date</label>
             <Input
               type="date"
-              value={format(selectedEndDate, 'yyyy-MM-dd')}
+              value={format(selectedEndDate, "yyyy-MM-dd")}
               onChange={(e) => setSelectedEndDate(new Date(e.target.value))}
               className="w-full"
             />
@@ -156,51 +193,51 @@ const MCUploadDialog = ({
 }: {
   isOpen: boolean;
   onOpenChange: (open: boolean) => void;
-  leave: { id: string; startDate: string; endDate: string; status?:string };
+  leave: { id: string; startDate: string; endDate: string; status?: string };
   user: User;
   onSuccess: () => void;
 }) => {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [submitStatus, setSubmitStatus] = useState({
     success: false,
-    message: '',
+    message: "",
   });
 
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const files = event.target.files;
     if (!files) {
-      setSubmitStatus({ success: false, message: 'No file selected' });
+      setSubmitStatus({ success: false, message: "No file selected" });
       return;
     }
     const file = files[0];
-    if (file && file.type === 'application/pdf') {
+    if (file && file.type === "application/pdf") {
       setSelectedFile(file);
-      setSubmitStatus({ success: false, message: '' });
+      setSubmitStatus({ success: false, message: "" });
     } else {
-      setSubmitStatus({ success: false, message: 'Please upload a PDF file' });
+      setSubmitStatus({ success: false, message: "Please upload a PDF file" });
     }
   };
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (!selectedFile) {
-      setSubmitStatus({ success: false, message: 'Please select a file' });
+      setSubmitStatus({ success: false, message: "Please select a file" });
       return;
     }
 
     try {
       const reader = new FileReader();
       reader.onloadend = async () => {
-        const base64Data = (reader.result as string).split(',')[1];
-        const emailResponse = await fetch('/api/send-mc', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+        const base64Data = (reader.result as string).split(",")[1];
+        const emailResponse = await fetch("/api/send-mc", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            to: 'adrian.koh.2022@scis.smu.edu.sg',
+            to: "adrian.koh.2022@scis.smu.edu.sg",
             subject: `Medical Certificate Upload - ${leave.startDate} to ${leave.endDate}`,
             from: `${user?.name} - worker ID: ${user?.id}`,
             pdfData: base64Data,
-            filename: 'medical-certificate.pdf',
+            filename: "medical-certificate.pdf",
             leaveId: leave.id,
           }),
         });
@@ -208,23 +245,23 @@ const MCUploadDialog = ({
         if (emailResponse.ok) {
           setSubmitStatus({
             success: true,
-            message: 'Medical certificate uploaded successfully',
+            message: "Medical certificate uploaded successfully",
           });
           setTimeout(() => {
             onOpenChange(false);
             setSelectedFile(null);
-            setSubmitStatus({ success: false, message: '' });
+            setSubmitStatus({ success: false, message: "" });
             onSuccess();
           }, 2000);
         } else {
-          throw new Error('Failed to upload medical certificate');
+          throw new Error("Failed to upload medical certificate");
         }
       };
       reader.readAsDataURL(selectedFile);
     } catch (err) {
       setSubmitStatus({
         success: false,
-        message: 'Failed to upload medical certificate',
+        message: "Failed to upload medical certificate",
       });
     }
   };
@@ -235,7 +272,8 @@ const MCUploadDialog = ({
         <DialogHeader>
           <DialogTitle>Upload Medical Certificate</DialogTitle>
           <DialogDescription>
-            Please upload the medical certificate for your leave from {leave.startDate} to {leave.endDate}.
+            Please upload the medical certificate for your leave from{" "}
+            {leave.startDate} to {leave.endDate}.
           </DialogDescription>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">
@@ -302,80 +340,118 @@ const MCApplicationForm = ({
   onSuccess: () => void;
 }) => {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
-  const [reason, setReason] = useState('');
+  const [reason, setReason] = useState("");
   const [selectedStartDate, setSelectedStartDate] = useState(new Date());
   const [selectedEndDate, setSelectedEndDate] = useState(new Date());
   const [submitStatus, setSubmitStatus] = useState({
     success: false,
-    message: '',
+    message: "",
   });
   const [isOpen, setIsOpen] = useState(false);
 
   const resetForm = () => {
     setSelectedFile(null);
-    setReason('');
+    setReason("");
     setSelectedStartDate(new Date());
     setSelectedEndDate(new Date());
-    setSubmitStatus({ success: false, message: '' });
+    setSubmitStatus({ success: false, message: "" });
   };
 
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const files = event.target.files;
     if (!files) {
-      setSubmitStatus({ success: false, message: 'No file selected' });
+      setSubmitStatus({ success: false, message: "No file selected" });
       return;
     }
     const file = files[0];
-    if (file && file.type === 'application/pdf') {
+    if (file && file.type === "application/pdf") {
       setSelectedFile(file);
-      setSubmitStatus({ success: false, message: '' });
+      setSubmitStatus({ success: false, message: "" });
     } else {
-      setSubmitStatus({ success: false, message: 'Please upload a PDF file' });
+      setSubmitStatus({ success: false, message: "Please upload a PDF file" });
     }
   };
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     try {
-      let base64Data;
+      // First, submit the medical leave request
+      const formData = new FormData();
+      formData.append("startDate", format(selectedStartDate, "yyyy-MM-dd"));
+      formData.append("endDate", format(selectedEndDate, "yyyy-MM-dd"));
+      if (selectedFile) {
+        formData.append("medicalCertificate", selectedFile);
+      }
+
+      const response = await fetch(
+        `http://localhost:8080/workers/${user.id}/medical-leaves`,
+        {
+          method: "POST",
+          body: formData,
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error("Failed to submit medical leave");
+      }
+
+      // If medical leave submission is successful, proceed with email
       if (selectedFile) {
         const reader = new FileReader();
-        reader.onloadend = () => {
-          base64Data = (reader.result as string).split(',')[1];
-          sendEmail(base64Data);
+        reader.onloadend = async () => {
+          const base64Data = (reader.result as string).split(",")[1];
+          await sendEmail(base64Data);
         };
         reader.readAsDataURL(selectedFile);
       } else {
-        sendEmail();
+        await sendEmail();
       }
+
+      setSubmitStatus({
+        success: true,
+        message: "Medical leave application submitted successfully",
+      });
+
+      setTimeout(() => {
+        setIsOpen(false);
+        resetForm();
+        onSuccess();
+      }, 2000);
     } catch (err) {
       setSubmitStatus({
         success: false,
-        message: 'Failed to submit medical leave',
+        message: "Failed to submit medical leave",
       });
     }
   };
 
   const sendEmail = async (pdfData?: string) => {
-    const emailResponse = await fetch('/api/send-mc', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+    const emailResponse = await fetch("/api/send-mc", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        to: 'adrian.koh.2022@scis.smu.edu.sg',
+        to: "adrian.koh.2022@scis.smu.edu.sg",
         subject: `Medical Leave Application - ${format(
           selectedStartDate,
-          'yyyy-MM-dd'
-        )} to ${format(selectedEndDate, 'yyyy-MM-dd')} for this reason: ${reason}`,
+          "yyyy-MM-dd"
+        )} to ${format(
+          selectedEndDate,
+          "yyyy-MM-dd"
+        )} for this reason: ${reason}`,
         from: `${user?.name} - worker ID: ${user?.id}`,
         pdfData,
-        filename: 'medical-certificate.pdf',
+        filename: "medical-certificate.pdf",
       }),
     });
+
+    if (!emailResponse.ok) {
+      throw new Error("Failed to send email notification");
+    }
 
     if (emailResponse.ok) {
       setSubmitStatus({
         success: true,
-        message: 'Medical leave application submitted successfully',
+        message: "Medical leave application submitted successfully",
       });
       setTimeout(() => {
         setIsOpen(false);
@@ -383,7 +459,7 @@ const MCApplicationForm = ({
         onSuccess();
       }, 2000);
     } else {
-      throw new Error('Failed to submit medical leave');
+      throw new Error("Failed to submit medical leave");
     }
   };
 
@@ -407,7 +483,7 @@ const MCApplicationForm = ({
             <label className="text-sm font-medium">Start Date</label>
             <Input
               type="date"
-              value={format(selectedStartDate, 'yyyy-MM-dd')}
+              value={format(selectedStartDate, "yyyy-MM-dd")}
               onChange={(e) => setSelectedStartDate(new Date(e.target.value))}
               className="w-full"
             />
@@ -417,7 +493,7 @@ const MCApplicationForm = ({
             <label className="text-sm font-medium">End Date</label>
             <Input
               type="date"
-              value={format(selectedEndDate, 'yyyy-MM-dd')}
+              value={format(selectedEndDate, "yyyy-MM-dd")}
               onChange={(e) => setSelectedEndDate(new Date(e.target.value))}
               className="w-full"
             />
@@ -465,55 +541,79 @@ const MCApplicationForm = ({
   );
 };
 
-const WorkerMCPage = () => {
+const WorkerMCPage: React.FC = () => {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
-  const [selectedLeave, setSelectedLeave] = useState<{
-    id: string;
-    startDate: string;
-    endDate: string;
-  } | null>(null);
+  const [error, setError] = useState("");
+  const [selectedLeave, setSelectedLeave] = useState<Leave | null>(null);
   const [isUploadDialogOpen, setIsUploadDialogOpen] = useState(false);
+  const [selectedPDF, setSelectedPDF] = useState<MedicalCertificate | null>(
+    null
+  );
+  const [isPDFOpen, setIsPDFOpen] = useState(false);
+
+  const handleViewPDF = (medicalCertificate: MedicalCertificate) => {
+    setSelectedPDF(medicalCertificate);
+    setIsPDFOpen(true);
+  };
+
+  const LeaveStatusBadges = ({ leave }) => {
+    return (
+      <div className="flex justify-end w-full"> {/* Added flex and justify-end */}
+        {leave.approved && (
+          <Badge className="bg-green-500 hover:bg-green-600 gap-1 py-1 my-2 text-sm font-medium">
+            <Check className="w-4 h-4" />
+            Approved
+          </Badge>
+        )}
+        {!leave.approved && (
+          <Badge className="bg-red-500 hover:bg-red-600 gap-1 py-1 my-2 text-sm font-medium">
+            <X className="w-4 h-4" />
+            Not Approved
+          </Badge>
+        )}
+      </div>
+    );
+  };
+ 
 
   const fetchUserData = async () => {
     try {
-      const storedUser = localStorage.getItem('user');
+      const storedUser = localStorage.getItem("user");
       if (storedUser) {
         const userData = JSON.parse(storedUser);
         const response = await fetch(
           `http://localhost:8080/workers/${userData.id}`
         );
-        if (!response.ok) throw new Error('Failed to fetch user data');
+        if (!response.ok) throw new Error("Failed to fetch user data");
         const data = await response.json();
         setUser(data);
       }
     } catch (err) {
-      setError('Failed to load user data');
+      setError("Failed to load user data");
     } finally {
       setLoading(false);
     }
   };
 
   useEffect(() => {
-    fetchUserData();
+    void fetchUserData();
   }, []);
 
-  const handleUploadClick = (leave: {
-    id: string;
-    startDate: string;
-    endDate: string;
-  }) => {
+  const handleUploadClick = (leave: Leave) => {
     setSelectedLeave(leave);
     setIsUploadDialogOpen(true);
   };
 
   if (loading) return <div className="p-8 text-center">Loading...</div>;
   if (error) return <div className="p-8 text-center text-red-500">{error}</div>;
-  if (!user) return <div className="p-8 text-center">Please log in to view this page</div>;
+  if (!user)
+    return (
+      <div className="p-8 text-center">Please log in to view this page</div>
+    );
 
   return (
-    <div className=" mx-auto p-8 space-y-8">
+    <div className="mx-auto p-8 space-y-8">
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
         <div className="space-y-4">
           <LeaveCard
@@ -535,14 +635,16 @@ const WorkerMCPage = () => {
                   </div>
                 </div>
                 <div className="mt-2 pt-2 border-t border-gray-100">
-                  <span className={`text-sm px-2 py-1 rounded-full ${
-                    leave.status === 'APPROVED' 
-                      ? 'bg-green-100 text-green-800' 
-                      : leave.status === 'REJECTED'
-                      ? 'bg-red-100 text-red-800'
-                      : 'bg-yellow-100 text-yellow-800'
-                  }`}>
-                    {leave.status || 'PENDING'}
+                  <span
+                    className={`text-sm px-2 py-1 rounded-full ${
+                      leave.status === "APPROVED"
+                        ? "bg-green-100 text-green-800"
+                        : leave.status === "REJECTED"
+                        ? "bg-red-100 text-red-800"
+                        : "bg-yellow-100 text-yellow-800"
+                    }`}
+                  >
+                    {leave.status || "PENDING"}
                   </span>
                 </div>
               </div>
@@ -560,6 +662,8 @@ const WorkerMCPage = () => {
                 key={leave.id}
                 className="flex flex-col p-4 bg-white rounded-lg border border-gray-200 hover:border-gray-300 transition-colors"
               >
+               <LeaveStatusBadges leave={leave} />
+                
                 <div className="flex justify-between items-start mb-2">
                   <div className="space-y-1">
                     <div className="text-sm text-gray-600">Start Date:</div>
@@ -570,21 +674,33 @@ const WorkerMCPage = () => {
                     <div className="font-medium">{leave.endDate}</div>
                   </div>
                 </div>
-                {!leave.pdfUploaded && (
+                {!leave.approved && (
                   <div className="mt-2 pt-2 border-t border-gray-100">
                     <Button
                       variant="secondary"
                       className="w-full"
-                      onClick={() =>
-                        handleUploadClick({
-                          id: leave.id,
-                          startDate: leave.startDate,
-                          endDate: leave.endDate,
-                        })
-                      }
+                      onClick={() => handleUploadClick(leave)}
                     >
                       Upload Medical Certificate
                     </Button>
+                  </div>
+                )}
+                {leave.medicalCertificate && (
+                  <div className="mt-2 pt-2 border-t border-gray-100">
+                    <Button
+                      variant="secondary"
+                      className="w-full flex items-center gap-2"
+                      onClick={() => handleViewPDF(leave.medicalCertificate!)}
+                    >
+                      <FileText size={16} />
+                      View Medical Certificate
+                    </Button>
+                    <div className="mt-1 text-xs text-gray-500 text-center">
+                      Uploaded:{" "}
+                      {new Date(
+                        leave.medicalCertificate.uploadTime
+                      ).toLocaleDateString()}
+                    </div>
                   </div>
                 )}
               </div>
@@ -601,6 +717,14 @@ const WorkerMCPage = () => {
           leave={selectedLeave}
           user={user}
           onSuccess={fetchUserData}
+        />
+      )}
+
+      {selectedPDF && (
+        <PDFViewerDialog
+          isOpen={isPDFOpen}
+          onOpenChange={setIsPDFOpen}
+          medicalCertificate={selectedPDF}
         />
       )}
     </div>
