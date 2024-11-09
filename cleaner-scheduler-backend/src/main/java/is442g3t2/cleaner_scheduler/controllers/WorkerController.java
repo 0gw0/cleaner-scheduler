@@ -2,6 +2,7 @@ package is442g3t2.cleaner_scheduler.controllers;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import is442g3t2.cleaner_scheduler.dto.leave.AnnualLeaveDTO;
 import is442g3t2.cleaner_scheduler.dto.leave.MedicalLeaveDTO;
 import is442g3t2.cleaner_scheduler.dto.shift.AddShiftRequest;
 import is442g3t2.cleaner_scheduler.dto.shift.AddShiftResponse;
@@ -23,10 +24,7 @@ import is442g3t2.cleaner_scheduler.models.worker.Worker;
 import is442g3t2.cleaner_scheduler.models.Admin;
 import is442g3t2.cleaner_scheduler.models.shift.Frequency;
 import is442g3t2.cleaner_scheduler.models.shift.Shift;
-import is442g3t2.cleaner_scheduler.repositories.AdminRepository;
-import is442g3t2.cleaner_scheduler.repositories.PropertyRepository;
-import is442g3t2.cleaner_scheduler.repositories.ShiftRepository;
-import is442g3t2.cleaner_scheduler.repositories.WorkerRepository;
+import is442g3t2.cleaner_scheduler.repositories.*;
 import is442g3t2.cleaner_scheduler.services.S3Service;
 import is442g3t2.cleaner_scheduler.services.WorkerService;
 import is442g3t2.cleaner_scheduler.services.EmailSenderService;
@@ -54,6 +52,8 @@ import java.util.stream.Collectors;
 @RequestMapping(path = "/workers")
 public class WorkerController {
 
+    private final MedicalLeaveRepository medicalLeaveRepository;
+    private final AnnualLeaveRepository annualLeaveRepository;
     private final ShiftRepository shiftRepository;
     private final WorkerRepository workerRepository;
     private final PropertyRepository propertyRepository;
@@ -62,10 +62,13 @@ public class WorkerController {
     private final EmailSenderService emailSenderService;
     private final S3Service s3Service;
 
-    public WorkerController(ShiftRepository shiftRepository, WorkerService workerService, WorkerRepository workerRepository,
-                            AdminRepository adminRepository, PropertyRepository propertyRepository
+    public WorkerController(
+            MedicalLeaveRepository medicalLeaveRepository, AnnualLeaveRepository annualLeaveRepository, ShiftRepository shiftRepository, WorkerService workerService, WorkerRepository workerRepository,
+            AdminRepository adminRepository, PropertyRepository propertyRepository
             , EmailSenderService emailSenderService, S3Service s3Service
     ) {
+        this.medicalLeaveRepository = medicalLeaveRepository;
+        this.annualLeaveRepository = annualLeaveRepository;
         this.shiftRepository = shiftRepository;
         this.workerService = workerService;
         this.workerRepository = workerRepository;
@@ -609,5 +612,62 @@ public class WorkerController {
         return ResponseEntity.ok(availableWorkers);
     }
 
+    @Tag(name = "workers - leaves")
+    @Operation(description = "Update annual leave approval status", summary = "approve/reject annual leave")
+    @PutMapping("/{workerId}/annual-leaves/{leaveId}")
+    public ResponseEntity<AnnualLeaveDTO> updateAnnualLeaveStatus(
+            @PathVariable Long workerId,
+            @PathVariable Long leaveId,
+            @RequestParam boolean approved) {
+
+        Worker worker = workerRepository.findById(workerId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Worker not found"));
+
+        AnnualLeave leave = annualLeaveRepository.findById(leaveId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Annual leave not found"));
+
+        if (!leave.getWorker().getId().equals(workerId)) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Leave does not belong to this worker");
+        }
+
+        leave.setApproved(approved);
+        leave.setStatus(approved ? "APPROVED" : "REJECTED");
+        leave = annualLeaveRepository.save(leave);
+
+        return ResponseEntity.ok(new AnnualLeaveDTO(leave));
+    }
+
+    @Tag(name = "workers - leaves")
+    @Operation(description = "Update medical leave approval status", summary = "approve/reject medical leave")
+    @PutMapping("/{workerId}/medical-leaves/{leaveId}")
+    public ResponseEntity<MedicalLeaveDTO> updateMedicalLeaveStatus(
+            @PathVariable Long workerId,
+            @PathVariable Long leaveId,
+            @RequestParam boolean approved) {
+
+        Worker worker = workerRepository.findById(workerId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Worker not found"));
+
+        MedicalLeave leave = medicalLeaveRepository.findById(leaveId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Medical leave not found"));
+
+        if (!leave.getWorker().getId().equals(workerId)) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Leave does not belong to this worker");
+        }
+
+        leave.setApproved(approved);
+        leave = medicalLeaveRepository.save(leave);
+
+        String presignedUrl = null;
+        if (leave.getMedicalCertificate() != null) {
+            try {
+                presignedUrl = s3Service.getPresignedUrl(leave.getMedicalCertificate().getS3Key(), 3600).toString();
+            } catch (Exception e) {
+                // continue
+            }
+        }
+
+        return ResponseEntity.ok(new MedicalLeaveDTO(leave, presignedUrl));
+    }
 
 }
