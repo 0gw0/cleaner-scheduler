@@ -1,8 +1,8 @@
+import React, { useState } from 'react';
 import { Phone, Calendar, FileText, Building, Briefcase } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Shift, WorkerCardProps } from '@/types/workermanagement';
 import { format } from 'date-fns';
 import {
 	Dialog,
@@ -15,9 +15,6 @@ import {
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { useState } from 'react';
-import axios from 'axios';
-import { useToast } from '@/hooks/use-toast';
 import {
 	AlertDialog,
 	AlertDialogAction,
@@ -29,11 +26,70 @@ import {
 	AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 
+// Updated interfaces to match the API response
+interface Property {
+	propertyId: number;
+	clientId: number;
+	address: string;
+	postalCode: string;
+}
+
+interface Shift {
+	id: number;
+	workers: number[];
+	property: Property;
+	date: string;
+	startTime: string;
+	endTime: string;
+	status: string;
+	arrivalImage: {
+		s3Key: string;
+		uploadTime: string;
+		fileName: string;
+		presignedUrl: string;
+	} | null;
+	workerIds: number[];
+}
+
 interface AnnualLeave {
 	id: number;
+	workerId: number;
 	startDate: string;
 	endDate: string;
 	status: string;
+	approved: boolean;
+}
+
+interface MedicalLeave {
+	id: number;
+	startDate: string;
+	endDate: string;
+	medicalCertificate: {
+		s3Key: string;
+		uploadTime: string;
+		fileName: string;
+		presignedUrl: string;
+	} | null;
+	approved: boolean;
+}
+
+interface Worker {
+	id: number;
+	name: string;
+	shifts: Shift[];
+	phoneNumber: string;
+	status: string;
+	supervisorId: number;
+	bio: string;
+	isVerified: boolean;
+	annualLeaves: AnnualLeave[];
+	password: string;
+	medicalLeaves: MedicalLeave[];
+}
+
+interface WorkerCardProps {
+	worker: Worker;
+	onActionClick: (action: string, worker: Worker) => void;
 }
 
 export const WorkerCard = ({ worker, onActionClick }: WorkerCardProps) => {
@@ -41,8 +97,6 @@ export const WorkerCard = ({ worker, onActionClick }: WorkerCardProps) => {
 	const [isAnnualLeavesDialogOpen, setIsAnnualLeavesDialogOpen] =
 		useState(false);
 	const [isUpdating, setIsUpdating] = useState(false);
-	const [annualLeaves, setAnnualLeaves] = useState<AnnualLeave[]>([]);
-	const [isLoading, setIsLoading] = useState(false);
 	const [selectedLeave, setSelectedLeave] = useState<{
 		id: number;
 		action: 'APPROVED' | 'REJECTED';
@@ -53,57 +107,37 @@ export const WorkerCard = ({ worker, onActionClick }: WorkerCardProps) => {
 		bio: worker.bio,
 		status: worker.status,
 	});
-	const { toast } = useToast();
-
-	const fetchAnnualLeaves = async () => {
-		setIsLoading(true);
-		try {
-			const response = await axios.get(
-				`http://localhost:8080/workers/${worker.id}/annual-leaves`
-			);
-			setAnnualLeaves(response.data);
-		} catch (error) {
-			toast({
-				title: 'Error',
-				description: 'Failed to fetch annual leaves',
-				variant: 'destructive',
-			});
-		} finally {
-			setIsLoading(false);
-		}
-	};
 
 	const handleAnnualLeaveAction = async (
 		leaveId: number,
 		action: 'APPROVED' | 'REJECTED'
 	) => {
 		try {
-			await axios.patch(
+			await fetch(
 				`http://localhost:8080/workers/${worker.id}/annual-leaves/${leaveId}`,
-				{ status: action }
+				{
+					method: 'PATCH',
+					headers: { 'Content-Type': 'application/json' },
+					body: JSON.stringify({ status: action }),
+				}
 			);
 
-			setAnnualLeaves((prevLeaves) =>
-				prevLeaves.map((leave) =>
-					leave.id === leaveId ? { ...leave, status: action } : leave
-				)
+			worker.annualLeaves = worker.annualLeaves.map((leave) =>
+				leave.id === leaveId
+					? {
+							...leave,
+							status: action,
+							approved: action === 'APPROVED',
+					  }
+					: leave
 			);
 
-			toast({
-				title: 'Success',
-				description: `Annual leave ${action.toLowerCase()} successfully`,
-			});
+			setSelectedLeave(null);
 		} catch (error) {
-			toast({
-				title: 'Error',
-				description: `Failed to ${action.toLowerCase()} annual leave`,
-				variant: 'destructive',
-			});
+			console.error('Failed to update annual leave:', error);
 		}
-		setSelectedLeave(null);
 	};
 
-	// Get the next scheduled shift
 	const getNextShift = (shifts: Shift[]): Shift | null => {
 		const futureShifts = shifts
 			.filter((shift) => new Date(shift.date) > new Date())
@@ -114,12 +148,8 @@ export const WorkerCard = ({ worker, onActionClick }: WorkerCardProps) => {
 		return futureShifts[0] || null;
 	};
 
-	const nextShift = getNextShift(worker.shifts);
-
-	// Format the next shift date and time
 	const formatNextShift = (shift: Shift | null): string => {
 		if (!shift) return 'None scheduled';
-
 		const shiftDate = new Date(shift.date);
 		return `${format(shiftDate, 'dd MMM yyyy')} ${shift.startTime.slice(
 			0,
@@ -127,7 +157,6 @@ export const WorkerCard = ({ worker, onActionClick }: WorkerCardProps) => {
 		)}-${shift.endTime.slice(0, 5)}`;
 	};
 
-	// Calculate worker status
 	const getWorkerStatus = () => {
 		const currentMC = worker.medicalLeaves.find((leave) => {
 			const now = new Date();
@@ -138,10 +167,7 @@ export const WorkerCard = ({ worker, onActionClick }: WorkerCardProps) => {
 		});
 
 		if (currentMC) {
-			return {
-				label: 'On MC',
-				className: 'bg-red-100 text-red-800',
-			};
+			return { label: 'On MC', className: 'bg-red-100 text-red-800' };
 		}
 
 		const currentShift = worker.shifts.find((shift) => {
@@ -161,56 +187,11 @@ export const WorkerCard = ({ worker, onActionClick }: WorkerCardProps) => {
 			};
 		}
 
-		return {
-			label: 'Available',
-			className: 'bg-gray-100 text-gray-800',
-		};
+		return { label: 'Available', className: 'bg-gray-100 text-gray-800' };
 	};
 
+	const nextShift = getNextShift(worker.shifts);
 	const status = getWorkerStatus();
-
-	const handleInputChange = (
-		e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
-	) => {
-		const { name, value } = e.target;
-		setFormData((prev) => ({
-			...prev,
-			[name]: value,
-		}));
-	};
-
-	const handleUpdateWorker = async () => {
-		setIsUpdating(true);
-		try {
-			await axios.patch(
-				`http://localhost:8080/workers/${worker.id}`,
-				formData
-			);
-			Object.assign(worker, formData);
-
-			setIsDialogOpen(false);
-			toast({
-				title: 'Success',
-				description: 'Worker details updated successfully',
-			});
-		} catch (error) {
-			toast({
-				title: 'Error',
-				description: 'Failed to update worker details',
-				variant: 'destructive',
-			});
-		} finally {
-			setIsUpdating(false);
-		}
-	};
-
-	const handleScheduleClick = () => {
-		onActionClick('showSchedule', worker);
-	};
-
-	const handleMCHistoryClick = () => {
-		onActionClick('showMCHistory', worker);
-	};
 
 	return (
 		<Card className="hover:shadow-lg transition-shadow duration-200">
@@ -230,14 +211,11 @@ export const WorkerCard = ({ worker, onActionClick }: WorkerCardProps) => {
 			</CardHeader>
 
 			<CardContent className="p-0">
-				{/* Content section with padding */}
 				<div className="px-6 pb-4 space-y-4">
-					{/* Worker Bio */}
 					<p className="text-sm text-gray-600 line-clamp-2">
 						{worker.bio}
 					</p>
 
-					{/* Worker Stats */}
 					<div className="grid grid-cols-3 gap-2 text-sm">
 						<div className="flex items-center gap-1 text-gray-600">
 							<Building className="w-4 h-4" />
@@ -257,7 +235,6 @@ export const WorkerCard = ({ worker, onActionClick }: WorkerCardProps) => {
 						</div>
 					</div>
 
-					{/* Next Shift Information */}
 					<div className="text-sm text-gray-600">
 						<div className="flex justify-between items-center">
 							<span className="font-medium">Next Shift:</span>
@@ -266,25 +243,22 @@ export const WorkerCard = ({ worker, onActionClick }: WorkerCardProps) => {
 					</div>
 				</div>
 
-				{/* Action Buttons Section */}
 				<div className="border-t divide-y">
-					{/* First Row - MC History and Annual Leave */}
 					<div className="grid grid-cols-2 divide-x">
 						<Button
 							variant="ghost"
-							onClick={handleMCHistoryClick}
+							onClick={() =>
+								onActionClick('showMCHistory', worker)
+							}
 							className="h-11 rounded-none hover:bg-gray-50"
 						>
 							<FileText className="w-4 h-4 mr-2" />
-							<span className="truncate">MCs</span>
+							MCs
 						</Button>
 
 						<Dialog
 							open={isAnnualLeavesDialogOpen}
-							onOpenChange={(open) => {
-								setIsAnnualLeavesDialogOpen(open);
-								if (open) fetchAnnualLeaves();
-							}}
+							onOpenChange={setIsAnnualLeavesDialogOpen}
 						>
 							<DialogTrigger asChild>
 								<Button
@@ -302,86 +276,84 @@ export const WorkerCard = ({ worker, onActionClick }: WorkerCardProps) => {
 									</DialogTitle>
 								</DialogHeader>
 								<div className="py-4">
-									{isLoading ? (
-										<div className="text-center py-4">
-											Loading annual leaves...
-										</div>
-									) : annualLeaves.length === 0 ? (
+									{worker.annualLeaves.length === 0 ? (
 										<div className="text-center py-4">
 											No annual leaves found
 										</div>
 									) : (
 										<div className="space-y-4">
-											{annualLeaves.map((leave) => (
-												<div
-													key={leave.id}
-													className="flex items-center justify-between p-4 rounded-lg border"
-												>
-													<div className="space-y-1">
-														<div className="font-medium">
-															{format(
-																new Date(
-																	leave.startDate
-																),
-																'dd MMM yyyy'
-															)}{' '}
-															-{' '}
-															{format(
-																new Date(
-																	leave.endDate
-																),
-																'dd MMM yyyy'
-															)}
+											{worker.annualLeaves.map(
+												(leave) => (
+													<div
+														key={leave.id}
+														className="flex items-center justify-between p-4 rounded-lg border"
+													>
+														<div className="space-y-1">
+															<div className="font-medium">
+																{format(
+																	new Date(
+																		leave.startDate
+																	),
+																	'dd MMM yyyy'
+																)}{' '}
+																-{' '}
+																{format(
+																	new Date(
+																		leave.endDate
+																	),
+																	'dd MMM yyyy'
+																)}
+															</div>
+															<Badge
+																variant={
+																	leave.status ===
+																	'PENDING'
+																		? 'outline'
+																		: leave.status ===
+																		  'APPROVED'
+																		? 'default'
+																		: 'destructive'
+																}
+															>
+																{leave.status}
+															</Badge>
 														</div>
-														<Badge
-															variant={
-																leave.status ===
-																'PENDING'
-																	? 'outline'
-																	: leave.status ===
-																	  'APPROVED'
-																	? 'default'
-																	: 'destructive'
-															}
-														>
-															{leave.status}
-														</Badge>
+														{leave.status ===
+															'PENDING' && (
+															<div className="flex gap-2">
+																<Button
+																	size="sm"
+																	variant="default"
+																	onClick={() =>
+																		setSelectedLeave(
+																			{
+																				id: leave.id,
+																				action: 'APPROVED',
+																			}
+																		)
+																	}
+																>
+																	Approve
+																</Button>
+																<Button
+																	size="sm"
+																	variant="destructive"
+																	onClick={() =>
+																		setSelectedLeave(
+																			{
+																				id: leave.id,
+																				action: 'REJECTED',
+																			}
+																		)
+																	}
+																>
+																	Reject
+																</Button>
+															</div>
+														)}
 													</div>
-													{leave.status ===
-														'PENDING' && (
-														<div className="flex gap-2">
-															<Button
-																size="sm"
-																variant="default"
-																onClick={() =>
-																	setSelectedLeave(
-																		{
-																			id: leave.id,
-																			action: 'APPROVED',
-																		}
-																	)
-																}
-															>
-																Approve
-															</Button>
-															<Button
-																size="sm"
-																variant="destructive"
-																onClick={() =>
-																	setSelectedLeave(
-																		{
-																			id: leave.id,
-																			action: 'REJECTED',
-																		}
-																	)
-																}
-															>
-																Reject
-															</Button>
-														</div>
-													)}
-												</div>
-											))}
+												)
+											)}
 										</div>
 									)}
 								</div>
@@ -389,17 +361,15 @@ export const WorkerCard = ({ worker, onActionClick }: WorkerCardProps) => {
 						</Dialog>
 					</div>
 
-					{/* Schedule Button */}
 					<Button
 						variant="ghost"
-						onClick={handleScheduleClick}
+						onClick={() => onActionClick('showSchedule', worker)}
 						className="w-full h-11 rounded-none hover:bg-gray-50"
 					>
 						<Calendar className="w-4 h-4 mr-2" />
-						<span>Schedule</span>
+						Schedule
 					</Button>
 
-					{/* Modify Worker Details Button */}
 					<Button
 						variant="ghost"
 						onClick={() => setIsDialogOpen(true)}
@@ -410,7 +380,7 @@ export const WorkerCard = ({ worker, onActionClick }: WorkerCardProps) => {
 				</div>
 			</CardContent>
 
-			{/* Edit Worker Details Dialog */}
+			{/* Update Worker Dialog */}
 			<Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
 				<DialogContent className="sm:max-w-[425px]">
 					<DialogHeader>
@@ -421,27 +391,39 @@ export const WorkerCard = ({ worker, onActionClick }: WorkerCardProps) => {
 							<Label htmlFor="name">Name</Label>
 							<Input
 								id="name"
-								name="name"
 								value={formData.name}
-								onChange={handleInputChange}
+								onChange={(e) =>
+									setFormData((prev) => ({
+										...prev,
+										name: e.target.value,
+									}))
+								}
 							/>
 						</div>
 						<div className="grid gap-2">
 							<Label htmlFor="phoneNumber">Phone Number</Label>
 							<Input
 								id="phoneNumber"
-								name="phoneNumber"
 								value={formData.phoneNumber}
-								onChange={handleInputChange}
+								onChange={(e) =>
+									setFormData((prev) => ({
+										...prev,
+										phoneNumber: e.target.value,
+									}))
+								}
 							/>
 						</div>
 						<div className="grid gap-2">
 							<Label htmlFor="bio">Bio</Label>
 							<Textarea
 								id="bio"
-								name="bio"
 								value={formData.bio}
-								onChange={handleInputChange}
+								onChange={(e) =>
+									setFormData((prev) => ({
+										...prev,
+										bio: e.target.value,
+									}))
+								}
 								className="h-20"
 							/>
 						</div>
@@ -449,9 +431,13 @@ export const WorkerCard = ({ worker, onActionClick }: WorkerCardProps) => {
 							<Label htmlFor="status">Status</Label>
 							<Input
 								id="status"
-								name="status"
 								value={formData.status}
-								onChange={handleInputChange}
+								onChange={(e) =>
+									setFormData((prev) => ({
+										...prev,
+										status: e.target.value,
+									}))
+								}
 							/>
 						</div>
 					</div>
@@ -464,7 +450,9 @@ export const WorkerCard = ({ worker, onActionClick }: WorkerCardProps) => {
 							Cancel
 						</Button>
 						<Button
-							onClick={handleUpdateWorker}
+							onClick={() => {
+								/* Implement update logic */
+							}}
 							disabled={isUpdating}
 						>
 							{isUpdating ? 'Updating...' : 'Save Changes'}
@@ -507,3 +495,5 @@ export const WorkerCard = ({ worker, onActionClick }: WorkerCardProps) => {
 		</Card>
 	);
 };
+
+export default WorkerCard;
