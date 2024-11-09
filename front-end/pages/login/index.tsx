@@ -65,20 +65,24 @@ export default function LoginPage() {
           .then((res) => {
             console.log(res.data);
             if (res.status === 200 && res.data.password === password) {
-              const user = {
-                id: res.data.id,
-                name: res.data.name,
-                role: userType as "admin" | "worker",
-                shifts: res.data.shifts,
-                phoneNumber: res.data.phoneNumber,
-                supervisorId: res.data.supervisorId,
-                bio: res.data.bio,
-                annualLeaves: res.data.annualLeaves,
-                medicalLeaves: res.data.medicalLeaves,
-                status: res.data.status,
-              };
-              login(user);
-              router.push("/dashboard");
+              if (res.data.isVerified) {
+                const user = {
+                  id: res.data.id,
+                  name: res.data.name,
+                  role: userType as "admin" | "worker",
+                  shifts: res.data.shifts,
+                  phoneNumber: res.data.phoneNumber,
+                  supervisorId: res.data.supervisorId,
+                  bio: res.data.bio,
+                  annualLeaves: res.data.annualLeaves,
+                  medicalLeaves: res.data.medicalLeaves,
+                  status: res.data.status,
+                };
+                login(user);
+                router.push("/dashboard");
+              } else {
+                setError("Please verify your account!");
+              }
             } else {
               setError("Invalid credentials");
             }
@@ -166,7 +170,7 @@ export default function LoginPage() {
             </Button>
             <div className="text-center">
               <Link href="/signup" className="text-blue-600 hover:underline">
-                Dont have an account? Register here
+                New Worker? Click here to Register!
               </Link>
             </div>
           </form>

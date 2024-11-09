@@ -16,4 +16,6 @@ public interface WorkerRepository extends JpaRepository<Worker, Long> {
 
     Optional<Worker> findByVerificationToken(String token);
 
+    boolean existsByEmail(String email);
+
 }
