@@ -35,10 +35,6 @@ import java.util.stream.Collectors;
 @Setter
 @Entity
 @ToString
-@JsonIdentityInfo(
-        generator = ObjectIdGenerators.PropertyGenerator.class,
-        property = "id"
-)
 @Table(name = "workers")
 public class Worker {
 
