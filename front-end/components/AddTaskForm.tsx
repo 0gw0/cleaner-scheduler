@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useRef } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -6,8 +6,8 @@ import { Label } from '@/components/ui/label'
 import { Switch } from '@/components/ui/switch'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { ChevronLeft, ChevronRight, Plus, Check, X } from 'lucide-react'
-
-import { WorkerTravelData } from '@/types/task'
+import { Property, WorkerTravelData } from '@/types/task'
+import axios from 'axios'
 
 type FormData = {
   clientId: string
@@ -17,6 +17,7 @@ type FormData = {
   date: string
   isRecurring: boolean
   recurringType: 'weekly' | 'monthly' | ''
+  numberOfWorkers : number
   selectedWorker: WorkerTravelData | null
 }
 
@@ -29,7 +30,31 @@ const initialFormData: FormData = {
   isRecurring: false,
   recurringType: '',
   selectedWorker: null,
+  numberOfWorkers : 0
 }
+
+const workerShiftRequest = {
+  frequency: {
+    interval: 0,
+    unit: "Nanos"
+  },
+  startDate: "2024-11-08",
+  endDate: "2024-11-08",
+  startTime: {
+    hour: 0,
+    minute: 0,
+    second: 0,
+    nano: 0
+  },
+  endTime: {
+    hour: 0,
+    minute: 0,
+    second: 0,
+    nano: 0
+  },
+  propertyId: 0 
+};
+
 
 const fakeWorkerTravelData: WorkerTravelData[] = [
   {
@@ -114,26 +139,109 @@ export default function AddTaskForm() {
   const [currentStep, setCurrentStep] = useState(0)
   const [formData, setFormData] = useState<FormData>(initialFormData)
   const [showSuccess, setShowSuccess] = useState(false)
+  const [availableWorkers, setAvailableWorkers] = useState(fakeWorkerTravelData)
+  const [error, setError] = useState("")
+  const [properties, setProperties] = useState([]);
+  const [selectedProperty, setSelectedProperty] = useState<Property | null>(null);
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value, type } = e.target
+  
+  const handleInputChange = async (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+    const { name, value, type } = e.target;
     setFormData(prev => ({
       ...prev,
       [name]: type === 'checkbox' ? (e.target as HTMLInputElement).checked : value,
-    }))
-  }
+    }));
+
+    if (name === 'clientId' && value) {
+      try {
+        const response = await axios.get('http://localhost:8080/properties', {
+          params: { clientId: value }
+        });
+        setProperties(response.data);
+      } catch (error) {
+        console.error('Failed to fetch properties:', error);
+        setProperties([]);
+      }
+    }
+
+    setError('');
+  };
 
   const handleWorkerSelect = (worker: WorkerTravelData) => {
     setFormData(prev => ({ ...prev, selectedWorker: worker }))
   }
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+
+    const now = new Date();
+    const threeHoursLater = new Date(now.getTime() + 3 * 60 * 60 * 1000); // 3 hours from now
+    const selectedDateTime = new Date(`${formData.date}T${formData.startTime}`);
+
+    if (selectedDateTime < threeHoursLater) {
+      setError('The start time must be at least 3 hours from now.');
+      return;
+    }
+
+
+    if (currentStep === 0) {
+      // Step 0 logic: Set selected property based on propertyId
+      const propertyId = formData.propertyId;
+      const foundProperty = properties.find(
+        (property: Property) => property.address === propertyId
+      );
+  
+      if (foundProperty) {
+        setSelectedProperty(foundProperty);
+      } else {
+        console.error("Property not found");
+        setError("Property not found");
+        return;
+      }
+    
+      if (selectedProperty) {
+        try {
+          const requestData = {
+            postalCode: selectedProperty.postalCode,
+            startTime: {
+              hour: parseInt(formData.startTime.split(':')[0], 10),
+              minute: parseInt(formData.startTime.split(':')[1], 10),
+              second: 0,
+              nano: 0,
+            },
+            endTime: {
+              hour: parseInt(formData.endTime.split(':')[0], 10),
+              minute: parseInt(formData.endTime.split(':')[1], 10),
+              second: 0,
+              nano: 0,
+            },
+            date: formData.date,
+          };
+  
+          //TO DO: add the s after available-worker
+          // const response = await axios.post('http://localhost:8080/shifts/available-worker', requestData);
+          // const workersData: WorkerTravelData[] = response.data;
+          //TO DO: change bottom to workersData
+          const selectedWorkers = fakeWorkerTravelData.slice(0, formData.numberOfWorkers);
+          setAvailableWorkers(selectedWorkers);
+        } catch (error) {
+          console.error('Failed to fetch available workers:', error);
+          setAvailableWorkers([]);
+        }
+      } else {
+        console.error('No selected property found for fetching workers');
+        setError('Please select a property before proceeding.');
+        return;
+      }
+    }
+
+    console.log("availableWorkers",availableWorkers)
+
+    
+      
     if (currentStep < 2) {
       setCurrentStep(prev => prev + 1)
     } else {
-      // Handle form submission
-      console.log('Form submitted:', formData)
       setShowSuccess(true)
       
       setTimeout(() => {
@@ -145,9 +253,10 @@ export default function AddTaskForm() {
     }
   }
 
+
   const steps = [
     { title: 'Task Details', description: 'Enter the basic task information' },
-    { title: 'Worker Selection', description: 'Choose a worker for the task' },
+    { title: 'Worker assignment', description: 'Helping you choose the best worker(s) for the task' },
     { title: 'Confirmation', description: 'Review and confirm task details' },
   ]
 
@@ -157,7 +266,7 @@ export default function AddTaskForm() {
         <Plus size={16} />
         Add a new task
       </Button>
-
+  
       <AnimatePresence>
         {isOpen && (
           <motion.div
@@ -212,12 +321,49 @@ export default function AddTaskForm() {
                                   required
                                 />
                               </div>
+                              {/* Property dropdown */}
+                              {properties.length > 0 && (
+                                <div>
+                                  <Label htmlFor="propertyId">Select Property</Label>
+                                  <select
+                                    id="propertyId"
+                                    name="propertyId"
+                                    value={formData.propertyId}
+                                    onChange={handleInputChange}
+                                    required
+                                    className="block w-full mt-1 bg-white border border-gray-300 rounded py-2 px-3 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                                  >
+                                    <option value="">Select a property</option>
+                                    {properties.map((property: Property) => (
+                                      <option key={property.address} value={property.propertyId}>
+                                        {property.address}
+                                      </option>
+                                    ))}
+                                  </select>
+                                </div>
+                              )}
                               <div>
-                                <Label htmlFor="propertyId">Property ID</Label>
+                                <Label htmlFor="numberOfWorkers">Number of workers needed</Label>
                                 <Input
-                                  id="propertyId"
-                                  name="propertyId"
-                                  value={formData.propertyId}
+                                  type="number"
+                                  max="5"
+                                  min="1"
+                                  id="numberOfWorkers"
+                                  name="numberOfWorkers"
+                                  value={formData.numberOfWorkers}
+                                  onChange={handleInputChange}
+                                  required
+                                />
+                              </div>
+  
+                              <div>
+                                <Label htmlFor="date">Date</Label>
+                                <Input
+                                  id="date"
+                                  name="date"
+                                  type="date"
+                                  min={new Date().toISOString().split('T')[0]}
+                                  value={formData.date}
                                   onChange={handleInputChange}
                                   required
                                 />
@@ -233,6 +379,9 @@ export default function AddTaskForm() {
                                     onChange={handleInputChange}
                                     required
                                   />
+                                  {error && (
+                                    <p className="text-red-500 text-sm mt-1">{error}</p>
+                                  )}
                                 </div>
                                 <div>
                                   <Label htmlFor="endTime">End Time</Label>
@@ -245,17 +394,6 @@ export default function AddTaskForm() {
                                     required
                                   />
                                 </div>
-                              </div>
-                              <div>
-                                <Label htmlFor="date">Date</Label>
-                                <Input
-                                  id="date"
-                                  name="date"
-                                  type="date"
-                                  value={formData.date}
-                                  onChange={handleInputChange}
-                                  required
-                                />
                               </div>
                               <div className="flex items-center space-x-2">
                                 <Switch
@@ -297,29 +435,29 @@ export default function AddTaskForm() {
                               )}
                             </div>
                           )}
-
+  
                           {currentStep === 1 && (
-                            <div className="space-y-4">
-                              {fakeWorkerTravelData.map((worker) => (
-                                <div
-                                  key={worker.id}
-                                  className={`p-4 rounded-lg cursor-pointer transition-colors ${
-                                    formData.selectedWorker?.id === worker.id
-                                      ? 'bg-black text-white'
-                                      : 'bg-slate-200 hover:bg-slate-300'
-                                  }`}
-                                  onClick={() => handleWorkerSelect(worker)}
-                                >
-                                  <h3 className="font-semibold">{worker.name}</h3>
-                                  <p className="text-sm">Location: {worker.originLocation}</p>
-                                  <p className="text-sm">
-                                    Travel Time: {worker.travelTimeToTarget.totalTravelTime} mins
-                                  </p>
-                                </div>
-                              ))}
-                            </div>
-                          )}
-
+                          <div className="space-y-4">
+                            <p>The following workers have been assigned:</p>
+                            {availableWorkers.slice(0, formData.numberOfWorkers).map((worker, index) => (
+                              <motion.div
+                                key={worker.id}
+                                className="p-4 rounded-lg bg-black text-white"
+                                initial={{ opacity: 0, y: 20 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                exit={{ opacity: 0, y: -20 }}
+                                transition={{ duration: 0.5, delay: index * 0.2 }} // Sequential delay for staggered appearance
+                              >
+                                <h3 className="font-semibold">{worker.name}</h3>
+                                <p className="text-sm">Location: {worker.originLocation}</p>
+                                <p className="text-sm">
+                                  Travel Time: {worker.travelTimeToTarget.totalTravelTime} mins
+                                </p>
+                              </motion.div>
+                            ))}
+                          </div>
+                        )}
+  
                           {currentStep === 2 && (
                             <div className="space-y-4">
                               <h3 className="font-semibold">Task Summary</h3>
@@ -329,11 +467,11 @@ export default function AddTaskForm() {
                               <p>Time: {formData.startTime} - {formData.endTime}</p>
                               <p>Recurring: {formData.isRecurring ? 'Yes' : 'No'}</p>
                               {formData.isRecurring && <p>Recurring Type: {formData.recurringType}</p>}
-                              <p>Selected Worker: {formData.selectedWorker?.name}</p>
+                              <p>Assigned Worker: {availableWorkers.map(worker => worker.name).join(', ')}</p>
                             </div>
                           )}
                         </motion.div>
-
+  
                         <div className="flex justify-between mt-6">
                           <Button
                             type="button"
@@ -363,7 +501,7 @@ export default function AddTaskForm() {
                   </AnimatePresence>
                 </CardContent>
               </Card>
-
+  
               <button
                 onClick={() => setIsOpen(false)}
                 className="absolute top-4 right-4 p-2 rounded-full bg-gray-200 hover:bg-gray-300"
@@ -376,4 +514,5 @@ export default function AddTaskForm() {
       </AnimatePresence>
     </div>
   );
-}
+};
+  

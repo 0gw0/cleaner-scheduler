@@ -4,7 +4,7 @@ import React, { createContext, useContext, useState, useEffect, ReactNode } from
 interface User {
   id: string;
   name: string;
-  role: 'admin' | 'worker';
+  role: string;
   workers?: string[];
   shifts?: Array<object>;
   phoneNumber?: string;

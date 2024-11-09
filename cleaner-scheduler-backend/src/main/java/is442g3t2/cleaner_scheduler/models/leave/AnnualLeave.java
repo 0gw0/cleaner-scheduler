@@ -16,6 +16,13 @@ import java.time.LocalDate;
 @Table(name = "annual_leaves")
 public class AnnualLeave extends Leave {
 
+    @Column(nullable=false)
+    private String status;
+
+    {
+        this.status = "PENDING";
+    }
+
     public AnnualLeave(Worker worker, LocalDate startDate, LocalDate endDate) {
         super(worker, startDate, endDate);
     }

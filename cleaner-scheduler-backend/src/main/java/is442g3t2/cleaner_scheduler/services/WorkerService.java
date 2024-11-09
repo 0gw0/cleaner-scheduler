@@ -2,7 +2,10 @@ package is442g3t2.cleaner_scheduler.services;
 
 import is442g3t2.cleaner_scheduler.models.worker.Worker;
 import is442g3t2.cleaner_scheduler.models.shift.Shift;
+import is442g3t2.cleaner_scheduler.models.Admin;  // Add this import
 import is442g3t2.cleaner_scheduler.repositories.WorkerRepository;
+import is442g3t2.cleaner_scheduler.repositories.AdminRepository;  // Add this import
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import is442g3t2.cleaner_scheduler.dto.worker.UpdateWorker;
 import org.springframework.web.server.ResponseStatusException;
@@ -16,6 +19,9 @@ import java.util.stream.Collectors;
 @Service
 public class WorkerService {
     private final WorkerRepository workerRepository;
+    
+    @Autowired
+    private AdminRepository adminRepository;
 
     public WorkerService(WorkerRepository workerRepository) {
         this.workerRepository = workerRepository;
@@ -88,5 +94,22 @@ public class WorkerService {
         }
 
         return workerRepository.save(worker);
+    } 
+    public void reallocateWorkers(Long oldSupervisorId, Long newSupervisorId) {
+        List<Worker> workers = getWorkersBySupervisorId(oldSupervisorId);
+        if (workers.isEmpty()) {
+            return; 
+        }
+        Admin newSupervisor = adminRepository.findById(newSupervisorId)
+            .orElseThrow(() -> new ResponseStatusException(
+                HttpStatus.NOT_FOUND, 
+                "New supervisor with id " + newSupervisorId + " not found"
+            ));
+
+        for (Worker worker : workers) {
+            worker.setSupervisor(newSupervisor);
+            workerRepository.save(worker);
+        }
     }
+
 }

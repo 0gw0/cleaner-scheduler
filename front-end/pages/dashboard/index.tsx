@@ -73,7 +73,7 @@ const Dashboard: React.FC = () => {
     };
 
     const fetchWorkers = async () => {
-      if (!userData || userData.role !== "admin") return;
+      if (!userData || userData.role === "worker") return;
 
       try {
         const url =  "http://localhost:8080/workers";
@@ -89,7 +89,7 @@ const Dashboard: React.FC = () => {
     };
 
     const fetchShifts = async () => {
-      if (!userData || userData.role !== "admin") return;
+      if (!userData || userData.role === "worker") return;
 
       try {
         const url = "http://localhost:8080/shifts";
@@ -113,7 +113,7 @@ const Dashboard: React.FC = () => {
 
     if (userData) {
       fetchClients();
-      if (userData.role === "admin") {
+      if (userData.role !== "worker") {
         fetchWorkers();
         fetchShifts();
       }
@@ -167,7 +167,7 @@ const Dashboard: React.FC = () => {
     return <WorkerDashboard workerData={worker} />;
   }
 
-  if (userData.role === "admin") {
+  if (userData.role === "admin" || userData.role === "root") {
     return (
       <AdminDashboard
         monthlyData={monthlyData}

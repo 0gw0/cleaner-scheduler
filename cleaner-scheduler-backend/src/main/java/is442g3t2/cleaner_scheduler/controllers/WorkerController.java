@@ -33,6 +33,9 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.server.ResponseStatusException;
 
+import is442g3t2.cleaner_scheduler.dto.leave.UpdateAnnualLeaveRequest;
+import is442g3t2.cleaner_scheduler.models.leave.LeaveStatus;
+
 import java.io.IOException;
 import java.time.LocalDate;
 import java.time.LocalTime;
@@ -42,6 +45,7 @@ import java.util.List;
 import java.util.stream.Collectors;
 import java.util.UUID;
 import java.util.Optional;
+
 
 
 @RestController()
@@ -196,6 +200,32 @@ public class WorkerController {
         worker.takeLeave(startDate, endDate);
         workerRepository.save(worker);
         return ResponseEntity.ok(worker);
+    }
+
+    @Tag(name = "workers - annual leaves")
+    @Operation(description = "Update the status of an annual leave", summary = "Update the status of an annual leave")
+    @PatchMapping("/{workerId}/annual-leaves/{leaveId}")
+    public ResponseEntity<AnnualLeave> updateAnnualLeaveStatus(
+            @PathVariable Long workerId,
+            @PathVariable Long leaveId,
+            @RequestBody @Valid UpdateAnnualLeaveRequest updateAnnualLeaveRequest) {
+
+        Worker worker = workerRepository.findById(workerId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Worker not found"));
+
+        AnnualLeave annualLeave = worker.getAnnualLeaves().stream()
+                .filter(leave -> leave.getId().equals(leaveId))
+                .findFirst()
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Annual leave not found"));
+
+        LeaveStatus newStatus = updateAnnualLeaveRequest.getStatus();
+        if (newStatus == LeaveStatus.APPROVED || newStatus == LeaveStatus.REJECTED) {
+            annualLeave.setStatus(newStatus.name());
+            worker = workerRepository.save(worker);
+            return ResponseEntity.ok(annualLeave);
+        } else {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid leave status");
+        }
     }
 
     @Tag(name = "workers - annual leaves")
