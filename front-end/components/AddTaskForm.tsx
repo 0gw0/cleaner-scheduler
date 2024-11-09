@@ -378,6 +378,7 @@ export default function AddTaskForm({ onTaskAdded }: AddTaskFormProps) {
                                 />
                               </div>
                               <div className="grid grid-cols-2 gap-4">
+                                {/* TODO: Add validation for start time to be before end time */}
                                 <div>
                                   <Label htmlFor="startTime">Start Time</Label>
                                   <Input
