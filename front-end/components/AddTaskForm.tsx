@@ -218,10 +218,10 @@ export default function AddTaskForm() {
             date: formData.date,
           };
   
-          //TO DO: add the s after available-worker
+          //TODO: add the s after available-worker
           // const response = await axios.post('http://localhost:8080/shifts/available-worker', requestData);
           // const workersData: WorkerTravelData[] = response.data;
-          //TO DO: change bottom to workersData
+          //TODO: change bottom to workersData
           const selectedWorkers = fakeWorkerTravelData.slice(0, formData.numberOfWorkers);
           setAvailableWorkers(selectedWorkers);
         } catch (error) {

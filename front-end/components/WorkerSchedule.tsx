@@ -98,8 +98,8 @@ const WorkerSchedule: React.FC<WorkerScheduleProps> = ({ schedule }) => {
     if (photoFile && selectedShiftId) {
       console.log(`Submitting photo for shift ${selectedShiftId}:`, photoFile);
       handleClosePhotoDialog(); 
-      //TO DO: Add API call to submit photo
-      //TO DO: Add API call to change status to in progress
+      //TODO: Add API call to submit photo
+      //TODO: Add API call to change status to in progress
     }
   };
 

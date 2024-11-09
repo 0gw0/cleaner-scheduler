@@ -194,7 +194,7 @@ const ManageTasks: React.FC = () => {
         shiftData={selectedTask}
         isOpen={isTaskDetailModalOpen}
         onClose={handleCloseTaskDetailModal}
-        onEdit={(selectedTask: Shift) => {
+        onEdit={async (selectedTask: Shift) => {
           return Promise.resolve();
         }}
         />

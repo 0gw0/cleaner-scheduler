@@ -69,14 +69,14 @@ export interface Property {
 
 export interface Shift {
   id: number;
-  workers: number[]; // Array of worker IDs associated with this shift
+  workers: number[]; 
   property: Property;
-  date: string; // Date string (e.g., "2024-09-12")
-  startTime: string; // Time string (e.g., "09:00:00")
-  endTime: string; // Time string (e.g., "17:00:00")
-  status: "COMPLETED" | "PENDING" | "UPCOMING" | "IN PROGRESS"; // Possible statuses
-  arrivalImage?: ArrivalImage | null; // Optional, might be null if no image
-  workerIds: number[]; // Duplicate of `workers`, but retained for compatibility if needed
+  date: string; 
+  startTime: string; 
+  endTime: string;
+  status: "COMPLETED" | "PENDING" | "UPCOMING" | "IN PROGRESS"; 
+  arrivalImage?: ArrivalImage | null; 
+  workerIds: number[]; 
 }
 
 export interface Worker {
@@ -84,13 +84,13 @@ export interface Worker {
   name: string;
   phoneNumber: string;
   supervisorId: number;
-  shifts: Shift[]; // Array of Shift objects associated with the worker
+  shifts: Shift[]; 
 }
 
 export interface ShiftsResponse {
-  data: Shift[]; // Array of Shift objects
+  data: Shift[]; 
 }
 
 export interface WorkersResponse {
-  data: Worker[]; // Array of Worker objects
+  data: Worker[]; 
 }
