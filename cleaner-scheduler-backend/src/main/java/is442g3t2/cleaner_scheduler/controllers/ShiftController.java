@@ -211,7 +211,7 @@ public class ShiftController {
     @PutMapping("/{shiftId}/update")
     @Tag(name = "shifts", description = "Update workers, timing and dates of shifts")
     @Operation(summary = "Update shift URL", description = "Update workers, timing and dates for a specific shift")
-    public ResponseEntity<Shift> updateShiftDetails(
+    public ResponseEntity<ShiftDTO> updateShiftDetails(
             @PathVariable Long shiftId,
             @RequestBody UpdateShift updateRequest) {
 
@@ -222,7 +222,14 @@ public class ShiftController {
                 updateRequest.getNewStartTime(),
                 updateRequest.getNewEndTime()
         );
-        return ResponseEntity.ok(updatedShift);
+
+        ShiftDTO shiftDTO = new ShiftDTO(
+        updatedShift,
+        updatedShift.getArrivalImage() != null
+        ? s3Service.getPresignedUrl(updatedShift.getArrivalImage().getS3Key(), 3600).toString()
+        : null
+);
+        return ResponseEntity.ok(shiftDTO);
     }
 
     private Map<String, String> createErrorResponse(String errorMessage) {

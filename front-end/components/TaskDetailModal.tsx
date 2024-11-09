@@ -1,10 +1,12 @@
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
-import { Shift } from '@/types/task';
+import { Shift, WorkerTravelData } from '@/types/task';
 import { CalendarIcon, ClockIcon, MapPinIcon, UserIcon, BuildingIcon } from 'lucide-react';
 import Image from 'next/image'
 import { PersonIcon } from '@radix-ui/react-icons';
+import axios from 'axios';
+import { motion } from 'framer-motion';
 
 
 interface TaskDetailModalProps {
@@ -12,19 +14,87 @@ interface TaskDetailModalProps {
   isOpen: boolean;
   onClose: () => void;
   onEdit: (updatedData: Shift) => Promise<void>;
+  onTaskUpdate: () => void;
 }
 
-export const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ shiftData, isOpen, onClose, onEdit }) => {
+const fakeWorkerTravelData: WorkerTravelData[] = [
+  {
+    id: 1,
+    name: "John Doe",
+    travelTimeToTarget: {
+      totalTravelTime: 45,
+      travelTimeWithoutTraffic: 30,
+      travelTimeInTraffic: 15,
+    },
+    relevantShift: {
+      date: "2024-10-13",
+      startTime: "09:00:00",
+      endTime: "17:00:00",
+    },
+    originLocation: "123 Main St, Singapore",
+  },
+  {
+    id: 2,
+    name: "Jane Smith",
+    travelTimeToTarget: {
+      totalTravelTime: 30,
+      travelTimeWithoutTraffic: 25,
+      travelTimeInTraffic: 5,
+    },
+    relevantShift: {
+      date: "2024-10-14",
+      startTime: "10:00:00",
+      endTime: "18:00:00",
+    },
+    originLocation: "456 Another St, Singapore",
+  }]
+
+export const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ shiftData, isOpen, onClose, onEdit, onTaskUpdate }) => {
   const [isEditing, setIsEditing] = useState(false); 
   const [updatedShift, setUpdatedShift] = useState(shiftData); 
   const [currentStep, setCurrentStep] = useState(0); 
   const [assignmentType, setAssignmentType] = useState<'manual' | 'automatic'>('manual'); 
+  const [availableWorkers, setAvailableWorkers] = useState<WorkerTravelData[]>([])
+
 
   const handleChange = (field: keyof Shift, value: any) => {
     setUpdatedShift((prev) => ({ ...prev, [field]: value }));
+
+    setUpdatedShift((prev) => ({ ...prev, [field]: value }));
   };
 
-  const handleNextStep = () => {
+
+  const handleNextStep = async () => {
+    if (currentStep === 0 && assignmentType === 'automatic') {
+      // Make API call for automatic worker assignment
+      const requestBody = {
+        postalCode: shiftData.property.postalCode,
+        startTime: {
+          hour: parseInt(updatedShift.startTime.split(':')[0], 10),
+          minute: parseInt(updatedShift.startTime.split(':')[1], 10),
+          second: 0,
+          nano: 0
+        },
+        endTime: {
+          hour: parseInt(updatedShift.endTime.split(':')[0], 10),
+          minute: parseInt(updatedShift.endTime.split(':')[1], 10),
+          second: 0,
+          nano: 0
+        },
+        date: updatedShift.date
+      };
+
+      try {
+        //TODO: Add s behind to call api and replace all the fake data with real
+        // const response = await axios.post('/shifts/available-worker', requestBody);
+        // const workersData = response.data;
+        const selectedWorkers = fakeWorkerTravelData.slice(0, shiftData.workers.length);
+        setAvailableWorkers(selectedWorkers);
+        console.log('Selected workers:', selectedWorkers);
+      } catch (error) {
+        console.error('Failed to fetch available workers:', error);
+      }
+    }
     setCurrentStep((prev) => prev + 1);
   };
 
@@ -34,14 +104,35 @@ export const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ shiftData, isO
 
   const handleSave = async () => {
     try {
-      // TODO: Add API call to actually edit the shift
+      const workerIds = availableWorkers.map(worker => worker.id);
+  
+      const requestBody = {
+        workerIds,
+        newDate: updatedShift.date,
+        newStartTime: updatedShift.startTime,
+        newEndTime: updatedShift.endTime,
+      };
+  
+      const response = await fetch(`http://localhost:8080/shifts/${shiftData.id}/update`, {
+        method: 'PUT', 
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(requestBody),
+      });
+  
+      if (!response.ok) {
+        throw new Error(`Failed to update shift: ${response.statusText}`);
+      }
       await onEdit(updatedShift); 
       setIsEditing(false); 
       setCurrentStep(0); 
+      onTaskUpdate();
     } catch (error) {
       console.error('Failed to update shift:', error);
     }
   };
+
 
 
   return (
@@ -64,7 +155,6 @@ export const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ shiftData, isO
           </DialogHeader>
   
           {isEditing ? (
-            // Multi-page form when editing
             <>
               {currentStep === 0 && (
                 <div className="grid gap-4 py-4">
@@ -156,16 +246,28 @@ export const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ shiftData, isO
   
               {currentStep === 1 && (
                 <div className="grid gap-4 py-4">
-                  {/* Step 2: Worker Assignment */}
                   {assignmentType === 'manual' ? (
-                    <div>
-                      <p>Available workers:</p>
-                      {/* TODO: Link to backend to get available workers */}
-                    </div>
+                    <div className="space-y-4">
+                  </div>
                   ) : (
-                    <div>
-                      <p>Automatic Worker Assignment</p>
-                      {/* Add logic for automatic worker assignment */}
+                    <div className="space-y-4">
+                    <p>The following workers have been assigned:</p>
+                    {availableWorkers.map((worker, index) => (
+                      <motion.div
+                        key={worker.id}
+                        className="p-4 rounded-lg bg-black text-white"
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: -20 }}
+                        transition={{ duration: 0.5, delay: index * 0.2 }} // Sequential delay for staggered appearance
+                      >
+                        <h3 className="font-semibold">{worker.name}</h3>
+                        <p className="text-sm">Location: {worker.originLocation}</p>
+                        <p className="text-sm">
+                          Travel Time: {worker.travelTimeToTarget.totalTravelTime} mins
+                        </p>
+                      </motion.div>
+                    ))}
                     </div>
                   )}
   
@@ -180,9 +282,11 @@ export const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ shiftData, isO
                 <div className="grid gap-4 py-4">
                   {/* Step 3: Summary and Confirmation */}
                   <h3 className="font-semibold">Task Summary</h3>
-                  <p>Address: {updatedShift.property.address}</p>
-                  <p>Assignment Type: {assignmentType}</p>
-                  {/* Other summary details... */}
+                  <p>Client ID: {shiftData.property.clientId}</p>
+                  <p>Property ID: {shiftData.property.propertyId}</p>
+                  <p>Date: {updatedShift.date}</p>
+                  <p>Time: {updatedShift.startTime} - {updatedShift.endTime}</p>
+                  <p>Selected workers: {availableWorkers.map(worker => worker.name).join(', ')}</p>
                   <div className="flex justify-between mt-4">
                     <Button onClick={handlePreviousStep}>Back</Button>
                     <Button onClick={handleSave}>Confirm</Button>
