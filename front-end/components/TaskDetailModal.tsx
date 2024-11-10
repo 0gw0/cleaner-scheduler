@@ -63,9 +63,10 @@ export const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ shiftData, isO
   const [error, setError] = useState("");
   const [showFailure, setShowFailure] = useState(false); //not available to perform update because no available workers
   const [arrivalImgSrc, setarrivalImgSrc] = useState('');
+  
 
-  //getting image URL
   useEffect(() => {
+    setarrivalImgSrc('');
     const fetchImage = async () => {
       if (shiftData.id && (shiftData.status === "COMPLETED" || shiftData.status === "IN PROGRESS")) {
         try {
