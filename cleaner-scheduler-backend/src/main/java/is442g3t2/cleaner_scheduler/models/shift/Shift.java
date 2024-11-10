@@ -23,23 +23,15 @@ import java.util.Set;
 @NoArgsConstructor
 @Getter
 @Setter
-@JsonIdentityInfo(
-        generator = ObjectIdGenerators.PropertyGenerator.class,
-        property = "id"
-)
+@JsonIdentityInfo(generator = ObjectIdGenerators.PropertyGenerator.class, property = "id")
 public class Shift {
-
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
     @ManyToMany
-    @JoinTable(
-            name = "shift_workers",
-            joinColumns = @JoinColumn(name = "shift_id"),
-            inverseJoinColumns = @JoinColumn(name = "worker_id")
-    )
+    @JoinTable(name = "shift_workers", joinColumns = @JoinColumn(name = "shift_id"), inverseJoinColumns = @JoinColumn(name = "worker_id"))
     private List<Worker> workers = new ArrayList<>();
 
     @ManyToOne
@@ -74,8 +66,8 @@ public class Shift {
     @Column(nullable = false)
     private boolean isRescheduled = false;
 
-
-    public Shift(LocalDate date, LocalTime startTime, LocalTime endTime, Property property, ShiftStatus status) throws InvalidShiftException {
+    public Shift(LocalDate date, LocalTime startTime, LocalTime endTime, Property property, ShiftStatus status)
+            throws InvalidShiftException {
         this.date = date;
         this.startTime = startTime;
         this.endTime = endTime;
@@ -86,7 +78,8 @@ public class Shift {
         this.originalEndTime = endTime;
 
         if (!isValid()) {
-            throw new InvalidShiftException("Invalid shift: start time must be before end time and neither can be null");
+            throw new InvalidShiftException(
+                    "Invalid shift: start time must be before end time and neither can be null");
         }
     }
 
@@ -117,7 +110,6 @@ public class Shift {
                 !endTime.equals(originalEndTime);
     }
 
-
     public Set<Long> getWorkerIds() {
         return workers.stream()
                 .map(Worker::getId)
@@ -134,27 +126,74 @@ public class Shift {
         worker.getShifts().remove(this);
     }
 
-
     public PropertyInfo getProperty() {
         if (property != null) {
-            return new PropertyInfo(property.getId(), property.getClient(), property.getAddress(), property.getPostalCode());
+            return new PropertyInfo(property.getId(), property.getClient(), property.getAddress(),
+                    property.getPostalCode());
         } else {
-            return null; // Or you can throw an exception, or return a default value, depending on your use case.
+            return null; // Or you can throw an exception, or return a default value, depending on your
+                         // use case.
         }
     }
-
 
     // just checks if start > end
     private boolean isValid() {
         return startTime != null && endTime != null && startTime.isBefore(endTime);
     }
 
-
     @Override
     public String toString() {
         return String.format("%s: %s - %s", date, startTime, endTime);
     }
 
+    public String isValidShiftTime(LocalTime startTime, LocalTime endTime) {
+        // Define allowed time ranges
+        LocalTime workStart = LocalTime.of(8, 0);
+        LocalTime workEnd = LocalTime.of(22, 0);
+        LocalTime lunchStart = LocalTime.of(12, 0);
+        LocalTime lunchEnd = LocalTime.of(13, 0);
+        LocalTime dinnerStart = LocalTime.of(17, 0);
+        LocalTime dinnerEnd = LocalTime.of(18, 0);
 
+        // Check if start time is before 8am or end time is after 10pm
+        if (startTime.isBefore(workStart) || endTime.isAfter(workEnd)) {
+            return "Outside of working hours (8am to 10pm)";
+        }
+
+        if (startTime.isBefore(lunchStart) && endTime.isAfter(lunchEnd)) {
+            return "Worker's lunch hours are 12pm to 1pm";
+        }
+
+        // Check if shift overlaps with lunch hours (12pm-1pm)
+        if ((startTime.isBefore(lunchEnd) && startTime.isAfter(lunchStart.minusMinutes(1))) ||
+                (endTime.isAfter(lunchStart) && endTime.isBefore(lunchEnd.plusMinutes(1)))) {
+            return "Worker's lunch hours are 12pm to 1pm";
+        }
+
+        if (startTime.isBefore(dinnerStart) && endTime.isAfter(dinnerEnd)) {
+            return "Worker's dinner hours are 5pm to 6pm";
+        }
+
+        // Check if shift overlaps with dinner hours (5pm-6pm)
+        if ((startTime.isBefore(dinnerEnd) && startTime.isAfter(dinnerStart.minusMinutes(1))) ||
+                (endTime.isAfter(dinnerStart) && endTime.isBefore(dinnerEnd.plusMinutes(1)))) {
+            return "Worker's dinner hours are 5pm to 6pm";
+        }
+
+        // Check if shift falls within allowed ranges: 8am-12pm, 1pm-5pm, or 6pm-10pm
+        LocalTime morningEnd = LocalTime.of(12, 0).plusMinutes(1);
+        LocalTime afternoonStart = LocalTime.of(13, 0);
+        LocalTime afternoonEnd = LocalTime.of(17, 0).plusMinutes(1);
+        LocalTime eveningStart = LocalTime.of(18, 0);
+
+        boolean isWithinAllowedRanges = (startTime.equals(workStart)
+                || startTime.isAfter(workStart) && endTime.isBefore(morningEnd)) ||
+                (startTime.equals(afternoonStart)
+                        || startTime.isAfter(afternoonStart) && endTime.isBefore(afternoonEnd))
+                ||
+                (startTime.equals(eveningStart) || startTime.isAfter(eveningStart) && endTime.isBefore(workEnd));
+
+        return isWithinAllowedRanges ? "" : "Shift must be within allowed timings: 8am-12pm, 1pm-5pm, or 6pm-10pm";
+    }
 
 }
