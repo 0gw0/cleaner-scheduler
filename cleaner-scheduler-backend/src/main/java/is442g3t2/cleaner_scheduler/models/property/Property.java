@@ -27,6 +27,9 @@ public class Property {
 
     @Column(nullable = false)
     private String postalCode;
+    
+    @Column(nullable = false)
+    private boolean active = true;
 
     public Long getClient() {
         return client.getId();
@@ -58,6 +61,14 @@ public class Property {
         } catch (Exception e) {
             throw new RuntimeException("Error geocoding postal code: " + postalCode, e);
         }
+    }
+
+    public boolean isActive() {
+        return active;
+    }
+
+    public void setActive(boolean active) {
+        this.active = active;
     }
 
 
