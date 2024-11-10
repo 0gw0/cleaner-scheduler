@@ -25,14 +25,7 @@ import {
 	AlertDialogHeader,
 	AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-
-// Updated interfaces to match the API response
-interface Property {
-	propertyId: number;
-	clientId: number;
-	address: string;
-	postalCode: string;
-}
+import { WorkerData, Property, DialogState } from '@/types/workermanagement';
 
 interface Shift {
 	id: number;
@@ -51,45 +44,10 @@ interface Shift {
 	workerIds: number[];
 }
 
-interface AnnualLeave {
-	id: number;
-	workerId: number;
-	startDate: string;
-	endDate: string;
-	status: string;
-	approved: boolean;
-}
-
-interface MedicalLeave {
-	id: number;
-	startDate: string;
-	endDate: string;
-	medicalCertificate: {
-		s3Key: string;
-		uploadTime: string;
-		fileName: string;
-		presignedUrl: string;
-	} | null;
-	approved: boolean;
-}
-
-interface Worker {
-	id: number;
-	name: string;
-	shifts: Shift[];
-	phoneNumber: string;
-	status: string;
-	supervisorId: number;
-	bio: string;
-	isVerified: boolean;
-	annualLeaves: AnnualLeave[];
-	password: string;
-	medicalLeaves: MedicalLeave[];
-}
-
 interface WorkerCardProps {
-	worker: Worker;
-	onActionClick: (action: string, worker: Worker) => void;
+	worker: WorkerData;
+	onActionClick: (action: keyof DialogState) => void;
+	hasPendingMC: boolean;
 }
 
 export const WorkerCard = ({ worker, onActionClick }: WorkerCardProps) => {
@@ -247,9 +205,7 @@ export const WorkerCard = ({ worker, onActionClick }: WorkerCardProps) => {
 					<div className="grid grid-cols-2 divide-x">
 						<Button
 							variant="ghost"
-							onClick={() =>
-								onActionClick('showMCHistory', worker)
-							}
+							onClick={() => onActionClick('showMCHistory')}
 							className="h-11 rounded-none hover:bg-gray-50"
 						>
 							<FileText className="w-4 h-4 mr-2" />
@@ -363,7 +319,7 @@ export const WorkerCard = ({ worker, onActionClick }: WorkerCardProps) => {
 
 					<Button
 						variant="ghost"
-						onClick={() => onActionClick('showSchedule', worker)}
+						onClick={() => onActionClick('showSchedule')}
 						className="w-full h-11 rounded-none hover:bg-gray-50"
 					>
 						<Calendar className="w-4 h-4 mr-2" />

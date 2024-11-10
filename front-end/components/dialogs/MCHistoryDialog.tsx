@@ -159,8 +159,8 @@ export function MCHistoryDialog({
 														}
 													>
 														{leave.approved
-															? 'APPROVED'
-															: 'PENDING'}
+															? 'MC GIVEN'
+															: 'NO MC'}
 													</Badge>
 												</TableCell>
 											</TableRow>
