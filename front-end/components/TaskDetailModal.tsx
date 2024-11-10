@@ -151,12 +151,12 @@ export const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ shiftData, isO
       }
     }
 
-    if (currentStep === 1 && selectedWorkers.length < shiftData.workers.length){
+    if (currentStep === 1 && assignmentType === 'manual' && selectedWorkers.length < shiftData.workers.length){
       setError("Not enough workers selected, please select only " + shiftData.workers.length + " workers")
       return;
     }
 
-    if (currentStep === 1 && selectedWorkers.length > shiftData.workers.length){
+    if (currentStep === 1 && assignmentType === 'manual' && selectedWorkers.length > shiftData.workers.length){
       setError("Too many workers selected, please select only " + shiftData.workers.length + " workers")
       return;
     }
