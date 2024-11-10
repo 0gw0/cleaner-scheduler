@@ -6,7 +6,8 @@ import lombok.Getter;
 public enum ShiftStatus {
     UPCOMING("Upcoming"),
     IN_PROGRESS("In Progress"),
-    COMPLETED("Completed");
+    COMPLETED("Completed"),
+    ABSENT("Absent");
 
     private final String displayName;
 

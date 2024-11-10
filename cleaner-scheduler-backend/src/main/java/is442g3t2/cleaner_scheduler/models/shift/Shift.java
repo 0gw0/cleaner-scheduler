@@ -14,7 +14,9 @@ import lombok.Setter;
 
 import java.time.LocalDate;
 import java.time.LocalTime;
+import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 
 @Entity
@@ -38,8 +40,7 @@ public class Shift {
             joinColumns = @JoinColumn(name = "shift_id"),
             inverseJoinColumns = @JoinColumn(name = "worker_id")
     )
-    @JsonIdentityReference(alwaysAsId = true)
-    private Set<Worker> workers = new HashSet<>();
+    private List<Worker> workers = new ArrayList<>();
 
     @ManyToOne
     @JoinColumn(name = "property_id")
@@ -61,6 +62,18 @@ public class Shift {
     @Embedded
     private ArrivalImage arrivalImage;
 
+    @Column(nullable = false)
+    private LocalDate originalDate;
+
+    @Column(nullable = false)
+    private LocalTime originalStartTime;
+
+    @Column(nullable = false)
+    private LocalTime originalEndTime;
+
+    @Column(nullable = false)
+    private boolean isRescheduled = false;
+
 
     public Shift(LocalDate date, LocalTime startTime, LocalTime endTime, Property property, ShiftStatus status) throws InvalidShiftException {
         this.date = date;
@@ -68,6 +81,9 @@ public class Shift {
         this.endTime = endTime;
         this.property = property;
         this.status = status;
+        this.originalDate = date;
+        this.originalStartTime = startTime;
+        this.originalEndTime = endTime;
 
         if (!isValid()) {
             throw new InvalidShiftException("Invalid shift: start time must be before end time and neither can be null");
@@ -81,6 +97,24 @@ public class Shift {
         this.date = targetDate;
         this.startTime = targetStartTime;
         this.endTime = targetEndTime;
+    }
+
+    public void reschedule(LocalDate newDate, LocalTime newStartTime, LocalTime newEndTime)
+            throws InvalidShiftException {
+        // Create temporary shift to validate new times
+        Shift tempShift = new Shift(newDate, newStartTime, newEndTime, this.property, this.status);
+
+        this.date = newDate;
+        this.startTime = newStartTime;
+        this.endTime = newEndTime;
+        this.isRescheduled = true;
+    }
+
+    public boolean isRescheduled() {
+        return isRescheduled ||
+                !date.equals(originalDate) ||
+                !startTime.equals(originalStartTime) ||
+                !endTime.equals(originalEndTime);
     }
 
 
@@ -120,5 +154,7 @@ public class Shift {
     public String toString() {
         return String.format("%s: %s - %s", date, startTime, endTime);
     }
+
+
 
 }

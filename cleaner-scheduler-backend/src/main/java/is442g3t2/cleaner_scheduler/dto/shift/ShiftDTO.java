@@ -25,6 +25,7 @@ public class ShiftDTO {
     private String status;
     private ArrivalImageDTO arrivalImage;
     private Set<Long> workerIds;  // Matching your current structure
+    private boolean isRescheduled;
 
     public ShiftDTO(Shift shift, String presignedUrl) {
         this.id = shift.getId();
@@ -38,6 +39,7 @@ public class ShiftDTO {
                 ? new ArrivalImageDTO(shift.getArrivalImage(), presignedUrl)
                 : null;
         this.workerIds = shift.getWorkerIds();  // Duplicate of workers, matching current structure
+        this.isRescheduled = shift.isRescheduled();
     }
 }
 

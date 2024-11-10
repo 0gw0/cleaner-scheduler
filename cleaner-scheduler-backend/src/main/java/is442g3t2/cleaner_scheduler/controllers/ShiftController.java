@@ -7,7 +7,9 @@ import is442g3t2.cleaner_scheduler.dto.shift.ShiftDTO;
 import is442g3t2.cleaner_scheduler.dto.shift.UpdateShift;
 import is442g3t2.cleaner_scheduler.dto.worker.FindClosestAvailableWorkersRequest;
 import is442g3t2.cleaner_scheduler.dto.worker.FindClosestAvailableWorkersResponse;
+import is442g3t2.cleaner_scheduler.exceptions.ShiftsOverlapException;
 import is442g3t2.cleaner_scheduler.models.shift.ArrivalImage;
+import is442g3t2.cleaner_scheduler.models.shift.RescheduleRequest;
 import is442g3t2.cleaner_scheduler.models.worker.Worker;
 import is442g3t2.cleaner_scheduler.models.worker.WorkerWithTravelTime;
 import is442g3t2.cleaner_scheduler.models.shift.Shift;
@@ -16,13 +18,17 @@ import is442g3t2.cleaner_scheduler.repositories.WorkerRepository;
 import is442g3t2.cleaner_scheduler.services.S3Service;
 import is442g3t2.cleaner_scheduler.services.ShiftService;
 
+import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.io.IOException;
 import java.net.URL;
+import java.time.LocalDate;
+import java.time.LocalTime;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -211,7 +217,7 @@ public class ShiftController {
     @PutMapping("/{shiftId}/update")
     @Tag(name = "shifts", description = "Update workers, timing and dates of shifts")
     @Operation(summary = "Update shift URL", description = "Update workers, timing and dates for a specific shift")
-    public ResponseEntity<Shift> updateShiftDetails(
+    public ResponseEntity<ShiftDTO> updateShiftDetails(
             @PathVariable Long shiftId,
             @RequestBody UpdateShift updateRequest) {
 
@@ -222,7 +228,14 @@ public class ShiftController {
                 updateRequest.getNewStartTime(),
                 updateRequest.getNewEndTime()
         );
-        return ResponseEntity.ok(updatedShift);
+
+        ShiftDTO shiftDTO = new ShiftDTO(
+                updatedShift,
+                updatedShift.getArrivalImage() != null
+                        ? s3Service.getPresignedUrl(updatedShift.getArrivalImage().getS3Key(), 3600).toString()
+                        : null
+        );
+        return ResponseEntity.ok(shiftDTO);
     }
 
     private Map<String, String> createErrorResponse(String errorMessage) {
@@ -231,5 +244,66 @@ public class ShiftController {
         return errorResponse;
     }
 
+    @Tag(name = "shifts")
+    @Operation(description = "Get all rescheduled shifts with optional filters",
+            summary = "get rescheduled shifts")
+    @GetMapping("/rescheduled")
+    public ResponseEntity<List<ShiftDTO>> getRescheduledShifts(
+            @RequestParam(required = false) LocalDate fromDate,
+            @RequestParam(required = false) LocalDate toDate,
+            @RequestParam(required = false) Long workerId,
+            @RequestParam(required = false) Boolean sortByOriginalDate) {
 
+        // Get base list of shifts
+        List<Shift> shifts = shiftRepository.findAll();
+
+        // Filter and process shifts
+        List<ShiftDTO> rescheduledShifts = shifts.stream()
+                .filter(Shift::isRescheduled)
+                // Filter by date range if provided
+                .filter(shift -> fromDate == null || !shift.getDate().isBefore(fromDate))
+                .filter(shift -> toDate == null || !shift.getDate().isAfter(toDate))
+                // Filter by worker if provided
+                .filter(shift -> workerId == null ||
+                        shift.getWorkers().stream()
+                                .anyMatch(worker -> worker.getId().equals(workerId)))
+                // Sort based on parameter (original or new date)
+                .sorted((s1, s2) -> {
+                    if (Boolean.TRUE.equals(sortByOriginalDate)) {
+                        return s1.getOriginalDate().compareTo(s2.getOriginalDate());
+                    }
+                    return s1.getDate().compareTo(s2.getDate());
+                })
+                .map(shift -> new ShiftDTO(shift,
+                        shift.getArrivalImage() != null
+                                ? s3Service.getPresignedUrl(shift.getArrivalImage().getS3Key(), 3600).toString()
+                                : null))
+                .collect(Collectors.toList());
+
+        return ResponseEntity.ok(rescheduledShifts);
+    }
+
+    @Tag(name = "shifts")
+    @Operation(description = "Reschedule an existing shift", summary = "reschedule shift")
+    @PutMapping("/{shiftId}/reschedule")
+    public ResponseEntity<ShiftDTO> rescheduleShift(
+            @PathVariable Long shiftId,
+            @Valid @RequestBody RescheduleRequest rescheduleRequest) {
+
+        Shift shift = shiftRepository.findById(shiftId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Shift not found"));
+
+        shift.setDate(rescheduleRequest.getDate());
+        shift.setStartTime(rescheduleRequest.getStartTime());
+        shift.setEndTime(rescheduleRequest.getEndTime());
+        shift.setRescheduled(true);
+
+        shift = shiftRepository.save(shift);
+        return ResponseEntity.ok(new ShiftDTO(shift,
+                shift.getArrivalImage() != null ?
+                        s3Service.getPresignedUrl(shift.getArrivalImage().getS3Key(), 3600).toString() :
+                        null));
+    }
 }
+
+

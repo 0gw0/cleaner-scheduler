@@ -18,8 +18,9 @@ type FormData = {
   isRecurring: boolean
   recurringType: 'weekly' | 'monthly' | ''
   numberOfWorkers : number
-  selectedWorker: WorkerTravelData | null
-}
+  selectedWorker: WorkerTravelData | null,
+  recurringInterval: number 
+  endDate: string};
 
 const initialFormData: FormData = {
   clientId: '',
@@ -30,31 +31,10 @@ const initialFormData: FormData = {
   isRecurring: false,
   recurringType: '',
   selectedWorker: null,
-  numberOfWorkers : 0
+  numberOfWorkers : 0,
+  recurringInterval: 0,
+  endDate: ""
 }
-
-const workerShiftRequest = {
-  frequency: {
-    interval: 0,
-    unit: "Nanos"
-  },
-  startDate: "2024-11-08",
-  endDate: "2024-11-08",
-  startTime: {
-    hour: 0,
-    minute: 0,
-    second: 0,
-    nano: 0
-  },
-  endTime: {
-    hour: 0,
-    minute: 0,
-    second: 0,
-    nano: 0
-  },
-  propertyId: 0 
-};
-
 
 const fakeWorkerTravelData: WorkerTravelData[] = [
   {
@@ -134,12 +114,16 @@ const fakeWorkerTravelData: WorkerTravelData[] = [
   },
 ];
 
-export default function AddTaskForm() {
+interface AddTaskFormProps {
+  onTaskAdded: () => void; 
+}
+
+export default function AddTaskForm({ onTaskAdded }: AddTaskFormProps) {
   const [isOpen, setIsOpen] = useState(false)
   const [currentStep, setCurrentStep] = useState(0)
   const [formData, setFormData] = useState<FormData>(initialFormData)
   const [showSuccess, setShowSuccess] = useState(false)
-  const [availableWorkers, setAvailableWorkers] = useState(fakeWorkerTravelData)
+  const [availableWorkers, setAvailableWorkers] = useState<WorkerTravelData[]>([]);
   const [error, setError] = useState("")
   const [properties, setProperties] = useState([]);
   const [selectedProperty, setSelectedProperty] = useState<Property | null>(null);
@@ -164,6 +148,22 @@ export default function AddTaskForm() {
       }
     }
 
+    if (name === "propertyId" && value){
+      console.log("does this run")
+      const propertyId = value;
+      const foundProperty = properties.find(
+        (property: Property) => property.address === propertyId
+      );
+  
+      if (foundProperty) {
+        setSelectedProperty(foundProperty);
+      } else {
+        console.error("Property not found");
+        setError("Property not found");
+        return;
+      }
+    }
+
     setError('');
   };
 
@@ -183,21 +183,7 @@ export default function AddTaskForm() {
       return;
     }
 
-
     if (currentStep === 0) {
-      // Step 0 logic: Set selected property based on propertyId
-      const propertyId = formData.propertyId;
-      const foundProperty = properties.find(
-        (property: Property) => property.address === propertyId
-      );
-  
-      if (foundProperty) {
-        setSelectedProperty(foundProperty);
-      } else {
-        console.error("Property not found");
-        setError("Property not found");
-        return;
-      }
     
       if (selectedProperty) {
         try {
@@ -218,10 +204,10 @@ export default function AddTaskForm() {
             date: formData.date,
           };
   
-          //TO DO: add the s after available-worker
+          //TODO: add the s after available-worker
           // const response = await axios.post('http://localhost:8080/shifts/available-worker', requestData);
           // const workersData: WorkerTravelData[] = response.data;
-          //TO DO: change bottom to workersData
+          //TODO: change bottom to workersData
           const selectedWorkers = fakeWorkerTravelData.slice(0, formData.numberOfWorkers);
           setAvailableWorkers(selectedWorkers);
         } catch (error) {
@@ -236,22 +222,45 @@ export default function AddTaskForm() {
     }
 
     console.log("availableWorkers",availableWorkers)
+    console.log("selectedProperty", selectedProperty)
 
     
-      
     if (currentStep < 2) {
       setCurrentStep(prev => prev + 1)
     } else {
-      setShowSuccess(true)
+
+      try{
+        const workerIds = availableWorkers.map(worker => worker.id);
+        const requestData = {
+          workerIds,
+          propertyId: selectedProperty ? selectedProperty.id : null,
+          startDate: formData.date,
+          endDate: formData.isRecurring ? formData.endDate : null,
+          startTime: formData.startTime,
+          endTime: formData.endTime,
+          frequency: formData.isRecurring ? { unit: formData.recurringType == "weekly" ? "WEEKS" : "MONTHS", interval: formData.recurringInterval } : undefined,
+        };
+        const response = await axios.post('http://localhost:8080/workers/bulk/shifts', requestData);
+        console.log('Task created successfully:', response.data);
+        
+        if (onTaskAdded) {
+          onTaskAdded();
+        }
+        setShowSuccess(true)
       
       setTimeout(() => {
-        setIsOpen(false)
-        setShowSuccess(false)
-        setCurrentStep(0)
-        setFormData(initialFormData)
-      }, 1500)
+        setIsOpen(false);
+        setShowSuccess(false);
+        setCurrentStep(0);
+        setFormData(initialFormData);
+      }, 1500);
+        }
+    catch (error) {
+      console.error('Failed to submit form:', error);
+      setError('An error occurred while submitting the form.');
     }
   }
+};
 
 
   const steps = [
@@ -335,7 +344,7 @@ export default function AddTaskForm() {
                                   >
                                     <option value="">Select a property</option>
                                     {properties.map((property: Property) => (
-                                      <option key={property.address} value={property.propertyId}>
+                                      <option key={property.address} value={property.address}>
                                         {property.address}
                                       </option>
                                     ))}
@@ -369,6 +378,7 @@ export default function AddTaskForm() {
                                 />
                               </div>
                               <div className="grid grid-cols-2 gap-4">
+                                {/* TODO: Add validation for start time to be before end time */}
                                 <div>
                                   <Label htmlFor="startTime">Start Time</Label>
                                   <Input
@@ -429,6 +439,28 @@ export default function AddTaskForm() {
                                         onChange={handleInputChange}
                                       />
                                       <span>Monthly</span>
+                                    </label>
+                                  </div>
+                                  <div className="space-y-2">
+                                    <Label>Interval of shift</Label>
+                                    <label className="flex items-center space-x-2">
+                                    <Input
+                                        type="number"
+                                        name="recurringInterval"
+                                        value={formData.recurringInterval}
+                                        onChange={handleInputChange}
+                                      />
+                                    </label>
+                                  </div>
+                                  <div className="space-y-2">
+                                    <Label>End Date</Label>
+                                    <label className="flex items-center space-x-2">
+                                    <Input
+                                        type="Date"
+                                        name="endDate"
+                                        value={formData.endDate}
+                                        onChange={handleInputChange}
+                                      />
                                     </label>
                                   </div>
                                 </div>

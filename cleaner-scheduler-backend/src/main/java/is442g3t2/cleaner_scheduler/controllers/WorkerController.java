@@ -2,10 +2,14 @@ package is442g3t2.cleaner_scheduler.controllers;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import is442g3t2.cleaner_scheduler.dto.leave.AnnualLeaveDTO;
 import is442g3t2.cleaner_scheduler.dto.leave.MedicalLeaveDTO;
 import is442g3t2.cleaner_scheduler.dto.shift.AddShiftRequest;
 import is442g3t2.cleaner_scheduler.dto.shift.AddShiftResponse;
 import is442g3t2.cleaner_scheduler.dto.shift.GetShiftCountResponse;
+import is442g3t2.cleaner_scheduler.dto.shift.ShiftDTO;
+import is442g3t2.cleaner_scheduler.dto.shift.bulk.BulkAddShiftRequest;
+import is442g3t2.cleaner_scheduler.dto.shift.bulk.BulkAddShiftResponse;
 import is442g3t2.cleaner_scheduler.dto.worker.PostWorkerRequest;
 import is442g3t2.cleaner_scheduler.dto.worker.UpdateWorker;
 import is442g3t2.cleaner_scheduler.dto.worker.TakeLeaveRequest;
@@ -20,13 +24,12 @@ import is442g3t2.cleaner_scheduler.models.worker.Worker;
 import is442g3t2.cleaner_scheduler.models.Admin;
 import is442g3t2.cleaner_scheduler.models.shift.Frequency;
 import is442g3t2.cleaner_scheduler.models.shift.Shift;
-import is442g3t2.cleaner_scheduler.repositories.AdminRepository;
-import is442g3t2.cleaner_scheduler.repositories.PropertyRepository;
-import is442g3t2.cleaner_scheduler.repositories.WorkerRepository;
+import is442g3t2.cleaner_scheduler.repositories.*;
 import is442g3t2.cleaner_scheduler.services.S3Service;
 import is442g3t2.cleaner_scheduler.services.WorkerService;
 import is442g3t2.cleaner_scheduler.services.EmailSenderService;
 import jakarta.validation.Valid;
+import org.antlr.v4.runtime.misc.LogManager;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -41,17 +44,17 @@ import java.io.IOException;
 import java.time.LocalDate;
 import java.time.LocalTime;
 import java.time.YearMonth;
-import java.util.ArrayList;
-import java.util.List;
+import java.util.*;
 import java.util.stream.Collectors;
-import java.util.UUID;
-import java.util.Optional;
 
 
 @RestController()
 @RequestMapping(path = "/workers")
 public class WorkerController {
 
+    private final MedicalLeaveRepository medicalLeaveRepository;
+    private final AnnualLeaveRepository annualLeaveRepository;
+    private final ShiftRepository shiftRepository;
     private final WorkerRepository workerRepository;
     private final PropertyRepository propertyRepository;
     private final AdminRepository adminRepository;
@@ -59,10 +62,14 @@ public class WorkerController {
     private final EmailSenderService emailSenderService;
     private final S3Service s3Service;
 
-    public WorkerController(WorkerService workerService, WorkerRepository workerRepository,
-                            AdminRepository adminRepository, PropertyRepository propertyRepository
+    public WorkerController(
+            MedicalLeaveRepository medicalLeaveRepository, AnnualLeaveRepository annualLeaveRepository, ShiftRepository shiftRepository, WorkerService workerService, WorkerRepository workerRepository,
+            AdminRepository adminRepository, PropertyRepository propertyRepository
             , EmailSenderService emailSenderService, S3Service s3Service
     ) {
+        this.medicalLeaveRepository = medicalLeaveRepository;
+        this.annualLeaveRepository = annualLeaveRepository;
+        this.shiftRepository = shiftRepository;
         this.workerService = workerService;
         this.workerRepository = workerRepository;
         this.adminRepository = adminRepository;
@@ -72,7 +79,7 @@ public class WorkerController {
     }
 
     @Tag(name = "workers")
-    @Operation(description = "get ALL workers or ALL workers under a superviser using their supervisor id", summary = "get ALL workers or ALL workers under a superviser using their supervisor id")
+    @Operation(description = "get ALL workers or ALL workers under a supervisor using their supervisor id", summary = "get ALL workers or ALL workers under a superviser using their supervisor id")
     @GetMapping("")
     public ResponseEntity<List<WorkerDTO>> getWorkers(
             @RequestParam(name = "supervisorId", required = false) Long supervisorId) {
@@ -163,18 +170,22 @@ public class WorkerController {
                 // Single shift (adhoc eg when a new worker needs to takeover from another fella
                 // on leave)
                 Shift shift = new Shift(startDate, startTime, endTime, property, ShiftStatus.UPCOMING);
+                System.out.println("THIS IS THE NEW SHIFT" + shift);
                 worker.addShift(shift);
+                shiftRepository.save(shift);
                 workerRepository.save(worker);
+                System.out.println("ALL SHIFTS SHOWN HERE: " + worker.getShifts());
 
                 return ResponseEntity.ok(new AddShiftResponse(true,
                         String.format("ONE Shift Added for %s from %s to %s", startDate, startTime, endTime)));
             } else {
-                System.out.println(frequency);
-                worker.addRecurringShifts(startDate, endDate, startTime, endTime, property, frequency);
+                List<Shift> recurringShifts = worker.addRecurringShifts(startDate, endDate, startTime, endTime,
+                        property, frequency);
+                shiftRepository.saveAll(recurringShifts);
                 workerRepository.save(worker);
                 return ResponseEntity.ok(new AddShiftResponse(true,
-                        String.format("RECURRING Shifts Added starting %s and ending %s from %s to %s", startDate,
-                                endDate, startTime, endTime)));
+                        String.format("RECURRING Shifts Added starting %s and ending %s from %s to %s",
+                                startDate, endDate, startTime, endTime)));
             }
         } catch (ShiftsOverlapException e) {
             System.out.println(e.getMessage());
@@ -183,6 +194,116 @@ public class WorkerController {
             System.out.println(e.getMessage());
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body(new AddShiftResponse(false, e.getMessage()));
+        }
+    }
+
+    @Tag(name = "workers - shifts")
+    @Operation(description = "add shift(s) to multiple workers", summary = "bulk add shift(s) to workers")
+    @PostMapping("/bulk/shifts")
+    public ResponseEntity<BulkAddShiftResponse> addBulkShifts(
+            @Valid @RequestBody BulkAddShiftRequest bulkAddShiftRequest) {
+
+        Property property = propertyRepository.findById(bulkAddShiftRequest.getPropertyId())
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Property not found"));
+
+        if (bulkAddShiftRequest.getFrequency() != null && bulkAddShiftRequest.getEndDate() == null) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body(new BulkAddShiftResponse(false, "No End Date Provided", Map.of()));
+        }
+
+        // Create or get existing shifts
+        List<Shift> shifts = new ArrayList<>();
+        if (bulkAddShiftRequest.getFrequency() == null) {
+            // Single shift - check if it exists
+            Shift existingShift = shiftRepository.findByDateAndStartTimeAndEndTimeAndProperty(
+                    bulkAddShiftRequest.getStartDate(),
+                    bulkAddShiftRequest.getStartTime(),
+                    bulkAddShiftRequest.getEndTime(),
+                    property
+            ).orElse(null);
+
+            if (existingShift == null) {
+                existingShift = new Shift(
+                        bulkAddShiftRequest.getStartDate(),
+                        bulkAddShiftRequest.getStartTime(),
+                        bulkAddShiftRequest.getEndTime(),
+                        property,
+                        ShiftStatus.UPCOMING
+                );
+                shiftRepository.save(existingShift);
+            }
+            shifts.add(existingShift);
+        } else {
+            // Create recurring shifts
+            LocalDate currentDate = bulkAddShiftRequest.getStartDate();
+            while (!currentDate.isAfter(bulkAddShiftRequest.getEndDate())) {
+                // Check if shift exists for this date
+                Shift existingShift = shiftRepository.findByDateAndStartTimeAndEndTimeAndProperty(
+                        currentDate,
+                        bulkAddShiftRequest.getStartTime(),
+                        bulkAddShiftRequest.getEndTime(),
+                        property
+                ).orElse(null);
+
+                if (existingShift == null) {
+                    existingShift = new Shift(
+                            currentDate,
+                            bulkAddShiftRequest.getStartTime(),
+                            bulkAddShiftRequest.getEndTime(),
+                            property,
+                            ShiftStatus.UPCOMING
+                    );
+                    shiftRepository.save(existingShift);
+                }
+                shifts.add(existingShift);
+
+                currentDate = currentDate.plus(
+                        bulkAddShiftRequest.getFrequency().getInterval(),
+                        bulkAddShiftRequest.getFrequency().getUnit()
+                );
+            }
+        }
+
+        Map<Long, String> failedWorkers = new HashMap<>();
+        int successCount = 0;
+
+        // Now assign workers to the shifts
+        for (Long workerId : bulkAddShiftRequest.getWorkerIds()) {
+            try {
+                Worker worker = workerRepository.findById(workerId)
+                        .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND,
+                                "Worker not found with ID: " + workerId));
+
+                // Try to add all shifts to this worker
+                for (Shift shift : shifts) {
+                    try {
+                        worker.addShift(shift);
+                    } catch (ShiftsOverlapException e) {
+                        throw new ShiftsOverlapException("Worker " + worker.getName() + ": " + e.getMessage());
+                    }
+                }
+
+                workerRepository.save(worker);
+                successCount++;
+
+            } catch (ShiftsOverlapException e) {
+                failedWorkers.put(workerId, "Shifts overlap: " + e.getMessage());
+            } catch (Exception e) {
+                failedWorkers.put(workerId, "Error: " + e.getMessage());
+            }
+        }
+
+        // Final save to ensure all relationships are updated
+        shiftRepository.saveAll(shifts);
+
+        String message = String.format("Successfully added shifts to %d out of %d workers",
+                successCount, bulkAddShiftRequest.getWorkerIds().size());
+
+        if (failedWorkers.isEmpty()) {
+            return ResponseEntity.ok(new BulkAddShiftResponse(true, message, failedWorkers));
+        } else {
+            return ResponseEntity.status(HttpStatus.PARTIAL_CONTENT)
+                    .body(new BulkAddShiftResponse(false, message, failedWorkers));
         }
     }
 
@@ -345,25 +466,39 @@ public class WorkerController {
     @Tag(name = "workers - shifts")
     @Operation(description = "get ALL shifts of all workers under a supervisor", summary = "get ALL shifts by supervisor ID")
     @GetMapping("/supervisor/{supervisorId}/shifts")
-    public ResponseEntity<List<Shift>> getShiftsBySupervisorId(@PathVariable Long supervisorId) {
-        List<Shift> shifts = workerService.getAllShiftsBySupervisorId(supervisorId);
+    public ResponseEntity<List<ShiftDTO>> getShiftsBySupervisorId(@PathVariable Long supervisorId) {
+        List<ShiftDTO> shiftDTOs = workerService.getAllShiftsBySupervisorId(supervisorId)
+                .stream()
+                .map(shift -> new ShiftDTO(shift,
+                        shift.getArrivalImage() != null
+                                ? s3Service.getPresignedUrl(shift.getArrivalImage().getS3Key(), 3600).toString()
+                                : null))
+                .collect(Collectors.toList());
 
-        if (shifts.isEmpty()) {
+
+        if (shiftDTOs.isEmpty()) {
             return ResponseEntity.noContent().build();
         }
 
-        return ResponseEntity.ok(shifts);
+        return ResponseEntity.ok(shiftDTOs);
     }
 
     @Tag(name = "workers")
     @Operation(description = "Create a new worker", summary = "Create a new worker")
     @PostMapping("")
     public ResponseEntity<Worker> createWorker(@RequestBody PostWorkerRequest postWorkerRequest) {
+
+        if (workerRepository.existsByEmail(postWorkerRequest.getEmail())) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "Email already exists");
+        }
+        
         Worker worker = new Worker(
                 postWorkerRequest.getName(),
                 postWorkerRequest.getPhoneNumber(),
                 postWorkerRequest.getBio(),
-                postWorkerRequest.getEmail());
+                postWorkerRequest.getEmail(),
+                postWorkerRequest.getPassword()
+                );
 
         Admin supervisor = adminRepository.findById(postWorkerRequest.getSupervisorId())
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Supervisor not found"));
@@ -440,6 +575,106 @@ public class WorkerController {
         } else {
             return ResponseEntity.badRequest().body("Invalid verification token");
         }
+    }
+
+    @Tag(name = "workers - availability")
+    @Operation(description = "Get all available workers at a specific date and time",
+            summary = "get available workers")
+    @GetMapping("/available")
+    public ResponseEntity<List<WorkerDTO>> getAvailableWorkers(
+            @RequestParam LocalDate date,
+            @RequestParam LocalTime startTime,
+            @RequestParam LocalTime endTime,
+            @RequestParam(required = false) Long supervisorId) {
+
+        // temporary shift object JUST TOI CHECK overlap
+        Shift tempShift = new Shift(date, startTime, endTime, null, ShiftStatus.UPCOMING);
+
+        List<Worker> allWorkers = workerRepository.findAll();
+
+        // Filter available workers
+        List<WorkerDTO> availableWorkers = allWorkers.stream()
+                .filter(worker -> {
+                    boolean noShiftConflict = worker.isNewShiftValid(tempShift);
+
+                    boolean noLeaveConflict =
+                            worker.getAnnualLeavesByYear(date.getYear()).stream()
+                                    .noneMatch(leave ->
+                                            !date.isBefore(leave.getStartDate()) &&
+                                                    !date.isAfter(leave.getEndDate())) &&
+                                    worker.getMedicalLeavesByYear(date.getYear()).stream()
+                                            .noneMatch(leave ->
+                                                    !date.isBefore(leave.getStartDate()) &&
+                                                            !date.isAfter(leave.getEndDate()));
+
+                    return noShiftConflict && noLeaveConflict && worker.getStatus().equals("Active");
+                })
+                // Filter by supervisor if supervisorId is provided
+                .filter(worker -> supervisorId == null ||
+                        (worker.getSupervisor() != null &&
+                                worker.getSupervisor().equals(supervisorId)))
+                .map(worker -> new WorkerDTO(worker, s3Service))
+                .collect(Collectors.toList());
+
+        return ResponseEntity.ok(availableWorkers);
+    }
+
+    @Tag(name = "workers - leaves")
+    @Operation(description = "Update annual leave approval status", summary = "approve/reject annual leave")
+    @PutMapping("/{workerId}/annual-leaves/{leaveId}")
+    public ResponseEntity<AnnualLeaveDTO> updateAnnualLeaveStatus(
+            @PathVariable Long workerId,
+            @PathVariable Long leaveId,
+            @RequestParam boolean approved) {
+
+        Worker worker = workerRepository.findById(workerId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Worker not found"));
+
+        AnnualLeave leave = annualLeaveRepository.findById(leaveId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Annual leave not found"));
+
+        if (!leave.getWorker().getId().equals(workerId)) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Leave does not belong to this worker");
+        }
+
+        leave.setApproved(approved);
+        leave.setStatus(approved ? "APPROVED" : "REJECTED");
+        leave = annualLeaveRepository.save(leave);
+
+        return ResponseEntity.ok(new AnnualLeaveDTO(leave));
+    }
+
+    @Tag(name = "workers - leaves")
+    @Operation(description = "Update medical leave approval status", summary = "approve/reject medical leave")
+    @PutMapping("/{workerId}/medical-leaves/{leaveId}")
+    public ResponseEntity<MedicalLeaveDTO> updateMedicalLeaveStatus(
+            @PathVariable Long workerId,
+            @PathVariable Long leaveId,
+            @RequestParam boolean approved) {
+
+        Worker worker = workerRepository.findById(workerId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Worker not found"));
+
+        MedicalLeave leave = medicalLeaveRepository.findById(leaveId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Medical leave not found"));
+
+        if (!leave.getWorker().getId().equals(workerId)) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Leave does not belong to this worker");
+        }
+
+        leave.setApproved(approved);
+        leave = medicalLeaveRepository.save(leave);
+
+        String presignedUrl = null;
+        if (leave.getMedicalCertificate() != null) {
+            try {
+                presignedUrl = s3Service.getPresignedUrl(leave.getMedicalCertificate().getS3Key(), 3600).toString();
+            } catch (Exception e) {
+                // continue
+            }
+        }
+
+        return ResponseEntity.ok(new MedicalLeaveDTO(leave, presignedUrl));
     }
 
 }
