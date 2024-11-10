@@ -13,6 +13,7 @@ import {
 import {Button} from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea';
 import { Input } from '@/components/ui/input'
+import axios from 'axios';
 
 // Update the ScheduleItem interface to match the new data structure
 interface ScheduleItem {
@@ -94,12 +95,23 @@ const WorkerSchedule: React.FC<WorkerScheduleProps> = ({ schedule }) => {
     setPhotoFile(file);
   };
 
-  const handlePhotoSubmit = () => {
+  const handlePhotoSubmit = async () => {
+    //TODO: not tested + need to also change status to in progress
     if (photoFile && selectedShiftId) {
-      console.log(`Submitting photo for shift ${selectedShiftId}:`, photoFile);
-      handleClosePhotoDialog(); 
-      //TODO: Add API call to submit photo
-      //TODO: Add API call to change status to in progress
+      const formData = new FormData();
+      formData.append('file', photoFile);
+  
+      try {
+        const response = await axios.post(`http://localhost:8080/shifts/${selectedShiftId}/arrival-image`, formData, {
+          headers: {
+            'Content-Type': 'multipart/form-data',
+          },
+        });
+        console.log(`Photo uploaded successfully for shift ${selectedShiftId}:`, response.data);
+        handleClosePhotoDialog(); 
+      } catch (error) {
+        console.error(`Error uploading photo for shift ${selectedShiftId}:`, error);
+      }
     }
   };
 
