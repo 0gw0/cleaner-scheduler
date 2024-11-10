@@ -193,6 +193,9 @@ export default function Schedule() {
 
     // Filtered data based on the selected worker ID or name and search term
     const filteredEvents = eventsData.filter(event => {
+        // Exclude events with a "Cancelled" status
+        if (event.Status.toLowerCase() === "cancelled") return false;
+
         const matchesWorkerFilter = workerIdFilter !== null 
             ? event.Ids.includes(workerIdFilter)
             : true;
