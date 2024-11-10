@@ -169,6 +169,7 @@ public class WorkerController {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body(new AddShiftResponse(false, "No End Date Provided"));
         }
+        
 
         try {
             if (frequency == null) {
@@ -184,6 +185,7 @@ public class WorkerController {
                 return ResponseEntity.ok(new AddShiftResponse(true,
                         String.format("ONE Shift Added for %s from %s to %s", startDate, startTime, endTime)));
             } else {
+
                 List<Shift> recurringShifts = worker.addRecurringShifts(startDate, endDate, startTime, endTime,
                         property, frequency);
                 shiftRepository.saveAll(recurringShifts);
@@ -240,6 +242,12 @@ public class WorkerController {
                         property,
                         ShiftStatus.UPCOMING
                 );
+                String validationError = existingShift.isValidShiftTime(existingShift.getStartTime(), existingShift.getEndTime());
+
+                if (!validationError.isEmpty()) {
+                    return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                            .body(new BulkAddShiftResponse(false, validationError));
+                }
                 shiftRepository.save(existingShift);
             }
             shifts.add(existingShift);
@@ -263,6 +271,13 @@ public class WorkerController {
                             property,
                             ShiftStatus.UPCOMING
                     );
+
+                    String validationError = existingShift.isValidShiftTime(existingShift.getStartTime(), existingShift.getEndTime());
+                    if (!validationError.isEmpty()) {
+                        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                                .body(new BulkAddShiftResponse(false, validationError));
+                    }
+
                     shiftRepository.save(existingShift);
                 }
                 shifts.add(existingShift);

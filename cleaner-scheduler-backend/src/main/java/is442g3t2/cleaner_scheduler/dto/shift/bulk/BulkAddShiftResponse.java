@@ -18,4 +18,10 @@ public class BulkAddShiftResponse {
         this.failedWorkers = failedWorkers;
     }
 
+    public BulkAddShiftResponse(boolean success, String message) {
+        this.success = success;
+        this.message = message;
+    }
+
+
 }
