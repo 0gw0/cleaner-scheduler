@@ -69,22 +69,43 @@ const WorkerManagement = () => {
 		setWorkersWithPendingMC(pendingMCMap);
 	};
 
-	// Fetch worker data
-	useEffect(() => {
-		const fetchWorkerData = async () => {
-			try {
-				const response = await axios.get<WorkerData[]>(
-					`http://localhost:8080/workers`
-				);
-				const cleanedData = response.data;
-				setWorkerData(cleanedData);
-				updatePendingMCStatus(cleanedData);
-			} catch (error) {
-				console.error('Error fetching worker data:', error);
-				setWorkerData([]);
-			}
-		};
+	const fetchWorkerData = async () => {
+		try {
+			const response = await axios.get<WorkerData[]>(
+				`http://localhost:8080/workers`
+			);
+			const cleanedData = response.data;
+			setWorkerData(cleanedData);
+			updatePendingMCStatus(cleanedData);
 
+			// Also update selected worker if one exists
+			if (selectedWorker) {
+				const updatedSelectedWorker = cleanedData.find(
+					(w) => w.id === selectedWorker.id
+				);
+				if (updatedSelectedWorker) {
+					setSelectedWorker(updatedSelectedWorker);
+				}
+			}
+		} catch (error) {
+			console.error('Error fetching worker data:', error);
+			setWorkerData([]);
+		}
+	};
+
+	const refreshWorkerData = async () => {
+		await fetchWorkerData();
+		if (selectedWorker) {
+			const updatedWorker = workerData.find(
+				(w) => w.id === selectedWorker.id
+			);
+			if (updatedWorker) {
+				setSelectedWorker(updatedWorker);
+			}
+		}
+	};
+
+	useEffect(() => {
 		fetchWorkerData();
 	}, []);
 
@@ -268,6 +289,7 @@ const WorkerManagement = () => {
 				dialogState={dialogState}
 				onClose={handleDialogClose}
 				selectedWorker={selectedWorker}
+				refreshWorkerData={refreshWorkerData}
 			/>
 
 			{totalWorkers > 0 && (
