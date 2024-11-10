@@ -154,6 +154,11 @@ public class WorkerController {
         Long propertyId = addShiftRequest.getPropertyId();
         Property property = propertyRepository.findById(propertyId).orElseThrow(
                 () -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Property not found"));
+
+        if (!property.isActive()) {
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                .body(new AddShiftResponse(false, "Cannot create shift for inactive property"));
+        }
         LocalDate startDate = addShiftRequest.getStartDate();
         LocalDate endDate = addShiftRequest.getEndDate();
         LocalTime startTime = addShiftRequest.getStartTime();
@@ -205,6 +210,11 @@ public class WorkerController {
 
         Property property = propertyRepository.findById(bulkAddShiftRequest.getPropertyId())
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Property not found"));
+
+        if (!property.isActive()) {
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                .body(new BulkAddShiftResponse(false, "Cannot create shifts for inactive property", Map.of()));
+        }
 
         if (bulkAddShiftRequest.getFrequency() != null && bulkAddShiftRequest.getEndDate() == null) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST)
