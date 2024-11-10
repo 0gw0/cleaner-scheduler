@@ -139,7 +139,7 @@ export default function AddTaskForm({ onTaskAdded }: AddTaskFormProps) {
     if (name === 'clientId' && value) {
       try {
         const response = await axios.get('http://localhost:8080/properties', {
-          params: { clientId: value }
+          params: { clientId: value, includeInactive: false }
         });
         setProperties(response.data);
       } catch (error) {
@@ -149,7 +149,6 @@ export default function AddTaskForm({ onTaskAdded }: AddTaskFormProps) {
     }
 
     if (name === "propertyId" && value){
-      console.log("does this run")
       const propertyId = value;
       const foundProperty = properties.find(
         (property: Property) => property.address === propertyId
@@ -182,6 +181,13 @@ export default function AddTaskForm({ onTaskAdded }: AddTaskFormProps) {
       setError('The start time must be at least 3 hours from now.');
       return;
     }
+
+    if (formData.startTime > formData.endTime){
+      setError('Start time cannot be later than end time!');
+      return
+    }
+
+    
 
     if (currentStep === 0) {
     
@@ -221,8 +227,6 @@ export default function AddTaskForm({ onTaskAdded }: AddTaskFormProps) {
       }
     }
 
-    console.log("availableWorkers",availableWorkers)
-    console.log("selectedProperty", selectedProperty)
 
     
     if (currentStep < 2) {
