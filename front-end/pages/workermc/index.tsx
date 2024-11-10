@@ -226,6 +226,15 @@ const MCUploadDialog = ({
     }
 
     try {
+      const formData = new FormData();
+      formData.append("medicalCertificate", selectedFile);
+      await fetch(
+        `http://localhost:8080/workers/${user.id}/medical-leaves/${leave.id}/certificate`,
+        {
+          method: "PUT",
+          body: formData,
+        }
+      );
       const reader = new FileReader();
       reader.onloadend = async () => {
         const base64Data = (reader.result as string).split(",")[1];
@@ -382,7 +391,7 @@ const MCApplicationForm = ({
       if (selectedFile) {
         formData.append("medicalCertificate", selectedFile);
       }
-
+      
       const response = await fetch(
         `http://localhost:8080/workers/${user.id}/medical-leaves`,
         {
@@ -559,7 +568,7 @@ const WorkerMCPage: React.FC = () => {
 
   const LeaveStatusBadges = ({ leave }) => {
     return (
-      <div className="flex justify-end w-full"> {/* Added flex and justify-end */}
+      <div className="flex justify-end w-full"> 
         {leave.approved && (
           <Badge className="bg-green-500 hover:bg-green-600 gap-1 py-1 my-2 text-sm font-medium">
             <Check className="w-4 h-4" />
