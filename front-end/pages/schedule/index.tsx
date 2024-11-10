@@ -16,7 +16,7 @@ interface ApiProperty {
 
 interface ApiItem {
     id: number; // TaskId
-    worker: number; // Worker ID
+    workers: number[]; // Array of Worker IDs
     property?: ApiProperty;
     date: string;
     startTime: string;
@@ -24,9 +24,17 @@ interface ApiItem {
     status: string;
 }
 
+interface Worker {
+    id: number;
+    name: string;
+    phoneNumber: string;
+    supervisor: number;
+    bio: string;
+    shifts: number[];
+}
 interface EventData {
-    Id: number; // Worker ID
-    Subject: string;
+    Ids: number[]; // Array of Worker IDs
+    Subject: string; // Worker Names
     StartTime: Date;
     EndTime: Date;
     IsAllDay: boolean;
@@ -36,20 +44,6 @@ interface EventData {
 }
 
 
-// Function to transform data to match ScheduleComponent format
-function transformData(apiData: ApiItem[]): EventData[] {
-    return apiData.map((item: ApiItem) => ({
-        Id: item.worker,
-        Subject: `Worker ${item.worker}`,
-        StartTime: new Date(`${item.date}T${item.startTime}`),
-        EndTime: new Date(`${item.date}T${item.endTime}`),
-        IsAllDay: false,
-        Address: item.property ? item.property.address : 'N/A',
-        Status: item.status.charAt(0).toUpperCase() + item.status.slice(1).toLowerCase(),
-        TaskId: item.id
-        // Add other fields if needed
-    }));
-}
 
 // Hard coded data for testing
 const data = [
@@ -143,23 +137,24 @@ const data = [
 ];
 
 export default function Schedule() {
+    const [apiData, setApiData] = useState<ApiItem[]>([]);
     const [eventsData, setEventsData] = useState<EventData[]>([]);
     const [workerIdFilter, setWorkerIdFilter] = useState<number | null>(null);
-    const [uniqueWorkerIds, setUniqueWorkerIds] = useState<number[]>([]);
+    // const [uniqueWorkerIds, setUniqueWorkerIds] = useState<number[]>([]);
+    const [uniqueWorkers, setUniqueWorkers] = useState<{ id: number; name: string }[]>([]);
     const [searchTerm, setSearchTerm] = useState("");
 
     useEffect(() => {
-        // Fetch data from the API and transform it
+        // Fetch shift and worker data from the API and transform it
         const fetchData = async () => {
             try {
-                const response = await axios.get<ApiItem[]>(SHIFT_API_URL);
-                const transformedData = transformData(response.data);
-                console.log("Transformed Data:", transformedData); // Check here
-                setEventsData(transformedData); // Set the transformed data to state
+                const [shiftResponse, workerResponse] = await Promise.all([
+                    axios.get<ApiItem[]>(SHIFT_API_URL),
+                    axios.get<Worker[]>(WORKER_API_URL)
+                ]);
 
-                // Extract unique worker IDs
-                const workers = Array.from(new Set(response.data.map(item => item.worker)));
-                setUniqueWorkerIds(workers);
+                setApiData(shiftResponse.data);
+                setUniqueWorkers(workerResponse.data.map(worker => ({ id: worker.id, name: worker.name })));
             } catch (error) {
                 console.error('Error fetching data:', error);
             }
@@ -168,11 +163,50 @@ export default function Schedule() {
         fetchData();
     }, []);
 
-    // Filtered data based on the selected worker ID and search term
+    useEffect(() => {
+        // Transform shift data to EventData format once both apiData and uniqueWorkers are populated
+        if (apiData.length && uniqueWorkers.length) {
+            const transformedData = apiData.map((item: ApiItem) => {
+                const workerNames = item.workers
+                    .map(workerId => uniqueWorkers.find(worker => worker.id === workerId)?.name || `Worker ${workerId}`)
+                    .join(", ");
+
+                const subjectPrefix = item.workers.length > 1 ? "Workers" : "Worker";
+                const subject = `${subjectPrefix} ${workerNames}`;
+
+                return {
+                    Ids: item.workers,
+                    Subject: subject,
+                    StartTime: new Date(`${item.date}T${item.startTime}`),
+                    EndTime: new Date(`${item.date}T${item.endTime}`),
+                    IsAllDay: false,
+                    Address: item.property ? item.property.address : "N/A",
+                    Status: item.status.charAt(0).toUpperCase() + item.status.slice(1).toLowerCase(),
+                    TaskId: item.id
+                };
+            });
+
+            setEventsData(transformedData);
+        }
+    }, [apiData, uniqueWorkers]);
+
+
+    // Filtered data based on the selected worker ID or name and search term
     const filteredEvents = eventsData.filter(event => {
-        const matchesWorkerFilter = workerIdFilter !== null ? event.Id === workerIdFilter : true;
-        const matchesSearchTerm = searchTerm ? event.Subject.toLowerCase().includes(searchTerm.toLowerCase()) : true;
-        console.log(`Event: ${event.Subject}, Worker ID: ${event.Id}, Matches Worker Filter: ${matchesWorkerFilter}, Matches Search Term: ${matchesSearchTerm}`);
+        const matchesWorkerFilter = workerIdFilter !== null 
+            ? event.Ids.includes(workerIdFilter)
+            : true;
+
+        // Combine worker names and IDs into a single searchable string
+        const workerDetails = event.Ids.map(id => {
+            const worker = uniqueWorkers.find(worker => worker.id === id);
+            return worker ? `${worker.id} ${worker.name}` : "";
+        }).join(", ");
+
+        const matchesSearchTerm = searchTerm
+        ? workerDetails.toLowerCase().includes(searchTerm.toLowerCase())
+        : true;
+
         return matchesWorkerFilter && matchesSearchTerm;
     });
 
@@ -182,8 +216,10 @@ export default function Schedule() {
                 <div className="w-full max-w-5xl text-center">
                     <select onChange={(e) => setWorkerIdFilter(Number(e.target.value) || null)} className="m-4 p-2 border">
                         <option value="">All Workers</option>
-                        {uniqueWorkerIds.map(workerId => (
-                            <option key={workerId} value={workerId}>{workerId}</option>
+                        {uniqueWorkers.map(worker => (
+                            <option key={worker.id} value={worker.id}>
+                                {worker.id}. {worker.name}
+                            </option>
                         ))}
                     {/* Add more options dynamically or as needed */}
                     </select>
@@ -191,7 +227,7 @@ export default function Schedule() {
                     {/* Search input */}
                     <input
                         type="text"
-                        placeholder="Search..."
+                        placeholder="Search for Worker Name..."
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
                         className="p-2 border border-gray-300 rounded ml-2"
