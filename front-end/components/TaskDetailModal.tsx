@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Shift, WorkerTravelData } from '@/types/task';
-import { CalendarIcon, ClockIcon, MapPinIcon, UserIcon, BuildingIcon } from 'lucide-react';
+import { CalendarIcon, ClockIcon, MapPinIcon, UserIcon, BuildingIcon, Check } from 'lucide-react';
 import Image from 'next/image'
 import { PersonIcon } from '@radix-ui/react-icons';
 import axios from 'axios';
@@ -55,7 +55,7 @@ export const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ shiftData, isO
   const [currentStep, setCurrentStep] = useState(0); 
   const [assignmentType, setAssignmentType] = useState<'manual' | 'automatic'>('manual'); 
   const [availableWorkers, setAvailableWorkers] = useState<WorkerTravelData[]>([])
-
+  const [showSuccess, setShowSuccess] = useState(false);
 
   const handleChange = (field: keyof Shift, value: any) => {
     setUpdatedShift((prev) => ({ ...prev, [field]: value }));
@@ -126,6 +126,7 @@ export const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ shiftData, isO
       }
       await onEdit(updatedShift); 
       setIsEditing(false); 
+      setShowSuccess(true)
       setCurrentStep(0); 
       onTaskUpdate();
     } catch (error) {
@@ -153,8 +154,22 @@ export const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ shiftData, isO
               {shiftData.status}
             </span>
           </DialogHeader>
+
+          {showSuccess ? (
+          <motion.div
+            key="success"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -20 }}
+            className="text-center py-8"
+          >
+            <Check className="w-16 h-16 text-green-500 mx-auto mb-4" />
+            <p className="text-lg font-semibold mb-2">Task updated successfully!</p>
+            <p className="text-sm text-gray-500">You will be redirected shortly.</p>
+          </motion.div>
+        ) :
   
-          {isEditing ? (
+          isEditing ? (
             <>
               {currentStep === 0 && (
                 <div className="grid gap-4 py-4">
