@@ -7,6 +7,7 @@ import Image from 'next/image'
 import { PersonIcon } from '@radix-ui/react-icons';
 import axios from 'axios';
 import { motion } from 'framer-motion';
+import { WorkerData } from '@/types/dashboard';
 
 
 interface TaskDetailModalProps {
@@ -54,8 +55,12 @@ export const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ shiftData, isO
   const [updatedShift, setUpdatedShift] = useState(shiftData); 
   const [currentStep, setCurrentStep] = useState(0); 
   const [assignmentType, setAssignmentType] = useState<'manual' | 'automatic'>('manual'); 
-  const [availableWorkers, setAvailableWorkers] = useState<WorkerTravelData[]>([])
+  const [availableWorkers, setAvailableWorkers] = useState<WorkerTravelData[]>([]); // this is for automatic
+  const [selectedWorkers, setSelectedWorkers] = useState<WorkerData[]>([]); // this is for manual selected
   const [showSuccess, setShowSuccess] = useState(false);
+  const [workerChoice, setWorkerChoice] = useState<WorkerData[]>([]); // these are choices given if manual selected
+  const [error, setError] = useState("");
+  const [showFailure, setShowFailure] = useState(false); //not available to perform update because no available workers
 
   const handleChange = (field: keyof Shift, value: any) => {
     setUpdatedShift((prev) => ({ ...prev, [field]: value }));
@@ -63,8 +68,19 @@ export const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ shiftData, isO
     setUpdatedShift((prev) => ({ ...prev, [field]: value }));
   };
 
+  const toggleWorkerSelection = (worker: WorkerData) => {
+    setSelectedWorkers((prevSelected) => {
+      if (prevSelected.some((selectedWorker) => selectedWorker.id === worker.id)) {
+        return prevSelected.filter((selectedWorker) => selectedWorker.id !== worker.id);
+      } else {
+        return [...prevSelected, worker];
+      }
+    });
+  };
+
 
   const handleNextStep = async () => {
+    setError("")
     if (currentStep === 0 && assignmentType === 'automatic') {
       // Make API call for automatic worker assignment
       const requestBody = {
@@ -95,17 +111,52 @@ export const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ shiftData, isO
         console.error('Failed to fetch available workers:', error);
       }
     }
+    if (currentStep === 0 && assignmentType === 'manual') {
+      try {
+        const response = await axios.get('http://localhost:8080/workers/available', {
+          params: { date: updatedShift.date, startTime: updatedShift.startTime, endTime: updatedShift.endTime }
+        });  
+        if (response.data.length < shiftData.workers.length) {
+          setError('Not enough available workers to fulfill the shift requirements.');
+          setShowFailure(true);
+        }
+        else {
+          setWorkerChoice(response.data);
+        }
+       }
+       catch (error) {
+        console.error('Failed to fetch available workers:', error);
+      }
+    }
+
+    if (currentStep === 1 && selectedWorkers.length < shiftData.workers.length){
+      setError("Not enough workers selected, please select only " + shiftData.workers.length + " workers")
+      return;
+    }
+
+    if (currentStep === 1 && selectedWorkers.length > shiftData.workers.length){
+      setError("Too many workers selected, please select only " + shiftData.workers.length + " workers")
+      return;
+    }
+    
     setCurrentStep((prev) => prev + 1);
+
   };
 
   const handlePreviousStep = () => {
     setCurrentStep((prev) => prev - 1);
+
+    if (showFailure){
+      setShowFailure(false)
+    }
   };
+
 
   const handleSave = async () => {
     try {
-      const workerIds = availableWorkers.map(worker => worker.id);
-  
+      const workerIds = (availableWorkers && availableWorkers.length > 0 ? availableWorkers : selectedWorkers)
+      .map(worker => worker.id);
+
       const requestBody = {
         workerIds,
         newDate: updatedShift.date,
@@ -168,7 +219,6 @@ export const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ shiftData, isO
             <p className="text-sm text-gray-500">You will be redirected shortly.</p>
           </motion.div>
         ) :
-  
           isEditing ? (
             <>
               {currentStep === 0 && (
@@ -260,12 +310,34 @@ export const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ shiftData, isO
               )}
   
               {currentStep === 1 && (
-                <div className="grid gap-4 py-4">
-                  {assignmentType === 'manual' ? (
-                    <div className="space-y-4">
+              <div className="grid gap-4 py-4">
+                {assignmentType === 'manual' && !showFailure ? (
+                  <div className="space-y-4">
+                    <p>You can choose from the following workers</p>
+                    {workerChoice.map((worker, index) => {
+                      const isSelected = selectedWorkers.some((selectedWorker) => selectedWorker.id === worker.id);
+                      return (
+                        <motion.div
+                          key={worker.id}
+                          className={`p-4 rounded-lg cursor-pointer ${isSelected ? 'bg-black text-white' : 'bg-slate-200 text-black'}`}
+                          initial={{ opacity: 0, y: 20 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          exit={{ opacity: 0, y: -20 }}
+                          transition={{ duration: 0.5, delay: index * 0.2 }} // Sequential delay for staggered appearance
+                          onClick={() => toggleWorkerSelection(worker)}
+                        >
+                          <h3 className="font-semibold">{worker.name}</h3>
+                        </motion.div>
+                      );
+                    })}
+                    {error && (
+                    <div className="text-red-500 mb-4 text-sm">
+                      {error}
+                    </div>
+                    )}
                   </div>
-                  ) : (
-                    <div className="space-y-4">
+                ) : !showFailure ? (
+                  <div className="space-y-4">
                     <p>The following workers have been assigned:</p>
                     {availableWorkers.map((worker, index) => (
                       <motion.div
@@ -283,15 +355,25 @@ export const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ shiftData, isO
                         </p>
                       </motion.div>
                     ))}
-                    </div>
-                  )}
-  
-                  <div className="flex justify-between mt-4">
-                    <Button onClick={handlePreviousStep}>Back</Button>
-                    <Button onClick={handleNextStep}>Next</Button>
                   </div>
+                ): 
+                showFailure && (
+                  <div className="text-center py-4">
+                    <p className="text-red-500 mb-4">Not enough available workers to fulfill the shift requirements.</p>
+                  </div>
+                )}
+
+                <div className="flex justify-between mt-4">
+                  <Button onClick={handlePreviousStep}>Back</Button>
+                  {showFailure ? (
+                    <Button onClick={onClose}>Cancel</Button>
+                  ) : (
+                    <Button onClick={handleNextStep}>Next</Button>
+                  )}
                 </div>
-              )}
+              </div>
+            )}
+
   
               {currentStep === 2 && (
                 <div className="grid gap-4 py-4">
@@ -301,13 +383,18 @@ export const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ shiftData, isO
                   <p>Property Address: {shiftData.property.id}</p>
                   <p>Date: {updatedShift.date}</p>
                   <p>Time: {updatedShift.startTime} - {updatedShift.endTime}</p>
-                  <p>Selected workers: {availableWorkers.map(worker => worker.name).join(', ')}</p>
+                  <p>Selected workers: {(availableWorkers && availableWorkers.length > 0 ? availableWorkers : selectedWorkers)
+                    .map(worker => worker.name)
+                    .join(', ')}
+                  </p>
                   <div className="flex justify-between mt-4">
                     <Button onClick={handlePreviousStep}>Back</Button>
                     <Button onClick={handleSave}>Confirm</Button>
                   </div>
                 </div>
-              )}
+              )
+            }
+
             </>
           ) : (
             <div className="grid gap-4 py-4">

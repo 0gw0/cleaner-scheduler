@@ -32,8 +32,26 @@ const ManageTasks: React.FC = () => {
       if (!supervisorId) {
         throw new Error('No supervisor ID found in localStorage');
       }
+      
+      //if root admin below
+      if (supervisorId == 3)
+      {const response = await axios.get<Shift[]>(
+        `http://localhost:8080/shifts`
+      );
   
-      const response = await axios.get<Shift[]>(
+      setShiftData(response.data);
+  
+      const uniqueWorkerIds = Array.from(new Set(response.data.flatMap(shift => shift.workerIds)));
+      setWorkers(uniqueWorkerIds);
+  
+      if (uniqueWorkerIds.length > 0) {
+        setSelectedWorker(uniqueWorkerIds[0]);
+      }}
+      
+      //if normal admin below
+      else
+      
+      {const response = await axios.get<Shift[]>(
         `http://localhost:8080/workers/supervisor/${supervisorId}/shifts`
       );
   
@@ -44,8 +62,9 @@ const ManageTasks: React.FC = () => {
   
       if (uniqueWorkerIds.length > 0) {
         setSelectedWorker(uniqueWorkerIds[0]);
-      }
-    } catch (error) {
+      }}
+
+    } catch (error) { 
       console.error('Failed to fetch shifts:', error);
       setError('Failed to load shifts');
     } finally {
