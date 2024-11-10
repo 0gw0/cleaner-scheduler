@@ -188,26 +188,14 @@ export default function AddTaskForm({ onTaskAdded }: AddTaskFormProps) {
         try {
           const requestData = {
             postalCode: selectedProperty.postalCode,
-            startTime: {
-              hour: parseInt(formData.startTime.split(':')[0], 10),
-              minute: parseInt(formData.startTime.split(':')[1], 10),
-              second: 0,
-              nano: 0,
-            },
-            endTime: {
-              hour: parseInt(formData.endTime.split(':')[0], 10),
-              minute: parseInt(formData.endTime.split(':')[1], 10),
-              second: 0,
-              nano: 0,
-            },
+            startTime: formData.startTime, 
+            endTime: formData.endTime,
             date: formData.date,
           };
   
-          //TODO: add the s after available-worker
-          // const response = await axios.post('http://localhost:8080/shifts/available-worker', requestData);
-          // const workersData: WorkerTravelData[] = response.data;
-          //TODO: change bottom to workersData
-          const selectedWorkers = fakeWorkerTravelData.slice(0, formData.numberOfWorkers);
+          const response = await axios.post('http://localhost:8080/shifts/available-workers', requestData);
+          const workersData: WorkerTravelData[] = response.data;
+          const selectedWorkers = workersData.slice(0, formData.numberOfWorkers);
           setAvailableWorkers(selectedWorkers);
         } catch (error) {
           console.error('Failed to fetch available workers:', error);

@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { TaskCard } from '@/components/TaskCard';
 import { TaskDetailModal } from '@/components/TaskDetailModal';
-import { Shift } from '@/types/task'; // Assume Shift type is updated to match new structure
+import { Shift } from '@/types/task'; 
 import AddTaskForm from '@/components/AddTaskForm';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Card, CardContent } from "@/components/ui/card";
@@ -13,11 +13,11 @@ import { CustomPagination } from '@/components/CustomPagination';
 
 const ManageTasks: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState<string>('');
-  const [sortOrder, setSortOrder] = useState<"asc" | "desc">('asc');
+  const [sortOrder, setSortOrder] = useState<"asc" | "desc">('desc');
   const [statusFilter, setStatusFilter] = useState<"ALL" | "COMPLETED" | "PENDING" | "UPCOMING">("ALL");
   const [selectedTask, setSelectedTask] = useState<Shift | null>(null);
   const [isTaskDetailModalOpen, setIsTaskDetailModalOpen] = useState(false);
-  const [workers, setWorkers] = useState<number[]>([]); // Array of worker IDs
+  const [workers, setWorkers] = useState<number[]>([]); 
   const [selectedWorker, setSelectedWorker] = useState<number | null>(null);
   const [shiftData, setShiftData] = useState<Shift[]>([]);
   const [currentPage, setCurrentPage] = useState(1);

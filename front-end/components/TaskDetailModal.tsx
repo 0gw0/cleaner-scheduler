@@ -114,29 +114,17 @@ export const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ shiftData, isO
       setError("")}
 
     if (currentStep === 0 && assignmentType === 'automatic') {
-      // Make API call for automatic worker assignment
       const requestBody = {
         postalCode: shiftData.property.postalCode,
-        startTime: {
-          hour: parseInt(updatedShift.startTime.split(':')[0], 10),
-          minute: parseInt(updatedShift.startTime.split(':')[1], 10),
-          second: 0,
-          nano: 0
-        },
-        endTime: {
-          hour: parseInt(updatedShift.endTime.split(':')[0], 10),
-          minute: parseInt(updatedShift.endTime.split(':')[1], 10),
-          second: 0,
-          nano: 0
-        },
+        startTime: updatedShift.startTime,
+        endTime: updatedShift.endTime,
         date: updatedShift.date
       };
 
       try {
-        //TODO: Add s behind to call api and replace all the fake data with real
-        // const response = await axios.post('/shifts/available-worker', requestBody);
-        // const workersData = response.data;
-        const selectedWorkers = fakeWorkerTravelData.slice(0, shiftData.workers.length);
+        const response = await axios.post('http://localhost:8080/shifts/available-workers', requestBody);
+        const workersData = response.data;
+        const selectedWorkers = workersData.slice(0, shiftData.workers.length);
         setAvailableWorkers(selectedWorkers);
         console.log('Selected workers:', selectedWorkers);
       } catch (error) {
