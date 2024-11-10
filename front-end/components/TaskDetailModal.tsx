@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Shift, WorkerTravelData } from '@/types/task';
@@ -61,6 +61,28 @@ export const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ shiftData, isO
   const [workerChoice, setWorkerChoice] = useState<WorkerData[]>([]); // these are choices given if manual selected
   const [error, setError] = useState("");
   const [showFailure, setShowFailure] = useState(false); //not available to perform update because no available workers
+  const [arrivalImgSrc, setarrivalImgSrc] = useState('');
+
+  //getting image URL
+  useEffect(() => {
+    const fetchImage = async () => {
+      if (shiftData.id && (shiftData.status === "COMPLETED" || shiftData.status === "IN PROGRESS")) {
+        try {
+          const response = await fetch(`http://localhost:8080/shifts/${shiftData.id}/arrival-image`);
+          if (response.ok) {
+            const data = await response.json();
+            setarrivalImgSrc(data.url); // Assuming `imageUrl` is the key returned by the API
+          } else {
+            console.error('Failed to fetch image');
+          }
+        } catch (error) {
+          console.error('Error fetching image:', error);
+        }
+      }
+    };
+
+    fetchImage();
+  }, [shiftData.id, shiftData.status]);
 
   const handleChange = (field: keyof Shift, value: any) => {
     setUpdatedShift((prev) => ({ ...prev, [field]: value }));
@@ -150,6 +172,7 @@ export const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ shiftData, isO
       setShowFailure(false)
     }
   };
+
 
 
   const handleSave = async () => {
@@ -442,14 +465,12 @@ export const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ shiftData, isO
               </div>
 
               {/* Photo of proof */}
-              {/* TO DO: Fetch URL of photo from db */}
-              {/* Reminder: You need to add the URLs of the image to next.config.mjs file */}
               {(shiftData.status === "COMPLETED" || shiftData.status === "IN PROGRESS") &&
               <div className="grid grid-cols-4 items-center gap-4">
               <span className="font-bold col-span-1">Arrival photo:</span>
                   <Image
-                    src = "https://i.pinimg.com/736x/a5/38/d4/a538d48a27ac95d5e581f4df22d13fc3.jpg"
-                    alt="Picture of the author"
+                    src={arrivalImgSrc}
+                    alt="Arrival photo"
                     width={300}
                     height={300}
                   />
