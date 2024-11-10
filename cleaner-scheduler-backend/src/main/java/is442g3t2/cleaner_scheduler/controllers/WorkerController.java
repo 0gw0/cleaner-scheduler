@@ -156,8 +156,8 @@ public class WorkerController {
                 () -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Property not found"));
 
         if (!property.isActive()) {
-        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                .body(new AddShiftResponse(false, "Cannot create shift for inactive property"));
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body(new AddShiftResponse(false, "Cannot create shift for inactive property"));
         }
         LocalDate startDate = addShiftRequest.getStartDate();
         LocalDate endDate = addShiftRequest.getEndDate();
@@ -212,8 +212,8 @@ public class WorkerController {
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Property not found"));
 
         if (!property.isActive()) {
-        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                .body(new BulkAddShiftResponse(false, "Cannot create shifts for inactive property", Map.of()));
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body(new BulkAddShiftResponse(false, "Cannot create shifts for inactive property", Map.of()));
         }
 
         if (bulkAddShiftRequest.getFrequency() != null && bulkAddShiftRequest.getEndDate() == null) {
@@ -501,14 +501,14 @@ public class WorkerController {
         if (workerRepository.existsByEmail(postWorkerRequest.getEmail())) {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "Email already exists");
         }
-        
+
         Worker worker = new Worker(
                 postWorkerRequest.getName(),
                 postWorkerRequest.getPhoneNumber(),
                 postWorkerRequest.getBio(),
                 postWorkerRequest.getEmail(),
                 postWorkerRequest.getPassword()
-                );
+        );
 
         Admin supervisor = adminRepository.findById(postWorkerRequest.getSupervisorId())
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Supervisor not found"));
@@ -685,6 +685,52 @@ public class WorkerController {
         }
 
         return ResponseEntity.ok(new MedicalLeaveDTO(leave, presignedUrl));
+    }
+
+    @Tag(name = "workers - medical leaves")
+    @Operation(description = "Upload medical certificate for an existing medical leave",
+            summary = "upload medical certificate")
+    @PutMapping(value = "/{workerId}/medical-leaves/{leaveId}/certificate",
+            consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<MedicalLeaveDTO> uploadMedicalCertificate(
+            @PathVariable Long workerId,
+            @PathVariable Long leaveId,
+            @RequestParam("medicalCertificate") MultipartFile medicalCertificate) {
+
+        if (!medicalCertificate.getContentType().equals("application/pdf")) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Only PDF files are accepted");
+        }
+
+        Worker worker = workerRepository.findById(workerId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Worker not found"));
+
+        MedicalLeave leave = medicalLeaveRepository.findById(leaveId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Medical leave not found"));
+
+        if (!leave.getWorker().getId().equals(workerId)) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Leave does not belong to this worker");
+        }
+
+        try {
+            String s3Key = String.format("medical-certificates/%d_%s_%s.pdf",
+                    workerId,
+                    leave.getStartDate().toString(),
+                    UUID.randomUUID().toString());
+
+            s3Service.saveToS3(s3Key, medicalCertificate.getInputStream(), medicalCertificate.getContentType());
+
+            MedicalCertificate mc = new MedicalCertificate(s3Key, medicalCertificate.getOriginalFilename());
+            leave.setMedicalCertificate(mc);
+
+            leave = medicalLeaveRepository.save(leave);
+
+            String presignedUrl = s3Service.getPresignedUrl(s3Key, 3600).toString();
+            return ResponseEntity.ok(new MedicalLeaveDTO(leave, presignedUrl));
+
+        } catch (IOException e) {
+            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR,
+                    "Failed to process medical certificate", e);
+        }
     }
 
 }
