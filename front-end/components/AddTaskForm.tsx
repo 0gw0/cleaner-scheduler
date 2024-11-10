@@ -8,6 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { ChevronLeft, ChevronRight, Plus, Check, X } from 'lucide-react'
 import { Property, WorkerTravelData } from '@/types/task'
 import axios from 'axios'
+import { validateShift } from '@/utils/timeUtils'
 
 type FormData = {
   clientId: string
@@ -171,23 +172,15 @@ export default function AddTaskForm({ onTaskAdded }: AddTaskFormProps) {
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
+    setError("")
     e.preventDefault()
 
-    const now = new Date();
-    const threeHoursLater = new Date(now.getTime() + 3 * 60 * 60 * 1000); // 3 hours from now
-    const selectedDateTime = new Date(`${formData.date}T${formData.startTime}`);
-
-    if (selectedDateTime < threeHoursLater) {
-      setError('The start time must be at least 3 hours from now.');
-      return;
-    }
-
-    if (formData.startTime > formData.endTime){
-      setError('Start time cannot be later than end time!');
+    const validationError = validateShift(formData.startTime, formData.endTime, formData.date);
+    if (validationError) {
+      setError(validationError); 
       return
-    }
-
-    
+    } else {
+      setError("")}
 
     if (currentStep === 0) {
     
@@ -226,8 +219,6 @@ export default function AddTaskForm({ onTaskAdded }: AddTaskFormProps) {
         return;
       }
     }
-
-
     
     if (currentStep < 2) {
       setCurrentStep(prev => prev + 1)

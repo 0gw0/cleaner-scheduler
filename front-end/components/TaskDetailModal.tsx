@@ -8,6 +8,7 @@ import { PersonIcon } from '@radix-ui/react-icons';
 import axios from 'axios';
 import { motion } from 'framer-motion';
 import { WorkerData } from '@/types/dashboard';
+import { validateShift } from '@/utils/timeUtils';
 
 
 interface TaskDetailModalProps {
@@ -103,6 +104,14 @@ export const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ shiftData, isO
 
   const handleNextStep = async () => {
     setError("")
+
+    const validationError = validateShift(updatedShift.startTime, updatedShift.endTime, updatedShift.date);
+    if (validationError) {
+      setError(validationError); 
+      return
+    } else {
+      setError("")}
+
     if (currentStep === 0 && assignmentType === 'automatic') {
       // Make API call for automatic worker assignment
       const requestBody = {
@@ -293,6 +302,11 @@ export const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ shiftData, isO
                     />                  
                   </span>
                 </div>
+                {error && (
+                    <div className="text-red-500 mb-4 text-sm">
+                      {error}
+                    </div>
+                    )}
                 <div className="grid grid-cols-4 items-center gap-4">
                   <span className="font-bold col-span-1">Workers needed:</span>
                   <span className="col-span-3 flex items-center">
