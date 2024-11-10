@@ -230,7 +230,7 @@ export default function Schedule() {
                     {/* Search input */}
                     <input
                         type="text"
-                        placeholder="Search for Worker Name..."
+                        placeholder="Search for Worker..."
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
                         className="p-2 border border-gray-300 rounded ml-2"
