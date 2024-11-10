@@ -21,6 +21,11 @@ public class WorkerLocationFinder {
     private static final String API_KEY = System.getenv("GOOGLE_API_KEY");
     public static GeoApiContext context;
 
+    private static void resetContext() {
+        context.shutdown();
+        context = new GeoApiContext.Builder().apiKey(API_KEY).build();
+    }
+
     static {
         context = new GeoApiContext.Builder().apiKey(API_KEY).build();
     }
@@ -121,6 +126,7 @@ public class WorkerLocationFinder {
             return "Error: " + e.getMessage();
         } finally {
             context.shutdown();
+            resetContext();
         }
     }
 
