@@ -14,7 +14,7 @@ import { CustomPagination } from '@/components/CustomPagination';
 const ManageTasks: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState<string>('');
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">('desc');
-  const [statusFilter, setStatusFilter] = useState<"ALL" | "COMPLETED" | "PENDING" | "UPCOMING">("ALL");
+  const [statusFilter, setStatusFilter] = useState<"ALL" | "COMPLETED" | "PENDING" | "UPCOMING" | "Cancelled">("ALL");
   const [selectedTask, setSelectedTask] = useState<Shift | null>(null);
   const [isTaskDetailModalOpen, setIsTaskDetailModalOpen] = useState(false);
   const [workers, setWorkers] = useState<number[]>([]); 
@@ -44,7 +44,7 @@ const ManageTasks: React.FC = () => {
       const uniqueWorkerIds = Array.from(new Set(response.data.flatMap(shift => shift.workerIds)));
       setWorkers(uniqueWorkerIds);
   
-      if (uniqueWorkerIds.length > 0) {
+      if (selectedWorker === null && uniqueWorkerIds.length > 0) {
         setSelectedWorker(uniqueWorkerIds[0]);
       }}
       
@@ -183,6 +183,7 @@ const ManageTasks: React.FC = () => {
               <SelectItem value="COMPLETED">Completed</SelectItem>
               <SelectItem value="PENDING">Pending</SelectItem>
               <SelectItem value="UPCOMING">Upcoming</SelectItem>
+              <SelectItem value="CANCELLED">Cancelled</SelectItem>
             </SelectContent>
           </Select>
         </div>
