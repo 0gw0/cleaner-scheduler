@@ -13,21 +13,22 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
-
 @Repository
 public interface ShiftRepository extends JpaRepository<Shift, Long> {
 
-        // List<Shift> findByShiftStatusAndStartTimeBefore(ShiftStatus status, LocalDateTime dateTime);
-        @Query("SELECT s FROM Shift s WHERE s.date = :currentDate AND s.startTime <= :checkTime AND s.status = 'UPCOMING'")
+        // List<Shift> findByShiftStatusAndStartTimeBefore(ShiftStatus status,
+        // LocalDateTime dateTime);
+        @Query("SELECT DISTINCT s FROM Shift s " +
+                        "LEFT JOIN FETCH s.workers " +
+                        "WHERE s.status = 'UPCOMING' AND s.date = :currentDate " +
+                        "AND s.startTime < :cutoffTime")
         List<Shift> findByShiftStatusAndStartTimeBefore(
-            @Param("currentDate") LocalDate currentDate,
-            @Param("checkTime") LocalTime checkTime
-        );
+                        @Param("currentDate") LocalDate currentDate,
+                        @Param("cutoffTime") LocalTime cutoffTime);
 
         Optional<Shift> findByDateAndStartTimeAndEndTimeAndProperty(
-                LocalDate date,
-                LocalTime startTime,
-                LocalTime endTime,
-                Property property
-        );
+                        LocalDate date,
+                        LocalTime startTime,
+                        LocalTime endTime,
+                        Property property);
 }

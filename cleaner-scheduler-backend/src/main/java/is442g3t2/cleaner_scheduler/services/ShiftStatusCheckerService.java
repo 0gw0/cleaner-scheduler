@@ -4,6 +4,8 @@ package is442g3t2.cleaner_scheduler.services;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
 
 import java.time.LocalDate;
 import java.time.LocalTime;
@@ -28,6 +30,7 @@ public class ShiftStatusCheckerService {
     @Autowired 
     private EmailSenderService emailSenderService;
 
+    @Transactional
     @Scheduled(fixedRate = 60000) 
     public void checkShiftStatuses() {
         log.info("Running shift status check...");
@@ -44,6 +47,7 @@ public class ShiftStatusCheckerService {
         }
     }
 
+    @Transactional 
     private void updateShiftStatus(Shift shift) {
         try {
             if (shift.getArrivalImage() == null) {

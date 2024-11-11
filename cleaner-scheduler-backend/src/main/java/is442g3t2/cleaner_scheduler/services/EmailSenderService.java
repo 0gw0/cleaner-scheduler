@@ -50,7 +50,7 @@ public class EmailSenderService {
             body.append("- ").append(worker.getName()).append(" (ID: ").append(worker.getId()).append(")\n");
         }
         
-        body.append("\nPlease take necessary actions regarding this absence.");
+        body.append("\nPlease take necessary actions regarding this absence. The Shift status has been updated to Absent but can be overidden in some page");
 
         SimpleMailMessage message = new SimpleMailMessage();
         message.setFrom("fraserchua545@gmail.com");
