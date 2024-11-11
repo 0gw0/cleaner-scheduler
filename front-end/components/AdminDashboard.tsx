@@ -136,7 +136,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
           icon={Users}
         />
         <StatusCard
-          title="Workers on Leave"
+          title="Leaves this month"
           value={workerStats.onLeave}
           icon={Calendar}
         />

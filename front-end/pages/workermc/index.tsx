@@ -566,7 +566,7 @@ const WorkerMCPage: React.FC = () => {
     setIsPDFOpen(true);
   };
 
-  const LeaveStatusBadges = ({ leave }) => {
+  const LeaveStatusBadges = ({ leave }: { leave: Leave }) => {
     return (
       <div className="flex justify-end w-full"> 
         {leave.approved && (

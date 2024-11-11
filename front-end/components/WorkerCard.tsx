@@ -64,6 +64,7 @@ export const WorkerCard = ({ worker, onActionClick }: WorkerCardProps) => {
 		phoneNumber: worker.phoneNumber,
 		bio: worker.bio,
 		status: worker.status,
+		// homePostalCode: worker.phoneNumber
 	});
 
 	const handleAnnualLeaveAction = async (
@@ -95,6 +96,38 @@ export const WorkerCard = ({ worker, onActionClick }: WorkerCardProps) => {
 			console.error('Failed to update annual leave:', error);
 		}
 	};
+
+	const handleUpdateWorker = async () => {
+		setIsUpdating(true);
+		try {
+		  const response = await fetch(`http://localhost:8080/workers/${worker.id}`, {
+			method: 'PATCH',
+			headers: {
+			  'Content-Type': 'application/json',
+			},
+			body: JSON.stringify({
+			  name: formData.name,
+			  phoneNumber: formData.phoneNumber,
+			  bio: formData.bio,
+			  status: formData.status,
+			}),
+		  });
+	
+		  if (!response.ok) {
+			throw new Error('Failed to update worker');
+		  }
+		  worker.name = formData.name;
+		  worker.phoneNumber = formData.phoneNumber;
+		  worker.bio = formData.bio;
+		  worker.status = formData.status;
+	
+		  setIsDialogOpen(false);
+		} catch (error) {
+		  console.error('Error updating worker:', error);
+		} finally {
+		  setIsUpdating(false);
+		}
+	  };
 
 	const getNextShift = (shifts: Shift[]): Shift | null => {
 		const futureShifts = shifts
@@ -396,6 +429,20 @@ export const WorkerCard = ({ worker, onActionClick }: WorkerCardProps) => {
 								}
 							/>
 						</div>
+						{/* add home postal code in backend when call worker data */}
+						{/* <div className="grid gap-2">
+							<Label htmlFor="homePostalCode">Postal Code</Label>
+							<Input
+								id="homePostalCode"
+								value={formData.homePostalCode}
+								onChange={(e) =>
+									setFormData((prev) => ({
+										...prev,
+										status: e.target.value,
+									}))
+								}
+							/>
+						</div> */}
 					</div>
 					<DialogFooter>
 						<Button
@@ -406,10 +453,8 @@ export const WorkerCard = ({ worker, onActionClick }: WorkerCardProps) => {
 							Cancel
 						</Button>
 						<Button
-							onClick={() => {
-								/* Implement update logic */
-							}}
-							disabled={isUpdating}
+							 onClick={handleUpdateWorker}
+							 disabled={isUpdating}
 						>
 							{isUpdating ? 'Updating...' : 'Save Changes'}
 						</Button>
