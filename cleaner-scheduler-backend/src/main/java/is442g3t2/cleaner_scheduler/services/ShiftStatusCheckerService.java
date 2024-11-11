@@ -30,10 +30,30 @@ public class ShiftStatusCheckerService {
     @Autowired 
     private EmailSenderService emailSenderService;
 
+
     @Transactional
     @Scheduled(fixedRate = 60000) 
-    public void checkShiftStatuses() {
-        log.info("Running shift status check...");
+    public void firstCheckShiftStatus() {
+        log.info("Running first shift status check...");
+        LocalDate currentDate = LocalDate.now();
+        LocalTime currentTime = LocalTime.now();
+
+        List<Shift> shiftsToCheck = shiftRepository.findByShiftStatusAndStartTimeBefore(
+            currentDate,
+            currentTime.minusMinutes(5)
+        );
+
+        for (Shift shift : shiftsToCheck) {
+            sendShiftStatusReminder(shift);
+        
+        }
+    }
+
+
+    @Transactional
+    @Scheduled(fixedRate = 60000) 
+    public void secondCheckShiftStatus() {
+        log.info("Running second shift status check...");
         LocalDate currentDate = LocalDate.now();
         LocalTime currentTime = LocalTime.now();
 
@@ -44,6 +64,28 @@ public class ShiftStatusCheckerService {
 
         for (Shift shift : shiftsToCheck) {
             updateShiftStatus(shift);
+        }
+    }
+
+    @Transactional 
+    private void sendShiftStatusReminder(Shift shift) {
+        try {
+            if (shift.getArrivalImage() == null) {
+                log.info("missing arrival image", shift.getId());
+                List<Worker> workers = shift.getWorkers();
+                ArrayList<String> supervisorEmails = new ArrayList<>(); 
+                for (Worker worker : workers) {
+                    String supervisorEmail = worker.getSupervisorEmail();
+                    if (!supervisorEmails.contains(supervisorEmail)) {
+                        supervisorEmails.add(supervisorEmail);
+                    }
+                }
+                for (String email : supervisorEmails) {
+                    emailSenderService.sendFirstShiftAbsentEmail(email, shift);
+                }
+            }
+        } catch (Exception e) {
+            log.info("Error updating shift status for shift {}: {}", shift.getId(), e.getMessage());
         }
     }
 
@@ -64,7 +106,7 @@ public class ShiftStatusCheckerService {
                 }
             }
             for (String email : supervisorEmails) {
-                emailSenderService.sendShiftAbsentEmail(email, shift);
+                emailSenderService.sendSecondShiftAbsentEmail(email, shift);
             }
         } catch (Exception e) {
             log.info("Error updating shift status for shift {}: {}", shift.getId(), e.getMessage());
