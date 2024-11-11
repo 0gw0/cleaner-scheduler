@@ -29,15 +29,20 @@ public class Admin {
     @Column(nullable = false)
     private String password;
 
-    {
-        this.password = "password123";
-    }
+    @Column(nullable = false)
+    private String email;
+
+    // {
+    //     this.password = "password123";
+    // }
 
     @OneToMany(mappedBy = "supervisor", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<Worker> workers = new ArrayList<>();
 
-    public Admin(String name) {
+    public Admin(String name, String password, String email) {
         this.name = name;
+        this.password = password;
+        this.email = email;
     }
 
     public List<Long> getWorkers() {

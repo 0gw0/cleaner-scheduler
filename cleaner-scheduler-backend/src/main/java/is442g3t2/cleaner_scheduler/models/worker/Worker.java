@@ -103,7 +103,11 @@ public class Worker {
         return supervisor.getId();
     }
 
-   
+    public String getSupervisorEmail() {
+        return supervisor.getEmail();
+    }
+
+
 
     public int getNumShiftsInMonth(YearMonth yearMonth) {
         return (int) shifts.stream()

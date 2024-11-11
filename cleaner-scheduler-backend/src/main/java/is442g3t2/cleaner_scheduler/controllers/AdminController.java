@@ -55,7 +55,7 @@ public class AdminController {
 
     @PostMapping("")
     public ResponseEntity<Admin> createAdmin(@RequestBody PostAdminRequest adminCreateDTO) {
-        Admin admin = new Admin(adminCreateDTO.getName());
+        Admin admin = new Admin(adminCreateDTO.getName(), adminCreateDTO.getPassword(), adminCreateDTO.getEmail());
         Admin newAdmin = adminRepository.save(admin);
         return ResponseEntity.status(HttpStatus.CREATED).body(newAdmin);
     }
