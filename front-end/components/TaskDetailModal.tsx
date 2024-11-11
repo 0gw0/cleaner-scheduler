@@ -489,6 +489,7 @@ export const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ shiftData, isO
               </div>
             </div>
           )}
+          {/* TODO: add to show rescheduled: original starttime, etc? */}
         </DialogContent>
       </Dialog>
     );

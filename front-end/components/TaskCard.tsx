@@ -1,32 +1,42 @@
 import React from 'react'
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Shift } from "@/types/task"
-import { CalendarIcon, ClockIcon, MapPinIcon, UserIcon } from 'lucide-react'
+import { BanIcon, CalendarIcon, ClockIcon, EyeIcon, MapPinIcon, Pencil, PersonStandingIcon, UserIcon } from 'lucide-react'
+import { Button } from './ui/button'
 
 interface TaskCardProps {
   shiftData: Shift
   onCardClick: (shift: Shift) => void
+  cancelShift: (shift: Shift) => void
 }
 
-export const TaskCard: React.FC<TaskCardProps> = ({ shiftData, onCardClick }) => {
+export const TaskCard: React.FC<TaskCardProps> = ({ shiftData, onCardClick, cancelShift}) => {
+
+  const getStatusBadge = (status: string) => {
+    const statusColors: { [key: string]: string } = {
+      COMPLETED: 'bg-green-100 text-green-800',
+      UPCOMING: 'bg-blue-100 text-blue-800',
+      CANCELLED: 'bg-red-100 text-red-800',
+      IN_PROGRESS: 'bg-yellow-100 text-yellow-800',
+    };
+  
+    return (
+      <span
+        className={`absolute top-2 right-2 px-2 py-1 rounded-full text-xs z-10 font-semibold ${
+          statusColors[status] || 'bg-gray-100 text-gray-800'
+        }`}
+      >
+        {status}
+      </span>
+    );
+  };
   
 
   return (
     <Card
-  className="relative w-full cursor-pointer hover:shadow-lg transition-shadow z-10 duration-300"
-  onClick={() => onCardClick(shiftData)}>
+  className="relative w-full hover:shadow-lg transition-shadow z-10 duration-300">
 
-  <span
-    className={`absolute top-2 right-2 px-2 py-1 rounded-full text-xs z-10 font-semibold ${
-      shiftData.status === "COMPLETED"
-        ? "bg-green-100 text-green-600"
-        : shiftData.status === "IN PROGRESS"
-        ? "bg-yellow-100 text-yellow-600"
-        : "bg-blue-100 text-blue-600"
-    }`}
-  >
-    {shiftData.status}
-  </span>
+  {getStatusBadge(shiftData.status)}
 
   <CardHeader>
     <CardTitle className="text-lg font-bold flex items-center">
@@ -49,8 +59,35 @@ export const TaskCard: React.FC<TaskCardProps> = ({ shiftData, onCardClick }) =>
         <UserIcon className="w-4 h-4 mr-2" />
         Client ID: {shiftData.property.clientId}
       </p>
+      <p className="flex items-center">
+        <PersonStandingIcon className="w-4 h-4 mr-2" />
+        Worker(s): {shiftData.workerIds.join(", ")}
+      </p>
     </div>
   </CardContent>
+
+  {shiftData.status === "COMPLETED" || shiftData.status === "CANCELLED" ? (
+    <CardFooter className="flex justify-center">
+    <Button variant="outline" className="w-full mb-3 inline-flex" onClick={() => onCardClick(shiftData)}>
+      <EyeIcon className="w-4 h-4 mr-2" />
+      View shift details
+    </Button>
+    </CardFooter>
+  ):
+  (
+    <CardFooter className="flex flex-col items-center">
+      <Button variant="outline" className="w-full mb-3" onClick={() => onCardClick(shiftData)}>
+        <Pencil className="w-4 h-4 mr-2" />
+        View or modify shift details
+      </Button>
+
+      <Button variant="outline" className="w-full hover:bg-red-100" onClick={() => cancelShift(shiftData)}>
+        <BanIcon className="w-4 h-4 mr-2 text-red-500" />
+        <p className="text-red-500">Cancel shift</p>
+      </Button>
+    </CardFooter>
+  )}
+  
 </Card>
   )
 }

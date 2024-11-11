@@ -13,6 +13,7 @@ import is442g3t2.cleaner_scheduler.models.shift.RescheduleRequest;
 import is442g3t2.cleaner_scheduler.models.worker.Worker;
 import is442g3t2.cleaner_scheduler.models.worker.WorkerWithTravelTime;
 import is442g3t2.cleaner_scheduler.models.shift.Shift;
+import is442g3t2.cleaner_scheduler.models.shift.ShiftStatus;
 import is442g3t2.cleaner_scheduler.repositories.ShiftRepository;
 import is442g3t2.cleaner_scheduler.repositories.WorkerRepository;
 import is442g3t2.cleaner_scheduler.services.S3Service;
@@ -216,7 +217,7 @@ public class ShiftController {
 
     @PutMapping("/{shiftId}/update")
     @Tag(name = "shifts", description = "Update workers, timing and dates of shifts")
-    @Operation(summary = "Update shift URL", description = "Update workers, timing and dates for a specific shift")
+    @Operation(summary = "Update workers, timing and dates of shifts", description = "Update workers, timing and dates for a specific shift")
     public ResponseEntity<ShiftDTO> updateShiftDetails(
             @PathVariable Long shiftId,
             @RequestBody UpdateShift updateRequest) {
@@ -236,6 +237,31 @@ public class ShiftController {
                         : null
         );
         return ResponseEntity.ok(shiftDTO);
+    }
+
+
+    @PutMapping("/{shiftId}/update-status")
+    @Tag(name = "shifts", description = "Update the status of a shift")
+    @Operation(summary = "Update shift status", description = "Update the status for a specific shift")
+    public ResponseEntity<?> updateShiftStatus(
+            @PathVariable Long shiftId,
+            @RequestParam ShiftStatus status) {
+        
+        try {
+            Shift updatedShift = shiftService.updateShiftStatus(shiftId, status);
+            
+            // Create a DTO or response based on your needs, or return a basic success message
+            ShiftDTO shiftDTO = new ShiftDTO(
+                updatedShift,
+                updatedShift.getArrivalImage() != null
+                    ? s3Service.getPresignedUrl(updatedShift.getArrivalImage().getS3Key(), 3600).toString()
+                    : null
+            );
+            return ResponseEntity.ok(shiftDTO);
+        } catch (Exception e) {
+            // Handle exceptions gracefully and return an error response if needed
+            return ResponseEntity.badRequest().body(createErrorResponse("Failed to update shift status: " + e.getMessage()));
+        }
     }
 
     private Map<String, String> createErrorResponse(String errorMessage) {

@@ -15,6 +15,7 @@ import java.util.stream.Collectors;
 
 import is442g3t2.cleaner_scheduler.models.worker.Worker;
 import is442g3t2.cleaner_scheduler.models.shift.Shift;
+import is442g3t2.cleaner_scheduler.models.shift.ShiftStatus;
 import is442g3t2.cleaner_scheduler.repositories.WorkerRepository;
 import is442g3t2.cleaner_scheduler.repositories.ShiftRepository;
 
@@ -38,6 +39,7 @@ public class ShiftService {
             shift.setDate(newDate);
             shift.setStartTime(newStartTime);
             shift.setEndTime(newEndTime);
+            shift.setRescheduled(true);
     
             return shiftRepository.save(shift);
         }).orElseThrow(() -> new IllegalArgumentException("Shift not found with ID: " + shiftId));
@@ -55,5 +57,13 @@ public class ShiftService {
                     return shiftStart.isAfter(now) && shiftStart.isBefore(fifteenMinutesFromNow);
                 })
                 .collect(Collectors.toList());
+    }
+
+    public Shift updateShiftStatus(Long shiftId, ShiftStatus status) {
+        Shift shift = shiftRepository.findById(shiftId)
+            .orElseThrow(() -> new IllegalArgumentException("Shift not found with id: " + shiftId));
+
+            shift.setStatus(status);
+        return shiftRepository.save(shift);
     }
 }

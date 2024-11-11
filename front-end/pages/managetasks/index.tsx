@@ -128,6 +128,21 @@ const ManageTasks: React.FC = () => {
     setSelectedWorker(workerId);
   };
 
+  const cancelShift = async (shiftId: number) => {
+    try {
+      const response = await axios.put(`http://localhost:8080/shifts/${shiftId}/update-status`, null, {
+        params: {
+          status: 'CANCELLED',
+        },
+      });
+      console.log('Shift cancelled successfully:', response.data);
+      fetchShifts(); 
+    } catch (error) {
+      console.error('Error cancelling shift:', error);
+      throw error;
+    }
+  };
+
   if (isLoading) {
     return <p>Loading shifts...</p>;
   }
@@ -201,7 +216,7 @@ const ManageTasks: React.FC = () => {
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
           {currentTasks.map((task) => (
-            <TaskCard key={task.id} shiftData={task} onCardClick={() => handleCardClick(task)} />
+            <TaskCard key={task.id} shiftData={task} onCardClick={() => handleCardClick(task)} cancelShift={() => cancelShift(task.id)}/>
           ))}
         </div>
       )}

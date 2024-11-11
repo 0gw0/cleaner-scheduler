@@ -7,7 +7,8 @@ public enum ShiftStatus {
     UPCOMING("Upcoming"),
     IN_PROGRESS("In Progress"),
     COMPLETED("Completed"),
-    ABSENT("Absent");
+    ABSENT("Absent"),
+    CANCELLED ("Cancelled");
 
     private final String displayName;
 
