@@ -44,7 +44,6 @@ export function MCHistoryDialog({
   const [updatingLeaves, setUpdatingLeaves] = useState<Record<number, boolean>>({});
   const [localLeaves, setLocalLeaves] = useState<MedicalLeave[]>([]);
 
-  // Reset states when dialog opens/closes or worker changes
   React.useEffect(() => {
     if (showDialog && selectedWorker?.medicalLeaves) {
       setLocalLeaves(selectedWorker.medicalLeaves);
@@ -65,7 +64,6 @@ export function MCHistoryDialog({
             leave.id === leaveId ? { ...leave, approved: newApprovalStatus } : leave
           )
         );
-        // Close the main dialog after successful update
         onOpenChange(false);
       } catch (error) {
         console.error('Failed to update approval status:', error);
