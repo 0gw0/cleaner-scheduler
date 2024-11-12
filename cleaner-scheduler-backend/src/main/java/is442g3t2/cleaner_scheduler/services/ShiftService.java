@@ -49,7 +49,7 @@ public class ShiftService {
         LocalDateTime now = LocalDateTime.now();
         LocalDateTime fifteenMinutesFromNow = LocalDateTime.now().plusMinutes(15);
 
-        List<Shift> allShifts = shiftRepository.findAll(); // Adjust this method to fetch from your database
+        List<Shift> allShifts = shiftRepository.findAll(); 
 
         return allShifts.stream()
                 .filter(shift -> {
