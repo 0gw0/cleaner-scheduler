@@ -2,6 +2,7 @@ package is442g3t2.cleaner_scheduler.dto.shift;
 
 import is442g3t2.cleaner_scheduler.models.property.PropertyInfo;
 import is442g3t2.cleaner_scheduler.models.shift.ArrivalImage;
+import is442g3t2.cleaner_scheduler.models.shift.Image;
 import is442g3t2.cleaner_scheduler.models.shift.Shift;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -23,14 +24,15 @@ public class ShiftDTO {
     private LocalTime startTime;
     private LocalTime endTime;
     private String status;
-    private ArrivalImageDTO arrivalImage;
+    private ImageDTO arrivalImage;
+    private ImageDTO completionImage;
     private Set<Long> workerIds;  // Matching your current structure
     private LocalDate originalDate;
     private LocalTime originalStartTime;
     private LocalTime originalEndTime;
     private boolean isRescheduled;
 
-    public ShiftDTO(Shift shift, String presignedUrl) {
+    public ShiftDTO(Shift shift, String arrivalPresignedUrl, String completionPresignedUrl) {
         this.id = shift.getId();
         this.workers = shift.getWorkerIds();  // Already returns Set<Long>
         this.property = shift.getProperty();  // Already returns PropertyInfo
@@ -39,26 +41,29 @@ public class ShiftDTO {
         this.endTime = shift.getEndTime();
         this.status = shift.getStatus().toString();
         this.arrivalImage = shift.getArrivalImage() != null
-                ? new ArrivalImageDTO(shift.getArrivalImage(), presignedUrl)
+                ? new ImageDTO(shift.getArrivalImage(), arrivalPresignedUrl)
                 : null;
         this.workerIds = shift.getWorkerIds();  // Duplicate of workers, matching current structure
         this.isRescheduled = shift.isRescheduled();
         this.originalDate = shift.getOriginalDate();
         this.originalStartTime = shift.getOriginalStartTime();
         this.originalEndTime = shift.getOriginalEndTime();
+        this.completionImage = shift.getCompletionImage() != null
+                ? new ImageDTO(shift.getCompletionImage(), arrivalPresignedUrl)
+                : null;
     }
 }
 
 @Getter
 @Setter
 @NoArgsConstructor
-class ArrivalImageDTO {
+class ImageDTO {
     private String s3Key;
     private LocalDateTime uploadTime;
     private String fileName;
     private String presignedUrl;
 
-    public ArrivalImageDTO(ArrivalImage image, String presignedUrl) {
+    public ImageDTO(Image image, String presignedUrl) {
         if (image != null) {
             this.s3Key = image.getS3Key();
             this.uploadTime = image.getUploadTime();

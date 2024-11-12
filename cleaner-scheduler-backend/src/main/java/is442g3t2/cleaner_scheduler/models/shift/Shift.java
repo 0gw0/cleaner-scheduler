@@ -54,6 +54,9 @@ public class Shift {
     @Embedded
     private ArrivalImage arrivalImage;
 
+    @Embedded
+    private CompletionImage completionImage;
+
     @Column(nullable = false)
     private LocalDate originalDate;
 

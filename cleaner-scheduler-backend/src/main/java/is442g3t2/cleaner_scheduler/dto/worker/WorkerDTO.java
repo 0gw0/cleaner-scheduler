@@ -40,7 +40,12 @@ public class WorkerDTO {
                 .map(shift -> new ShiftDTO(shift,
                         shift.getArrivalImage() != null
                                 ? s3Service.getPresignedUrl(shift.getArrivalImage().getS3Key(), 3600).toString()
-                                : null))
+                                : null,
+                        shift.getCompletionImage() != null
+                                ? s3Service.getPresignedUrl(shift.getCompletionImage().getS3Key(), 3600).toString()
+                                : null
+
+                ))
                 .collect(Collectors.toSet());
         this.phoneNumber = worker.getPhoneNumber();
         this.status = worker.getStatus();

@@ -169,7 +169,7 @@ public class WorkerController {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body(new AddShiftResponse(false, "No End Date Provided"));
         }
-        
+
 
         try {
             if (frequency == null) {
@@ -497,7 +497,12 @@ public class WorkerController {
                 .map(shift -> new ShiftDTO(shift,
                         shift.getArrivalImage() != null
                                 ? s3Service.getPresignedUrl(shift.getArrivalImage().getS3Key(), 3600).toString()
-                                : null))
+                                : null,
+                        shift.getCompletionImage() != null
+                                ? s3Service.getPresignedUrl(shift.getCompletionImage().getS3Key(), 3600).toString()
+                                : null
+
+                ))
                 .collect(Collectors.toList());
 
 

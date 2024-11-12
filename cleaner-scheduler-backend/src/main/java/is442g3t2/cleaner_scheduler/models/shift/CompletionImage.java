@@ -12,13 +12,12 @@ import java.time.LocalDateTime;
 @NoArgsConstructor
 @Getter
 @Setter
-public class ArrivalImage extends Image {
-
-    public ArrivalImage(String s3Key, String fileName) {
+public class CompletionImage extends Image {
+    public CompletionImage(String s3Key, String fileName) {
         super(s3Key, fileName);
     }
 
-    public ArrivalImage(String s, LocalDateTime now, String image) {
+    public CompletionImage(String s, LocalDateTime now, String image) {
         super(s, now, image);
     }
 }

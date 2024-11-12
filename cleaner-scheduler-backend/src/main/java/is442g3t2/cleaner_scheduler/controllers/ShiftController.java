@@ -8,12 +8,9 @@ import is442g3t2.cleaner_scheduler.dto.shift.UpdateShift;
 import is442g3t2.cleaner_scheduler.dto.worker.FindClosestAvailableWorkersRequest;
 import is442g3t2.cleaner_scheduler.dto.worker.FindClosestAvailableWorkersResponse;
 import is442g3t2.cleaner_scheduler.exceptions.ShiftsOverlapException;
-import is442g3t2.cleaner_scheduler.models.shift.ArrivalImage;
-import is442g3t2.cleaner_scheduler.models.shift.RescheduleRequest;
+import is442g3t2.cleaner_scheduler.models.shift.*;
 import is442g3t2.cleaner_scheduler.models.worker.Worker;
 import is442g3t2.cleaner_scheduler.models.worker.WorkerWithTravelTime;
-import is442g3t2.cleaner_scheduler.models.shift.Shift;
-import is442g3t2.cleaner_scheduler.models.shift.ShiftStatus;
 import is442g3t2.cleaner_scheduler.repositories.ShiftRepository;
 import is442g3t2.cleaner_scheduler.repositories.WorkerRepository;
 import is442g3t2.cleaner_scheduler.services.S3Service;
@@ -26,6 +23,7 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.server.ResponseStatusException;
 
+import javax.annotation.processing.Completion;
 import java.io.IOException;
 import java.net.URL;
 import java.time.LocalDate;
@@ -119,7 +117,12 @@ public class ShiftController {
                 .map(shift -> new ShiftDTO(shift,
                         shift.getArrivalImage() != null
                                 ? s3Service.getPresignedUrl(shift.getArrivalImage().getS3Key(), 3600).toString()
-                                : null))
+                                : null,
+                        shift.getCompletionImage() != null
+                                ? s3Service.getPresignedUrl(shift.getCompletionImage().getS3Key(), 3600).toString()
+                                : null
+
+                ))
                 .collect(Collectors.toList());
 
         return ResponseEntity.ok(filteredShifts);
@@ -215,6 +218,85 @@ public class ShiftController {
         }
     }
 
+    @PostMapping("/{shiftId}/completion-image")
+    @Tag(name = "shifts", description = "Shift and Image Management APIs")
+    @Operation(summary = "Upload completion image", description = "Upload an completion image for a specific shift")
+    public ResponseEntity<?> uploadCompletionImage(
+            @PathVariable Long shiftId,
+            @RequestParam("file") MultipartFile file) {
+        try {
+            if (file.isEmpty()) {
+                return ResponseEntity
+                        .status(HttpStatus.BAD_REQUEST)
+                        .body(createErrorResponse("Error: Please select a file to upload"));
+            }
+
+            Optional<Shift> shiftOptional = shiftRepository.findById(shiftId);
+            if (shiftOptional.isEmpty()) {
+                return ResponseEntity
+                        .status(HttpStatus.NOT_FOUND)
+                        .body(createErrorResponse("Error: Shift not found with id: " + shiftId));
+            }
+            Shift shift = shiftOptional.get();
+
+            String s3Key = "completions/" + shiftId + "/" + file.getOriginalFilename();
+            s3Service.saveToS3(s3Key, file.getInputStream(), file.getContentType());
+
+            CompletionImage completionImage = new CompletionImage(s3Key, file.getOriginalFilename());
+            shift.setCompletionImage(completionImage);
+
+            shiftRepository.save(shift);
+
+            Map<String, Object> response = new HashMap<>();
+            response.put("message", "Completion image uploaded successfully");
+            response.put("shift", shift);
+
+            return ResponseEntity.ok(response);
+        } catch (IOException e) {
+            return ResponseEntity
+                    .status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(createErrorResponse("Error uploading file: " + e.getMessage()));
+        } catch (Exception e) {
+            return ResponseEntity
+                    .status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(createErrorResponse("An unexpected error occurred: " + e.getMessage()));
+        }
+    }
+
+    @GetMapping("/{shiftId}/completion-image")
+    @Tag(name = "shifts", description = "Shift and Image Management APIs")
+    @Operation(summary = "Get completion image URL", description = "Get the URL of the completion image for a specific shift")
+    public ResponseEntity<?> getCompletionImageUrl(@PathVariable Long shiftId) {
+        try {
+            Optional<Shift> shiftOptional = shiftRepository.findById(shiftId);
+            if (shiftOptional.isEmpty()) {
+                return ResponseEntity
+                        .status(HttpStatus.NOT_FOUND)
+                        .body(createErrorResponse("Error: Shift not found with id: " + shiftId));
+            }
+            Shift shift = shiftOptional.get();
+
+            if (shift.getCompletionImage() == null) {
+                return ResponseEntity
+                        .status(HttpStatus.NOT_FOUND)
+                        .body(createErrorResponse("Error: No completion image found for shift with id: " + shiftId));
+            }
+
+            URL presignedUrl = s3Service.getPresignedUrl(shift.getCompletionImage().getS3Key(), 3600); // URL valid for 1 hour
+
+            Map<String, Object> response = new HashMap<>();
+            response.put("message", "completion image URL retrieved successfully");
+            response.put("url", presignedUrl.toString());
+
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            return ResponseEntity
+                    .status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(createErrorResponse("An unexpected error occurred: " + e.getMessage()));
+        }
+    }
+
+
     @PutMapping("/{shiftId}/update")
     @Tag(name = "shifts", description = "Update workers, timing and dates of shifts")
     @Operation(summary = "Update workers, timing and dates of shifts", description = "Update workers, timing and dates for a specific shift")
@@ -234,6 +316,9 @@ public class ShiftController {
                 updatedShift,
                 updatedShift.getArrivalImage() != null
                         ? s3Service.getPresignedUrl(updatedShift.getArrivalImage().getS3Key(), 3600).toString()
+                        : null,
+                updatedShift.getCompletionImage() != null
+                        ? s3Service.getPresignedUrl(updatedShift.getCompletionImage().getS3Key(), 3600).toString()
                         : null
         );
         return ResponseEntity.ok(shiftDTO);
@@ -246,16 +331,19 @@ public class ShiftController {
     public ResponseEntity<?> updateShiftStatus(
             @PathVariable Long shiftId,
             @RequestParam ShiftStatus status) {
-        
+
         try {
             Shift updatedShift = shiftService.updateShiftStatus(shiftId, status);
-            
+
             // Create a DTO or response based on your needs, or return a basic success message
             ShiftDTO shiftDTO = new ShiftDTO(
-                updatedShift,
-                updatedShift.getArrivalImage() != null
-                    ? s3Service.getPresignedUrl(updatedShift.getArrivalImage().getS3Key(), 3600).toString()
-                    : null
+                    updatedShift,
+                    updatedShift.getArrivalImage() != null
+                            ? s3Service.getPresignedUrl(updatedShift.getArrivalImage().getS3Key(), 3600).toString()
+                            : null,
+                    updatedShift.getCompletionImage() != null
+                            ? s3Service.getPresignedUrl(updatedShift.getCompletionImage().getS3Key(), 3600).toString()
+                            : null
             );
             return ResponseEntity.ok(shiftDTO);
         } catch (Exception e) {
@@ -303,7 +391,12 @@ public class ShiftController {
                 .map(shift -> new ShiftDTO(shift,
                         shift.getArrivalImage() != null
                                 ? s3Service.getPresignedUrl(shift.getArrivalImage().getS3Key(), 3600).toString()
-                                : null))
+                                : null,
+                        shift.getCompletionImage() != null
+                                ? s3Service.getPresignedUrl(shift.getCompletionImage().getS3Key(), 3600).toString()
+                                : null
+
+                ))
                 .collect(Collectors.toList());
 
         return ResponseEntity.ok(rescheduledShifts);
@@ -326,9 +419,14 @@ public class ShiftController {
 
         shift = shiftRepository.save(shift);
         return ResponseEntity.ok(new ShiftDTO(shift,
-                shift.getArrivalImage() != null ?
-                        s3Service.getPresignedUrl(shift.getArrivalImage().getS3Key(), 3600).toString() :
-                        null));
+                shift.getArrivalImage() != null
+                        ? s3Service.getPresignedUrl(shift.getArrivalImage().getS3Key(), 3600).toString()
+                        : null,
+                shift.getCompletionImage() != null
+                        ? s3Service.getPresignedUrl(shift.getCompletionImage().getS3Key(), 3600).toString()
+                        : null
+
+        ));
     }
 }
 
