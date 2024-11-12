@@ -75,6 +75,8 @@ export interface WorkerData {
 		date: string;
 		startTime: string;
 		endTime: string;
+		arrivalImage: string;
+		completionImage: string;
 	}>;
 	phoneNumber: number;
 	supervisorId: number;

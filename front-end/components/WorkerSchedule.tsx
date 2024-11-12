@@ -12,8 +12,7 @@ import {
 } from '@/components/ui/alert-dialog';
 import {Button} from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea';
-import { Input } from '@/components/ui/input'
-import axios from 'axios';
+import PhotoUploadDialog from './PhotoUploadDialog';
 
 // Update the ScheduleItem interface to match the new data structure
 interface ScheduleItem {
@@ -28,6 +27,8 @@ interface ScheduleItem {
   date: string;
   startTime: string;
   endTime: string;
+  arrivalImage: string;
+  completionImage: string;
 }
 
 interface WorkerScheduleProps {
@@ -84,35 +85,21 @@ const WorkerSchedule: React.FC<WorkerScheduleProps> = ({ schedule }) => {
     setIsPhotoDialogOpen(true);
   };
 
-  const handleClosePhotoDialog = () => {
-    setSelectedShiftId(null);
-    setPhotoFile(null);
-    setIsPhotoDialogOpen(false);
-  };
-
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0] || null;
     setPhotoFile(file);
   };
 
-  const handlePhotoSubmit = async () => {
-    //TODO: not tested + need to also change status to in progress
-    if (photoFile && selectedShiftId) {
-      const formData = new FormData();
-      formData.append('file', photoFile);
+  const openPhotoDialog = (shiftId: number) => {
+    setSelectedShiftId(shiftId);
+    setIsPhotoDialogOpen(true);
+  };
   
-      try {
-        const response = await axios.post(`http://localhost:8080/shifts/${selectedShiftId}/arrival-image`, formData, {
-          headers: {
-            'Content-Type': 'multipart/form-data',
-          },
-        });
-        console.log(`Photo uploaded successfully for shift ${selectedShiftId}:`, response.data);
-        handleClosePhotoDialog(); 
-      } catch (error) {
-        console.error(`Error uploading photo for shift ${selectedShiftId}:`, error);
-      }
-    }
+  const handleClosePhotoDialog = () => {
+    setIsPhotoDialogOpen(false);
+    setSelectedShiftId(null);
+    setPhotoFile(null);
+
   };
 
   function addMinutesToTime(timeString: string, minutesToAdd: number) {
@@ -151,17 +138,31 @@ const WorkerSchedule: React.FC<WorkerScheduleProps> = ({ schedule }) => {
                 <p>{`Property ID: ${item.property.propertyId}`}</p>
                 <p>{`Client ID: ${item.property.clientId}`}</p>
 
-                {title === 'Current Schedule' && (
-                  <div className="mt-4">
-                    <p className="text-red-800">Remember to submit your photo by {addMinutesToTime(item.startTime,5)}</p>
-                  <Button
-                    className="mt-1"
-                    onClick={() => handleOpenPhotoDialog(item.id)}
-                  >
-                    Submit Photo
-                  </Button>
-                  </div>
-                  
+                {title === 'Current Schedule' && item.arrivalImage === null && (
+                 <div>
+                 {/* Button to open arrival photo dialog */}
+                 <Button className="mt-3" onClick={() => openPhotoDialog(item.id)}>Upload Arrival Photo</Button>
+                 <PhotoUploadDialog
+                   isOpen={isPhotoDialogOpen}
+                   onClose={handleClosePhotoDialog}
+                   endpoint={`http://localhost:8080/shifts/:shiftId/arrival-image`}
+                   shiftId={item.id}
+                   onUploadSuccess={(data) => console.log('Arrival photo uploaded:', data)}
+                 />
+               </div>
+                )}
+                {title === 'Current Schedule' && item.arrivalImage != null && (
+                 <div>
+                 {/* Button to open completion photo dialog */}
+                 <Button  className="mt-3" onClick={() => openPhotoDialog(item.id)}>Upload Completion Photo</Button>
+                 <PhotoUploadDialog
+                   isOpen={isPhotoDialogOpen}
+                   onClose={handleClosePhotoDialog}
+                   endpoint={`http://localhost:8080/shifts/:shiftId/completion-image`}
+                   shiftId={item.id}
+                   onUploadSuccess={(data) => console.log('Completion photo uploaded:', data)}
+                 />
+               </div>
                 )}
               </CardContent>
             </Card>
@@ -203,36 +204,6 @@ const WorkerSchedule: React.FC<WorkerScheduleProps> = ({ schedule }) => {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-
-      <AlertDialog open={isPhotoDialogOpen} onOpenChange={setIsPhotoDialogOpen}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Submit Photo</AlertDialogTitle>
-            <AlertDialogDescription>
-              Please upload a photo for this shift.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <Input
-            type="file"
-            accept="image/*"
-            capture="environment" 
-            onChange={handleFileChange}
-            className="my-4"
-          />
-          <AlertDialogFooter>
-            <AlertDialogCancel onClick={handleClosePhotoDialog}>
-              Cancel
-            </AlertDialogCancel>
-            <AlertDialogAction 
-              onClick={handlePhotoSubmit}
-              disabled={!photoFile}
-            >
-              Submit
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-
       <ScheduleSection title="Current Schedule" items={current} />
       <ScheduleSection title="Upcoming Schedule" items={upcoming} />
       <ScheduleSection title="Past Schedule" items={past} />

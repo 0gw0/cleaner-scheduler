@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Shift, WorkerTravelData } from '@/types/task';
-import { CalendarIcon, ClockIcon, MapPinIcon, UserIcon, BuildingIcon, Check } from 'lucide-react';
+import { CalendarIcon, ClockIcon, MapPinIcon, UserIcon, BuildingIcon, Check, TimerIcon, Clock } from 'lucide-react';
 import Image from 'next/image'
 import { PersonIcon } from '@radix-ui/react-icons';
 import axios from 'axios';
@@ -19,37 +19,6 @@ interface TaskDetailModalProps {
   onTaskUpdate: () => void;
 }
 
-const fakeWorkerTravelData: WorkerTravelData[] = [
-  {
-    id: 1,
-    name: "John Doe",
-    travelTimeToTarget: {
-      totalTravelTime: 45,
-      travelTimeWithoutTraffic: 30,
-      travelTimeInTraffic: 15,
-    },
-    relevantShift: {
-      date: "2024-10-13",
-      startTime: "09:00:00",
-      endTime: "17:00:00",
-    },
-    originLocation: "123 Main St, Singapore",
-  },
-  {
-    id: 2,
-    name: "Jane Smith",
-    travelTimeToTarget: {
-      totalTravelTime: 30,
-      travelTimeWithoutTraffic: 25,
-      travelTimeInTraffic: 5,
-    },
-    relevantShift: {
-      date: "2024-10-14",
-      startTime: "10:00:00",
-      endTime: "18:00:00",
-    },
-    originLocation: "456 Another St, Singapore",
-  }]
 
 export const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ shiftData, isOpen, onClose, onEdit, onTaskUpdate }) => {
   const [isEditing, setIsEditing] = useState(false); 
@@ -63,7 +32,7 @@ export const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ shiftData, isO
   const [error, setError] = useState("");
   const [showFailure, setShowFailure] = useState(false); //not available to perform update because no available workers
   const [arrivalImgSrc, setarrivalImgSrc] = useState('');
-  
+  const [searchTerm, setSearchTerm] = useState(''); 
 
   useEffect(() => {
     setarrivalImgSrc('');
@@ -102,7 +71,6 @@ export const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ shiftData, isO
     });
   };
 
-
   const handleNextStep = async () => {
     setError("")
 
@@ -113,7 +81,7 @@ export const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ shiftData, isO
     } else {
       setError("")}
 
-    if (currentStep === 0 && assignmentType === 'automatic') {
+    if (currentStep === 0) {
       const requestBody = {
         postalCode: shiftData.property.postalCode,
         startTime: updatedShift.startTime,
@@ -171,8 +139,6 @@ export const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ shiftData, isO
     }
   };
 
-
-
   const handleSave = async () => {
     try {
       const workerIds = (availableWorkers && availableWorkers.length > 0 ? availableWorkers : selectedWorkers)
@@ -206,7 +172,9 @@ export const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ shiftData, isO
     }
   };
 
-
+  const filteredWorkers = workerChoice.filter(worker =>
+    worker.name.toLowerCase().includes(searchTerm.toLowerCase())
+  );
 
   return (
       <Dialog open={isOpen} onOpenChange={onClose}>
@@ -337,32 +305,76 @@ export const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ shiftData, isO
   
               {currentStep === 1 && (
               <div className="grid gap-4 py-4">
+
+                {/* manual type */}
                 {assignmentType === 'manual' && !showFailure ? (
                   <div className="space-y-4">
-                    <p>You can choose from the following workers</p>
-                    {workerChoice.map((worker, index) => {
-                      const isSelected = selectedWorkers.some((selectedWorker) => selectedWorker.id === worker.id);
-                      return (
-                        <motion.div
-                          key={worker.id}
-                          className={`p-4 rounded-lg cursor-pointer ${isSelected ? 'bg-black text-white' : 'bg-slate-200 text-black'}`}
-                          initial={{ opacity: 0, y: 20 }}
-                          animate={{ opacity: 1, y: 0 }}
-                          exit={{ opacity: 0, y: -20 }}
-                          transition={{ duration: 0.5, delay: index * 0.2 }} // Sequential delay for staggered appearance
-                          onClick={() => toggleWorkerSelection(worker)}
-                        >
+                  <p>These are the top 5 suggested workers:</p>
+                  {availableWorkers.map((worker, index) => (
+                    <motion.div
+                      key={worker.id}
+                      className="p-4 rounded-lg bg-slate-200 text-black"
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: -20 }}
+                      transition={{ duration: 0.5, delay: index * 0.2 }}
+                    >
+                      <h3 className="font-semibold">{worker.name}</h3>
+                      <p className="text-sm">Travel Time: {worker.travelTimeToTarget.totalTravelTime} mins</p>
+                    </motion.div>
+                  ))}
+                
+                <hr/>
+
+                
+                  <p className="mt-6">Select your workers below:</p>
+                  <input
+                      type="text"
+                      placeholder="Search workers..."
+                      className="w-full px-3 py-2 border rounded-md mb-4"
+                      value={searchTerm}
+                      onChange={(e) => setSearchTerm(e.target.value)}
+                    />
+                  {filteredWorkers.map((worker, index) => {
+                    const isSelected = selectedWorkers.some((selectedWorker) => selectedWorker.id === worker.id);
+                    return (
+                      <motion.div
+                        key={worker.id}
+                        className={`p-4 rounded-lg cursor-pointer ${isSelected ? 'bg-black text-white' : 'bg-slate-200 text-black'}`}
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: -20 }}
+                        transition={{ duration: 0.5, delay: index * 0.2 }}
+                        onClick={() => toggleWorkerSelection(worker)}
+                      >
+                        <div className="flex items-center justify-between">
                           <h3 className="font-semibold">{worker.name}</h3>
-                        </motion.div>
-                      );
-                    })}
-                    {error && (
+                          <Button
+                            className="ml-4 px-3 py-1 bg-slate-500 text-white rounded hover:bg-black text-sm"
+                            onClick={(e) => {
+                              e.stopPropagation(); // Prevents triggering parent onClick
+                              console.log(`Retrieving travel time for ${worker.name}`);
+                            }}
+                          >
+                            <Clock/>
+                          </Button>
+                        </div>
+
+                        
+                      </motion.div>
+                    );
+                  })}
+                
+                  {error && (
                     <div className="text-red-500 mb-4 text-sm">
                       {error}
                     </div>
-                    )}
-                  </div>
+                  )}
+                </div>
+                
                 ) : !showFailure ? (
+
+                  // automatic assignment
                   <div className="space-y-4">
                     <p>The following workers have been assigned:</p>
                     {availableWorkers.map((worker, index) => (
