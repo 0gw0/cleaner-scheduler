@@ -77,6 +77,9 @@ export interface Shift {
   status: "COMPLETED" | "PENDING" | "UPCOMING" | "IN PROGRESS" | "CANCELLED"; 
   arrivalImage?: ArrivalImage | null; 
   workerIds: number[]; 
+  originalDate: string;
+  originalStartTime : string;
+  originalEndTime: string;
 }
 
 export interface Worker {

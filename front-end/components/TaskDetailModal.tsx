@@ -176,12 +176,18 @@ export const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ shiftData, isO
     worker.name.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
+  const steps = [
+    { title: 'Edit task', description: 'Change the details of the task' },
+    { title: 'Worker assignment', description: 'Assign the desired workers' },
+    { title: 'Confirmation', description: 'Review and confirm task details' },
+  ]
+
   return (
       <Dialog open={isOpen} onOpenChange={onClose}>
         <DialogContent className="sm:max-w-[425px]">
           <DialogHeader>
-            <DialogTitle>Task Details</DialogTitle>
-            <DialogDescription>Detailed information about the selected task.</DialogDescription>
+            <DialogTitle>{steps[currentStep].title}</DialogTitle>
+            <DialogDescription>{steps[currentStep].description}</DialogDescription>
             <span
               className={`absolute top-2 right-2 px-2 py-1 rounded-full text-xs z-10 font-semibold ${
                 shiftData.status === 'COMPLETED'
@@ -466,7 +472,7 @@ export const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ shiftData, isO
               </div>
               <div className="grid grid-cols-4 items-center gap-4">
                 <span className="font-bold col-span-1">End time:</span>
-                <span className="col-span-3 flex items-center">
+                <span className="col-span-1 flex items-center">
                   <ClockIcon className="w-4 h-4 mr-2" />
                   {shiftData.endTime}
                 </span>
@@ -490,6 +496,37 @@ export const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ shiftData, isO
                     height={300}
                   />
               </div>}
+
+              {/* if got rescheduling */}
+              {(shiftData.date !== shiftData.originalDate || 
+                shiftData.originalEndTime !== shiftData.endTime || 
+                shiftData.originalStartTime !== shiftData.startTime) && (
+                  <>
+                    <hr />
+                    <span className="font-bold">Rescheduling history:</span>
+                    <div className="grid grid-cols-4 items-center gap-4">
+                      <span className="font-bold col-span-1">Original date:</span>
+                      <span className="col-span-3 flex items-center">
+                        <CalendarIcon className="w-4 h-4 mr-2" />
+                        {shiftData.originalDate}
+                      </span>
+                    </div>
+                    <div className="grid grid-cols-4 items-center gap-4">
+                      <span className="font-bold col-span-1">Start time:</span>
+                      <span className="col-span-3 flex items-center">
+                        <ClockIcon className="w-4 h-4 mr-2" />
+                        {shiftData.originalStartTime}
+                      </span>
+                    </div>
+                    <div className="grid grid-cols-4 items-center gap-4">
+                      <span className="font-bold col-span-1">End time:</span>
+                      <span className="col-span-3 flex items-center">
+                        <ClockIcon className="w-4 h-4 mr-2" />
+                        {shiftData.originalEndTime}
+                      </span>
+                    </div>
+                  </>
+              )}
 
               <div className="flex justify-between mt-4">
                 {shiftData.status === "UPCOMING" && (
