@@ -34,6 +34,12 @@ public class Shift {
     @JoinTable(name = "shift_workers", joinColumns = @JoinColumn(name = "shift_id"), inverseJoinColumns = @JoinColumn(name = "worker_id"))
     private List<Worker> workers = new ArrayList<>();
 
+    @Column(nullable = true)
+    private Set<Long> presentWorkers;
+
+    @Column(nullable = true)
+    private Set<Long> completedWorkers;
+
     @ManyToOne
     @JoinColumn(name = "property_id")
     private Property property;
@@ -68,6 +74,7 @@ public class Shift {
 
     @Column(nullable = false)
     private boolean isRescheduled = false;
+
 
     public Shift(LocalDate date, LocalTime startTime, LocalTime endTime, Property property, ShiftStatus status)
             throws InvalidShiftException {
