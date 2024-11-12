@@ -150,18 +150,11 @@ public class Shift {
     }
 
     public String isValidShiftTime(LocalTime startTime, LocalTime endTime) {
-        // Define allowed time ranges
-        LocalTime workStart = LocalTime.of(8, 0);
-        LocalTime workEnd = LocalTime.of(22, 0);
         LocalTime lunchStart = LocalTime.of(12, 0);
         LocalTime lunchEnd = LocalTime.of(13, 0);
         LocalTime dinnerStart = LocalTime.of(17, 0);
         LocalTime dinnerEnd = LocalTime.of(18, 0);
 
-        // Check if start time is before 8am or end time is after 10pm
-        if (startTime.isBefore(workStart) || endTime.isAfter(workEnd)) {
-            return "Outside of working hours (8am to 10pm)";
-        }
 
         if (startTime.isBefore(lunchStart) && endTime.isAfter(lunchEnd)) {
             return "Worker's lunch hours are 12pm to 1pm";
@@ -183,20 +176,8 @@ public class Shift {
             return "Worker's dinner hours are 5pm to 6pm";
         }
 
-        // Check if shift falls within allowed ranges: 8am-12pm, 1pm-5pm, or 6pm-10pm
-        LocalTime morningEnd = LocalTime.of(12, 0).plusMinutes(1);
-        LocalTime afternoonStart = LocalTime.of(13, 0);
-        LocalTime afternoonEnd = LocalTime.of(17, 0).plusMinutes(1);
-        LocalTime eveningStart = LocalTime.of(18, 0);
 
-        boolean isWithinAllowedRanges = (startTime.equals(workStart)
-                || startTime.isAfter(workStart) && endTime.isBefore(morningEnd)) ||
-                (startTime.equals(afternoonStart)
-                        || startTime.isAfter(afternoonStart) && endTime.isBefore(afternoonEnd))
-                ||
-                (startTime.equals(eveningStart) || startTime.isAfter(eveningStart) && endTime.isBefore(workEnd));
-
-        return isWithinAllowedRanges ? "" : "Shift must be within allowed timings: 8am-12pm, 1pm-5pm, or 6pm-10pm";
+        return "";
     }
 
 }
