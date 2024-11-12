@@ -186,22 +186,24 @@ const ManageTasks: React.FC = () => {
               <SelectItem value="CANCELLED">Cancelled</SelectItem>
             </SelectContent>
           </Select>
-        </div>
 
-        <div className="flex-grow flex items-center ml-2 mr-2">
-          <Input
-            className="w-full md:w-auto flex-grow"
-            placeholder="Search by property address..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-          />
-          <div className="flex items-center ml-2">
-            <Button variant="outline" onClick={handleSortToggle}>
+          <Button variant="outline" onClick={handleSortToggle}>
               <Filter className="mr-2 h-4 w-4" />
               {sortOrder === 'asc' ? 'Oldest First' : 'Newest First'}
-            </Button>
-          </div>
+          </Button>
+
         </div>
+
+
+      <div className="flex-grow flex items-center ml-2 mr-2 space-y-4 md:space-y-0 justify-between">
+        <Input
+          className="w-full md:w-auto flex-grow"
+          placeholder="Search by property address..."
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+        />
+      </div>
+
 
         <div className="flex-shrink-0">
           <AddTaskForm onTaskAdded={handleTaskAdded}/>
