@@ -64,7 +64,11 @@ public class Worker {
     {
         this.password = "password123";
     }
-    
+
+    @Column(nullable = false)
+    private String homePostalCode;
+
+
     @Column(nullable = true, unique = true)
     private String email;
 
@@ -91,12 +95,13 @@ public class Worker {
     @OneToMany(mappedBy = "worker", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<MedicalLeave> medicalLeaves = new ArrayList<>();
 
-    public Worker(String name, String phoneNumber, String bio, String email, String password) {
+    public Worker(String name, String phoneNumber, String bio, String email, String password, String homePostalCode) {
         this.name = name;
         this.phoneNumber = phoneNumber;
         this.bio = bio;
         this.email = email;
         this.password = password;
+        this.homePostalCode = homePostalCode;
     }
 
     public Long getSupervisor() {
@@ -106,7 +111,6 @@ public class Worker {
     public String getSupervisorEmail() {
         return supervisor.getEmail();
     }
-
 
 
     public int getNumShiftsInMonth(YearMonth yearMonth) {
@@ -225,8 +229,4 @@ public class Worker {
         return newShifts;
     }
 
-
-    public String getHomePostalCode() {
-        return "188065";
-    }
 }
