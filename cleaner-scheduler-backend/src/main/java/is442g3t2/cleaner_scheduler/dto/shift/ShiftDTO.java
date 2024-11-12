@@ -25,6 +25,9 @@ public class ShiftDTO {
     private String status;
     private ArrivalImageDTO arrivalImage;
     private Set<Long> workerIds;  // Matching your current structure
+    private LocalDate originalDate;
+    private LocalTime originalStartTime;
+    private LocalTime originalEndTime;
     private boolean isRescheduled;
 
     public ShiftDTO(Shift shift, String presignedUrl) {
@@ -40,6 +43,9 @@ public class ShiftDTO {
                 : null;
         this.workerIds = shift.getWorkerIds();  // Duplicate of workers, matching current structure
         this.isRescheduled = shift.isRescheduled();
+        this.originalDate = shift.getOriginalDate();
+        this.originalStartTime = shift.getOriginalStartTime();
+        this.originalEndTime = shift.getOriginalEndTime();
     }
 }
 
