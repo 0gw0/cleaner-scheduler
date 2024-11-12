@@ -32,6 +32,7 @@ public class WorkerDTO {
     private List<AnnualLeaveDTO> annualLeaves;
     private String password;
     private List<MedicalLeaveDTO> medicalLeaves;  // Changed from List<MedicalLeave>
+    private String homePostalCode;
 
     public WorkerDTO(Worker worker, S3Service s3Service) {  // Added S3Service parameter
         this.id = worker.getId();
@@ -74,6 +75,7 @@ public class WorkerDTO {
 
         this.password = worker.getPassword();
         this.isVerified = worker.getIsVerified();
+        this.homePostalCode = worker.getHomePostalCode();
     }
 
 }

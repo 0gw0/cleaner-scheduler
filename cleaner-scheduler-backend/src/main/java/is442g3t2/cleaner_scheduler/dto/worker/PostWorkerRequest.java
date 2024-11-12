@@ -16,4 +16,5 @@ public class PostWorkerRequest {
     private Long supervisorId;
     private String email;
     private String password;
+    private String homePostalCode;
 }

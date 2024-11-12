@@ -527,7 +527,8 @@ public class WorkerController {
                 postWorkerRequest.getPhoneNumber(),
                 postWorkerRequest.getBio(),
                 postWorkerRequest.getEmail(),
-                postWorkerRequest.getPassword()
+                postWorkerRequest.getPassword(),
+                postWorkerRequest.getHomePostalCode()
         );
 
         Admin supervisor = adminRepository.findById(postWorkerRequest.getSupervisorId())
