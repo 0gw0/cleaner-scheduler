@@ -361,7 +361,6 @@ export default function AddTaskForm({ onTaskAdded }: AddTaskFormProps) {
                                 />
                               </div>
                               <div className="grid grid-cols-2 gap-4">
-                                {/* TODO: Add validation for start time to be before end time */}
                                 <div>
                                   <Label htmlFor="startTime">Start Time</Label>
                                   <Input
@@ -453,6 +452,7 @@ export default function AddTaskForm({ onTaskAdded }: AddTaskFormProps) {
   
                           {currentStep === 1 && (
                           <div className="space-y-4">
+                            {/* TODO: add error handling if no available workers found */}
                             <p>The following workers have been assigned:</p>
                             {availableWorkers.slice(0, formData.numberOfWorkers).map((worker, index) => (
                               <motion.div

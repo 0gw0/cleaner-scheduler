@@ -74,7 +74,7 @@ export const TaskCard: React.FC<TaskCardProps> = ({ shiftData, onCardClick, canc
             </p>
             <p className="flex items-center">
               <PersonStandingIcon className="w-4 h-4 mr-2" />
-              Worker(s): {shiftData.workerIds.join(", ")}
+              Assigned worker ID(s): {shiftData.workerIds.join(", ")}
             </p>
           </div>
         </CardContent>

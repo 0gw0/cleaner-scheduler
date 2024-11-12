@@ -332,7 +332,6 @@ export const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ shiftData, isO
                 
                 <hr/>
 
-                
                   <p className="mt-6">Select your workers below:</p>
                   <input
                       type="text"
@@ -538,7 +537,6 @@ export const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ shiftData, isO
               </div>
             </div>
           )}
-          {/* TODO: add to show rescheduled: original starttime, etc? */}
         </DialogContent>
       </Dialog>
     );
