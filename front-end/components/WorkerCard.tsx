@@ -1,5 +1,11 @@
 import React, { useState } from "react";
-import { Phone, Calendar, FileText, Building, Briefcase } from "lucide-react";
+import {
+  Phone,
+  Calendar,
+  FileText,
+  Building,
+  Briefcase,
+} from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -25,7 +31,25 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { WorkerData, Property, DialogState } from "@/types/workermanagement";
+
+// Add proper type definitions
+interface AnnualLeave {
+  id: number;
+  startDate: string;
+  endDate: string;
+  status: "PENDING" | "APPROVED" | "REJECTED";
+}
+
+interface MedicalLeave {
+  startDate: string;
+  endDate: string;
+}
+
+interface Property {
+  id: number;
+  name: string;
+  address: string;
+}
 
 interface Shift {
   id: number;
@@ -44,28 +68,49 @@ interface Shift {
   workerIds: number[];
 }
 
+interface WorkerData {
+  id: number;
+  name: string;
+  phoneNumber: string;
+  bio: string;
+  status: string;
+  homePostalCode: string;
+  shifts: Shift[];
+  annualLeaves: AnnualLeave[];
+  medicalLeaves: MedicalLeave[];
+}
+
+interface DialogState {
+  showMCHistory: boolean;
+  showSchedule: boolean;
+}
+
 interface WorkerCardProps {
   worker: WorkerData;
   onActionClick: (action: keyof DialogState) => void;
-  hasPendingMC: boolean;
+  hasPendingMC?: boolean;
 }
 
-export const WorkerCard = ({ worker, onActionClick }: WorkerCardProps) => {
+export const WorkerCard: React.FC<WorkerCardProps> = ({ 
+  worker, 
+  onActionClick, 
+  hasPendingMC = false 
+}) => {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const [isAnnualLeavesDialogOpen, setIsAnnualLeavesDialogOpen] =
-    useState(false);
+  const [isAnnualLeavesDialogOpen, setIsAnnualLeavesDialogOpen] = useState(false);
   const [isUpdating, setIsUpdating] = useState(false);
   const [selectedLeave, setSelectedLeave] = useState<{
     id: number;
     action: "APPROVED" | "REJECTED";
   } | null>(null);
-  const [annualLeaves, setAnnualLeaves] = useState(worker.annualLeaves);
+  const [annualLeaves, setAnnualLeaves] = useState<AnnualLeave[]>(worker.annualLeaves);
   const [isProcessingLeave, setIsProcessingLeave] = useState(false);
   const [formData, setFormData] = useState({
     name: worker.name,
     phoneNumber: worker.phoneNumber,
     bio: worker.bio,
     status: worker.status,
+    homePostalCode: worker.homePostalCode,
   });
 
   const handleAnnualLeaveAction = async (
@@ -87,13 +132,11 @@ export const WorkerCard = ({ worker, onActionClick }: WorkerCardProps) => {
         throw new Error("Failed to update annual leave");
       }
 
-      // Update both the local state and the worker object
       const updatedLeaves = annualLeaves.map((leave) =>
         leave.id === leaveId
           ? {
               ...leave,
               status: action,
-              approved: action === "APPROVED",
             }
           : leave
       );
@@ -118,23 +161,16 @@ export const WorkerCard = ({ worker, onActionClick }: WorkerCardProps) => {
           headers: {
             "Content-Type": "application/json",
           },
-          body: JSON.stringify({
-            name: formData.name,
-            phoneNumber: formData.phoneNumber,
-            bio: formData.bio,
-            status: formData.status,
-          }),
+          body: JSON.stringify(formData),
         }
       );
 
       if (!response.ok) {
         throw new Error("Failed to update worker");
       }
-      worker.name = formData.name;
-      worker.phoneNumber = formData.phoneNumber;
-      worker.bio = formData.bio;
-      worker.status = formData.status;
 
+      // Update local worker data
+      Object.assign(worker, formData);
       setIsDialogOpen(false);
     } catch (error) {
       console.error("Error updating worker:", error);
@@ -144,8 +180,9 @@ export const WorkerCard = ({ worker, onActionClick }: WorkerCardProps) => {
   };
 
   const getNextShift = (shifts: Shift[]): Shift | null => {
+    const now = new Date();
     const futureShifts = shifts
-      .filter((shift) => new Date(shift.date) > new Date())
+      .filter((shift) => new Date(shift.date) > now)
       .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
     return futureShifts[0] || null;
   };
@@ -160,9 +197,11 @@ export const WorkerCard = ({ worker, onActionClick }: WorkerCardProps) => {
   };
 
   const getWorkerStatus = () => {
+    const now = new Date();
     const currentMC = worker.medicalLeaves.find((leave) => {
-      const now = new Date();
-      return new Date(leave.startDate) <= now && new Date(leave.endDate) >= now;
+      const startDate = new Date(leave.startDate);
+      const endDate = new Date(leave.endDate);
+      return startDate <= now && endDate >= now;
     });
 
     if (currentMC) {
@@ -171,7 +210,6 @@ export const WorkerCard = ({ worker, onActionClick }: WorkerCardProps) => {
 
     const currentShift = worker.shifts.find((shift) => {
       const shiftDate = new Date(shift.date);
-      const now = new Date();
       return (
         shiftDate.getDate() === now.getDate() &&
         shiftDate.getMonth() === now.getMonth() &&
@@ -187,6 +225,16 @@ export const WorkerCard = ({ worker, onActionClick }: WorkerCardProps) => {
     }
 
     return { label: "Available", className: "bg-gray-100 text-gray-800" };
+  };
+
+  const handleInputChange = (
+    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
+  ) => {
+    const { id, value } = e.target;
+    setFormData((prev) => ({
+      ...prev,
+      [id]: value,
+    }));
   };
 
   const nextShift = getNextShift(worker.shifts);
@@ -218,9 +266,18 @@ export const WorkerCard = ({ worker, onActionClick }: WorkerCardProps) => {
               <Calendar className="w-4 h-4" />
               <span className="truncate">Shifts: {worker.shifts.length}</span>
             </div>
-            <div className="flex items-center gap-1 text-gray-600">
-              <Building className="w-4 h-4" />
-              <span className="truncate">Status: {worker.status}</span>
+          </div>
+
+          <div className="flex items-center gap-1 text-gray-600">
+            <Building className="w-4 h-4" />
+            <span className="truncate text-sm">Status: {worker.status}</span>
+          </div>
+
+          <div className="grid grid-cols-3 gap-2 text-sm">
+            <div className="gap-1 text-gray-600">
+              <span className="truncate">
+                Worker Postal Code: {worker.homePostalCode}
+              </span>
             </div>
           </div>
 
@@ -274,8 +331,8 @@ export const WorkerCard = ({ worker, onActionClick }: WorkerCardProps) => {
                         >
                           <div className="space-y-1">
                             <div className="font-medium">
-                              {format(new Date(leave.startDate), "dd MMM yyyy")}{" "}
-                              - {format(new Date(leave.endDate), "dd MMM yyyy")}
+                              {format(new Date(leave.startDate), "dd MMM yyyy")} -{" "}
+                              {format(new Date(leave.endDate), "dd MMM yyyy")}
                             </div>
                             <Badge
                               variant={
@@ -302,9 +359,7 @@ export const WorkerCard = ({ worker, onActionClick }: WorkerCardProps) => {
                                   })
                                 }
                               >
-                                {isProcessingLeave
-                                  ? "Processing..."
-                                  : "Approve"}
+                                {isProcessingLeave ? "Processing..." : "Approve"}
                               </Button>
                               <Button
                                 size="sm"
@@ -328,37 +383,6 @@ export const WorkerCard = ({ worker, onActionClick }: WorkerCardProps) => {
                 </div>
               </DialogContent>
             </Dialog>
-
-            <AlertDialog
-              open={selectedLeave !== null}
-              onOpenChange={(open) => !open && setSelectedLeave(null)}
-            >
-              <AlertDialogContent>
-                <AlertDialogHeader>
-                  <AlertDialogTitle>Confirm Action</AlertDialogTitle>
-                  <AlertDialogDescription>
-                    Are you sure you want to{" "}
-                    {selectedLeave?.action.toLowerCase()} this annual leave
-                    request?
-                  </AlertDialogDescription>
-                </AlertDialogHeader>
-                <AlertDialogFooter>
-                  <AlertDialogCancel>Cancel</AlertDialogCancel>
-                  <AlertDialogAction
-                    onClick={() => {
-                      if (selectedLeave) {
-                        handleAnnualLeaveAction(
-                          selectedLeave.id,
-                          selectedLeave.action
-                        );
-                      }
-                    }}
-                  >
-                    Confirm
-                  </AlertDialogAction>
-                </AlertDialogFooter>
-              </AlertDialogContent>
-            </AlertDialog>
           </div>
 
           <Button
@@ -380,7 +404,6 @@ export const WorkerCard = ({ worker, onActionClick }: WorkerCardProps) => {
         </div>
       </CardContent>
 
-      {/* Update Worker Dialog */}
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
         <DialogContent className="sm:max-w-[425px]">
           <DialogHeader>
@@ -392,12 +415,7 @@ export const WorkerCard = ({ worker, onActionClick }: WorkerCardProps) => {
               <Input
                 id="name"
                 value={formData.name}
-                onChange={(e) =>
-                  setFormData((prev) => ({
-                    ...prev,
-                    name: e.target.value,
-                  }))
-                }
+                onChange={handleInputChange}
               />
             </div>
             <div className="grid gap-2">
@@ -405,12 +423,7 @@ export const WorkerCard = ({ worker, onActionClick }: WorkerCardProps) => {
               <Input
                 id="phoneNumber"
                 value={formData.phoneNumber}
-                onChange={(e) =>
-                  setFormData((prev) => ({
-                    ...prev,
-                    phoneNumber: e.target.value,
-                  }))
-                }
+                onChange={handleInputChange}
               />
             </div>
             <div className="grid gap-2">
@@ -418,12 +431,7 @@ export const WorkerCard = ({ worker, onActionClick }: WorkerCardProps) => {
               <Textarea
                 id="bio"
                 value={formData.bio}
-                onChange={(e) =>
-                  setFormData((prev) => ({
-                    ...prev,
-                    bio: e.target.value,
-                  }))
-                }
+                onChange={handleInputChange}
                 className="h-20"
               />
             </div>
@@ -432,28 +440,17 @@ export const WorkerCard = ({ worker, onActionClick }: WorkerCardProps) => {
               <Input
                 id="status"
                 value={formData.status}
-                onChange={(e) =>
-                  setFormData((prev) => ({
-                    ...prev,
-                    status: e.target.value,
-                  }))
-                }
+                onChange={handleInputChange}
               />
             </div>
-            {/* add home postal code in backend when call worker data */}
-            {/* <div className="grid gap-2">
-							<Label htmlFor="homePostalCode">Postal Code</Label>
-							<Input
-								id="homePostalCode"
-								value={formData.homePostalCode}
-								onChange={(e) =>
-									setFormData((prev) => ({
-										...prev,
-										status: e.target.value,
-									}))
-								}
-							/>
-						</div> */}
+            <div className="grid gap-2">
+              <Label htmlFor="homePostalCode">Postal Code</Label>
+              <Input
+                id="homePostalCode"
+                value={formData.homePostalCode}
+                onChange={handleInputChange}
+              />
+            </div>
           </div>
           <DialogFooter>
             <Button
@@ -469,6 +466,36 @@ export const WorkerCard = ({ worker, onActionClick }: WorkerCardProps) => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <AlertDialog
+        open={selectedLeave !== null}
+        onOpenChange={(open) => !open && setSelectedLeave(null)}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Confirm Action</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to{" "}
+              {selectedLeave?.action.toLowerCase()} this annual leave request?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                if (selectedLeave) {
+                  handleAnnualLeaveAction(
+                    selectedLeave.id,
+                    selectedLeave.action
+                  );
+                }
+              }}
+            >
+              Confirm
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </Card>
   );
 };
