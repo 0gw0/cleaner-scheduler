@@ -22,6 +22,7 @@ export default function Signup() {
 		fullName: '',
 		phoneNumber: '',
 		email: '',
+		homePostalCode: '',
 		bio: '',
 		password: '',
 		confirmPassword: '',
@@ -39,7 +40,7 @@ export default function Signup() {
 	};
 
 	const validateForm = () => {
-		const requiredFields = ['fullName', 'phoneNumber', 'email', 'password', 'confirmPassword', 'supervisorId'];
+		const requiredFields = ['fullName', 'phoneNumber', 'email', 'homePostalCode', 'password', 'confirmPassword', 'supervisorId'];
 		const hasEmptyFields = requiredFields.some(field => !formData[field as keyof typeof formData].trim());
 
 		if (hasEmptyFields) {
@@ -71,6 +72,7 @@ export default function Signup() {
 					phoneNumber: formData.phoneNumber,
 					bio: formData.bio,
 					email: formData.email,
+					homePostalCode: formData.homePostalCode,
 					supervisorId: parseInt(formData.supervisorId),
 					password: formData.password
 				});
@@ -134,6 +136,18 @@ export default function Signup() {
 								onChange={handleChange}
 							/>
 						</LabelInputContainer>
+
+						<LabelInputContainer>
+							<Label htmlFor="homePostalCode">Home Postal Code</Label>
+							<Input
+								id="homePostalCode"
+								placeholder="e.g. 549630"
+								type="text"
+								value={formData.homePostalCode}
+								onChange={handleChange}
+							/>
+						</LabelInputContainer>
+
 						<LabelInputContainer>
 							<Label htmlFor="email">Email Address</Label>
 							<Input
@@ -144,7 +158,6 @@ export default function Signup() {
 								onChange={handleChange}
 							/>
 						</LabelInputContainer>
-
 
 						<LabelInputContainer className="mb-4">
 							<Label htmlFor="bio">Bio</Label>
