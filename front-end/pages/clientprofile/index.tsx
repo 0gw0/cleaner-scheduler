@@ -46,6 +46,7 @@ interface Property {
   client: number;
   address: string;
   postalCode: string;
+  active: boolean;
 }
 
 interface PropertyPayload {
@@ -317,11 +318,80 @@ const ClientProfiles = () => {
     clientId: number;
   }> = ({ properties: initialProperties, clientId }) => {
     const [properties, setProperties] = useState<Property[]>(initialProperties);
+    const [isModifyDialogOpen, setIsModifyDialogOpen] = useState(false);
+    const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+    const [selectedProperty, setSelectedProperty] = useState<Property | null>(null);
+    const [modifiedAddress, setModifiedAddress] = useState("");
+    const [modifiedPostalCode, setModifiedPostalCode] = useState("");
+    const [isLoading, setIsLoading] = useState(false);
 
     const handleAddProperty = (newProperty: Property) => {
       setProperties((prev) => [...prev, newProperty]);
     };
 
+    const handleModifyProperty = async () => {
+      if (!selectedProperty) return;
+      
+      setIsLoading(true);
+      try {
+        const response = await axios.put(
+          `http://localhost:8080/properties/${selectedProperty.id}?address=${modifiedAddress}&postalCode=${modifiedPostalCode}`
+        );
+        
+        setProperties(prevProperties => 
+          prevProperties.map(prop => 
+            prop.id === selectedProperty.id 
+              ? { ...prop, address: modifiedAddress, postalCode: modifiedPostalCode }
+              : prop
+          )
+        );
+        
+        setIsModifyDialogOpen(false);
+      } catch (error) {
+        console.error("Error modifying property:", error);
+        alert("Failed to modify property. Please try again.");
+      } finally {
+        setIsLoading(false);
+      }
+    };
+  
+    const handleDeleteProperty = async () => {
+      if (!selectedProperty) return;
+      
+      setIsLoading(true);
+      try {
+        await axios.delete(`http://localhost:8080/properties/${selectedProperty.id}`);
+        
+        // Instead of removing the property, update its active status
+        setProperties(prevProperties => 
+          prevProperties.map(prop => 
+            prop.id === selectedProperty.id 
+              ? { ...prop, active: false }
+              : prop
+          )
+        );
+        
+        setIsDeleteDialogOpen(false);
+      } catch (error) {
+        console.error("Error deactivating property:", error);
+        alert("Failed to deactivate property. Please try again.");
+      } finally {
+        setIsLoading(false);
+      }
+    };
+  
+    const openModifyDialog = (property: Property) => {
+      setSelectedProperty(property);
+      setModifiedAddress(property.address);
+      setModifiedPostalCode(property.postalCode);
+      setIsModifyDialogOpen(true);
+    };
+  
+    const openDeleteDialog = (property: Property) => {
+      setSelectedProperty(property);
+      setIsDeleteDialogOpen(true);
+    };
+  
     return (
       <DialogContent className="max-w-3xl">
         <DialogHeader>
@@ -336,6 +406,8 @@ const ClientProfiles = () => {
             <TableRow>
               <TableHead>Address</TableHead>
               <TableHead>Postal Code</TableHead>
+              <TableHead>Status</TableHead>
+              <TableHead>Actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -343,14 +415,108 @@ const ClientProfiles = () => {
               <TableRow key={property.id}>
                 <TableCell>{property.address}</TableCell>
                 <TableCell>{property.postalCode}</TableCell>
+                <TableCell>
+                  <Badge variant={property.active ? "default" : "destructive"}>
+                    {property.active ? "Active" : "Inactive"}
+                  </Badge>
+                </TableCell>
+                <TableCell>
+                  <div className="flex gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => openModifyDialog(property)}
+                    >
+                      Modify
+                    </Button>
+                    {property.active && (
+                      <Button
+                        variant="destructive"
+                        size="sm"
+                        onClick={() => openDeleteDialog(property)}
+                      >
+                        Delete
+                      </Button>
+                    )}
+                  </div>
+                </TableCell>
               </TableRow>
             ))}
           </TableBody>
         </Table>
+  
+        {/* Modify Property Dialog */}
+        <Dialog open={isModifyDialogOpen} onOpenChange={setIsModifyDialogOpen}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Modify Property</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="modifyAddress">Address</Label>
+                <Input
+                  id="modifyAddress"
+                  value={modifiedAddress}
+                  onChange={(e) => setModifiedAddress(e.target.value)}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="modifyPostalCode">Postal Code</Label>
+                <Input
+                  id="modifyPostalCode"
+                  value={modifiedPostalCode}
+                  onChange={(e) => setModifiedPostalCode(e.target.value)}
+                />
+              </div>
+            </div>
+            <DialogFooter>
+              <Button
+                variant="outline"
+                onClick={() => setIsModifyDialogOpen(false)}
+                disabled={isLoading}
+              >
+                Cancel
+              </Button>
+              <Button 
+                onClick={handleModifyProperty}
+                disabled={isLoading}
+              >
+                {isLoading ? "Saving..." : "Save Changes"}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+  
+        {/* Delete Property Dialog */}
+        <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Confirm Deactivation</DialogTitle>
+              <DialogDescription>
+                Are you sure you want to deactivate this property? The property will be marked as inactive.
+              </DialogDescription>
+            </DialogHeader>
+            <DialogFooter>
+              <Button
+                variant="outline"
+                onClick={() => setIsDeleteDialogOpen(false)}
+                disabled={isLoading}
+              >
+                Cancel
+              </Button>
+              <Button
+                variant="destructive"
+                onClick={handleDeleteProperty}
+                disabled={isLoading}
+              >
+                {isLoading ? "Deactivating..." : "Deactivate Property"}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </DialogContent>
     );
   };
-
   const ShiftsDialog = ({ clientId }: { clientId: number }) => {
     const [clientShifts, setClientShifts] = useState<Shift[]>([]);
     const [workerDetails, setWorkerDetails] = useState<{
