@@ -21,82 +21,105 @@ const Dashboard: React.FC = () => {
 		workers: WorkerData[];
 		shifts: Shift[];
 		monthlyData: MonthlyData[];
+		currentWorker?: WorkerData;
+		isLoading: boolean;
 	}>({
 		clients: [],
 		workers: [],
 		shifts: [],
 		monthlyData: [],
+		isLoading: true,
 	});
 
-	const [worker] = useState<WorkerData>(() => ({
-		...JSON.parse(localStorage.getItem('user') || '{}'),
-	}));
-
 	useEffect(() => {
-		const fetchAdminDashboardData = async () => {
-			if (!userData || userData.role === 'worker') return;
+		const fetchDashboardData = async () => {
+			if (!userData) return;
 
 			try {
-				const [clientsResponse, workersResponse, shiftsResponse] =
-					await Promise.all([
-						axios.get<ClientData[]>(
-							'http://localhost:8080/clients'
-						),
-						axios.get<WorkerData[]>(
-							'http://localhost:8080/workers'
-						),
-						axios.get<Shift[]>('http://localhost:8080/shifts'),
-					]);
+				setDashboardData((prev) => ({ ...prev, isLoading: true }));
 
-				const shiftsData = shiftsResponse.data;
-				const clientsData = clientsResponse.data;
-
-				// Process clients data
-				const clientJobCounts = new Map<number, number>();
-				shiftsData.forEach((shift) => {
-					const clientId = shift.property.clientId;
-					clientJobCounts.set(
-						clientId,
-						(clientJobCounts.get(clientId) || 0) + 1
+				if (userData.role === 'worker') {
+					const workerResponse = await axios.get<WorkerData>(
+						`http://localhost:8080/workers/${userData.id}`
 					);
-				});
 
-				const transformedClients: ClientData[] = clientsData.map(
-					(client) => ({
-						id: client.id,
-						name: client.name,
-						properties: client.properties,
-						address: client.properties[0]?.address || '',
-						postalCode: client.properties[0]?.postalCode || '',
-						status: client.status,
-						cleaningJobs: [],
-						preferredCleaner: 'Fatmimah',
-						jobs: clientJobCounts.get(client.id) || 0,
-					})
-				);
+					setDashboardData((prev) => ({
+						...prev,
+						currentWorker: workerResponse.data,
+						isLoading: false,
+					}));
+				} else if (
+					userData.role === 'admin' ||
+					userData.role === 'root'
+				) {
+					const [clientsResponse, workersResponse, shiftsResponse] =
+						await Promise.all([
+							axios.get<ClientData[]>(
+								'http://localhost:8080/clients'
+							),
+							axios.get<WorkerData[]>(
+								'http://localhost:8080/workers'
+							),
+							axios.get<Shift[]>('http://localhost:8080/shifts'),
+						]);
 
-				// Process shifts data
-				const currentYear = new Date().getFullYear();
-				const currentYearShifts = shiftsData.filter((shift) => {
-					const shiftDate = new Date(shift.date);
-					return shiftDate.getFullYear() === currentYear;
-				});
+					const shiftsData = shiftsResponse.data;
+					const clientsData = clientsResponse.data;
 
-				const monthlyData = processShiftData(shiftsData);
+					const clientJobCounts = new Map<number, number>();
+					shiftsData.forEach((shift) => {
+						const clientId = shift.property.clientId;
+						clientJobCounts.set(
+							clientId,
+							(clientJobCounts.get(clientId) || 0) + 1
+						);
+					});
 
-				setDashboardData({
-					clients: transformedClients,
-					workers: workersResponse.data,
-					shifts: currentYearShifts,
-					monthlyData,
-				});
+					const transformedClients: ClientData[] = clientsData.map(
+						(client) => ({
+							id: client.id,
+							name: client.name,
+							properties: client.properties,
+							address: client.properties[0]?.address || '',
+							postalCode: client.properties[0]?.postalCode || '',
+							status: client.status,
+							cleaningJobs: [],
+							preferredCleaner: 'Fatmimah',
+							jobs: clientJobCounts.get(client.id) || 0,
+						})
+					);
+
+					const currentYearShifts =
+						filterCurrentYearShifts(shiftsData);
+					const monthlyData = processShiftData(shiftsData);
+
+					setDashboardData({
+						clients: transformedClients,
+						workers: workersResponse.data,
+						shifts: currentYearShifts,
+						monthlyData,
+						isLoading: false,
+					});
+				}
 			} catch (error) {
 				console.error('Error fetching dashboard data:', error);
+				setDashboardData((prev) => ({ ...prev, isLoading: false }));
 			}
 		};
 
-		fetchAdminDashboardData();
-	}, [userData?.role, userData]);
+		fetchDashboardData();
+		const refreshInterval = setInterval(fetchDashboardData, 60000);
+
+		return () => clearInterval(refreshInterval);
+	}, [userData]);
+
+	const filterCurrentYearShifts = (shifts: Shift[]): Shift[] => {
+		const currentYear = new Date().getFullYear();
+		return shifts.filter((shift) => {
+			const shiftDate = new Date(shift.date);
+			return shiftDate.getFullYear() === currentYear;
+		});
+	};
 
 	const processShiftData = (shifts: Shift[]): MonthlyData[] => {
 		const currentYear = new Date().getFullYear();
@@ -116,7 +139,7 @@ const Dashboard: React.FC = () => {
 					(monthlyJobCounts[monthYear] || 0) + 1;
 			});
 
-		const monthlyData: MonthlyData[] = Object.keys(monthlyJobCounts)
+		return Object.keys(monthlyJobCounts)
 			.map((monthYear) => {
 				const [year, month] = monthYear.split('-');
 				return {
@@ -132,8 +155,6 @@ const Dashboard: React.FC = () => {
 				const dateB = new Date(`${b.month} 1, ${currentYear}`);
 				return dateA.getTime() - dateB.getTime();
 			});
-
-		return monthlyData;
 	};
 
 	if (!userData) {
@@ -141,10 +162,22 @@ const Dashboard: React.FC = () => {
 	}
 
 	if (userData.role === 'worker') {
-		return <WorkerDashboard workerData={worker} />;
+		if (dashboardData.isLoading) {
+			return <div>Loading worker data...</div>;
+		}
+
+		if (!dashboardData.currentWorker) {
+			return <div>Error loading worker data. Please try again.</div>;
+		}
+
+		return <WorkerDashboard workerData={dashboardData.currentWorker} />;
 	}
 
 	if (userData.role === 'admin' || userData.role === 'root') {
+		if (dashboardData.isLoading) {
+			return <div>Loading admin dashboard...</div>;
+		}
+
 		return (
 			<AdminDashboard
 				monthlyData={dashboardData.monthlyData}
