@@ -1,6 +1,7 @@
 package is442g3t2.cleaner_scheduler.models.shift;
 
 import jakarta.persistence.Embeddable;
+import jakarta.persistence.MappedSuperclass;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -8,12 +9,12 @@ import lombok.Setter;
 
 import java.time.LocalDateTime;
 
-@Embeddable
+@MappedSuperclass
 @NoArgsConstructor
 @AllArgsConstructor
 @Getter
 @Setter
-public class Image {
+public abstract class Image {
     private String s3Key;
     private LocalDateTime uploadTime;
     private String fileName;

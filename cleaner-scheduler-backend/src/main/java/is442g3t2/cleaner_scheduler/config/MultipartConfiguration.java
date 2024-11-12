@@ -10,7 +10,6 @@ import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 public class MultipartConfiguration implements WebMvcConfigurer {
     @Bean
     public MultipartResolver multipartResolver() {
-        StandardServletMultipartResolver resolver = new StandardServletMultipartResolver();
-        return resolver;
+        return new StandardServletMultipartResolver();
     }
 }

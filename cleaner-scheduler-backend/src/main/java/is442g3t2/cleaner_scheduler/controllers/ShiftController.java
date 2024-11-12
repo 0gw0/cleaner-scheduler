@@ -18,6 +18,7 @@ import is442g3t2.cleaner_scheduler.services.ShiftService;
 
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
@@ -27,7 +28,9 @@ import javax.annotation.processing.Completion;
 import java.io.IOException;
 import java.net.URL;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.time.LocalTime;
+import java.time.format.DateTimeFormatter;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -104,16 +107,27 @@ public class ShiftController {
             @RequestParam(required = false) Integer year,
             @RequestParam(required = false) Integer month) {
 
-        List<Worker> allWorkers = workerRepository.findAll();
-        List<Shift> allShifts = allWorkers.stream()
-                .flatMap(worker -> worker.getShifts().stream())
-                .toList();
+        List<Shift> shifts;
 
-        List<ShiftDTO> filteredShifts = allShifts.stream()
-                .filter(shift -> filterByStatus(shift, status))
-                .filter(shift -> filterByYear(shift, year))
-                .filter(shift -> filterByMonth(shift, month))
-                .distinct()
+        if (status != null || year != null || month != null) {
+            // Build dynamic query based on provided filters
+            LocalDateTime startDate = null;
+            LocalDateTime endDate = null;
+
+            if (year != null && month != null) {
+                startDate = LocalDateTime.of(year, month, 1, 0, 0);
+                endDate = startDate.plusMonths(1);
+            } else if (year != null) {
+                startDate = LocalDateTime.of(year, 1, 1, 0, 0);
+                endDate = startDate.plusYears(1);
+            }
+
+            shifts = shiftRepository.findByFilters(status, startDate, endDate);
+        } else {
+            shifts = shiftRepository.findAll();
+        }
+
+        List<ShiftDTO> shiftDTOs = shifts.stream()
                 .map(shift -> new ShiftDTO(shift,
                         shift.getArrivalImage() != null
                                 ? s3Service.getPresignedUrl(shift.getArrivalImage().getS3Key(), 3600).toString()
@@ -121,11 +135,10 @@ public class ShiftController {
                         shift.getCompletionImage() != null
                                 ? s3Service.getPresignedUrl(shift.getCompletionImage().getS3Key(), 3600).toString()
                                 : null
-
                 ))
                 .collect(Collectors.toList());
 
-        return ResponseEntity.ok(filteredShifts);
+        return ResponseEntity.ok(shiftDTOs);
     }
 
     private boolean filterByStatus(Shift shift, String status) {
@@ -140,9 +153,9 @@ public class ShiftController {
         return month == null || shift.getDate().getMonthValue() == month;
     }
 
-    @PostMapping("/{shiftId}/arrival-image")
     @Tag(name = "shifts", description = "Shift and Image Management APIs")
     @Operation(summary = "Upload arrival image", description = "Upload an arrival image for a specific shift")
+    @PostMapping(value = "/{shiftId}/arrival-image", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<?> uploadArrivalImage(
             @PathVariable Long shiftId,
             @RequestParam("file") MultipartFile file) {
@@ -150,39 +163,64 @@ public class ShiftController {
             if (file.isEmpty()) {
                 return ResponseEntity
                         .status(HttpStatus.BAD_REQUEST)
-                        .body(createErrorResponse("Error: Please select a file to upload"));
+                        .body(createErrorResponse("Please select a file to upload"));
             }
 
-            Optional<Shift> shiftOptional = shiftRepository.findById(shiftId);
-            if (shiftOptional.isEmpty()) {
+            // Validate file type
+            if (!file.getContentType().startsWith("image/")) {
                 return ResponseEntity
-                        .status(HttpStatus.NOT_FOUND)
-                        .body(createErrorResponse("Error: Shift not found with id: " + shiftId));
+                        .status(HttpStatus.BAD_REQUEST)
+                        .body(createErrorResponse("Only image files are accepted"));
             }
-            Shift shift = shiftOptional.get();
 
-            String s3Key = "arrivals/" + shiftId + "/" + file.getOriginalFilename();
+            Shift shift = shiftRepository.findById(shiftId)
+                    .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND,
+                            "Shift not found with id: " + shiftId));
+            // Create a unique S3 key to prevent overwrites
+            String s3Key = String.format("arrivals/%d/%s_%s%s",
+                    shiftId,
+                    UUID.randomUUID().toString(),
+                    LocalDateTime.now().format(DateTimeFormatter.ISO_DATE),
+                    getFileExtension(file.getOriginalFilename()));
+
             s3Service.saveToS3(s3Key, file.getInputStream(), file.getContentType());
 
             ArrivalImage arrivalImage = new ArrivalImage(s3Key, file.getOriginalFilename());
             shift.setArrivalImage(arrivalImage);
 
-            shiftRepository.save(shift);
+            shift = shiftRepository.save(shift);
+
+            // Get presigned URL for immediate access
+            String presignedUrl = s3Service.getPresignedUrl(s3Key, 3600).toString();
 
             Map<String, Object> response = new HashMap<>();
             response.put("message", "Arrival image uploaded successfully");
-            response.put("shift", shift);
+            ShiftDTO shiftDTO = new ShiftDTO(
+                    shift,
+                    shift.getArrivalImage() != null
+                            ? s3Service.getPresignedUrl(shift.getArrivalImage().getS3Key(), 3600).toString()
+                            : null,
+                    shift.getCompletionImage() != null
+                            ? s3Service.getPresignedUrl(shift.getCompletionImage().getS3Key(), 3600).toString()
+                            : null
+            );
+            response.put("shift", shiftDTO);
+            response.put("imageUrl", presignedUrl);
 
             return ResponseEntity.ok(response);
+
         } catch (IOException e) {
             return ResponseEntity
                     .status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body(createErrorResponse("Error uploading file: " + e.getMessage()));
-        } catch (Exception e) {
-            return ResponseEntity
-                    .status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body(createErrorResponse("An unexpected error occurred: " + e.getMessage()));
         }
+    }
+
+    private String getFileExtension(String filename) {
+        return Optional.ofNullable(filename)
+                .filter(f -> f.contains("."))
+                .map(f -> f.substring(f.lastIndexOf(".")))
+                .orElse("");
     }
 
     @GetMapping("/{shiftId}/arrival-image")
@@ -218,9 +256,9 @@ public class ShiftController {
         }
     }
 
-    @PostMapping("/{shiftId}/completion-image")
     @Tag(name = "shifts", description = "Shift and Image Management APIs")
-    @Operation(summary = "Upload completion image", description = "Upload an completion image for a specific shift")
+    @Operation(summary = "Upload completion image", description = "Upload a completion image for a specific shift")
+    @PostMapping(value = "/{shiftId}/completion-image", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<?> uploadCompletionImage(
             @PathVariable Long shiftId,
             @RequestParam("file") MultipartFile file) {
@@ -228,40 +266,60 @@ public class ShiftController {
             if (file.isEmpty()) {
                 return ResponseEntity
                         .status(HttpStatus.BAD_REQUEST)
-                        .body(createErrorResponse("Error: Please select a file to upload"));
+                        .body(createErrorResponse("Please select a file to upload"));
             }
 
-            Optional<Shift> shiftOptional = shiftRepository.findById(shiftId);
-            if (shiftOptional.isEmpty()) {
+            // Validate file type
+            if (!file.getContentType().startsWith("image/")) {
                 return ResponseEntity
-                        .status(HttpStatus.NOT_FOUND)
-                        .body(createErrorResponse("Error: Shift not found with id: " + shiftId));
+                        .status(HttpStatus.BAD_REQUEST)
+                        .body(createErrorResponse("Only image files are accepted"));
             }
-            Shift shift = shiftOptional.get();
 
-            String s3Key = "completions/" + shiftId + "/" + file.getOriginalFilename();
+            Shift shift = shiftRepository.findById(shiftId)
+                    .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND,
+                            "Shift not found with id: " + shiftId));
+
+            // Create a unique S3 key to prevent overwrites
+            String s3Key = String.format("completions/%d/%s_%s%s",
+                    shiftId,
+                    UUID.randomUUID().toString(),
+                    LocalDateTime.now().format(DateTimeFormatter.ISO_DATE),
+                    getFileExtension(file.getOriginalFilename()));
+
             s3Service.saveToS3(s3Key, file.getInputStream(), file.getContentType());
 
             CompletionImage completionImage = new CompletionImage(s3Key, file.getOriginalFilename());
             shift.setCompletionImage(completionImage);
 
-            shiftRepository.save(shift);
+            shift = shiftRepository.save(shift);
+
+            // Get presigned URL for immediate access
+            String presignedUrl = s3Service.getPresignedUrl(s3Key, 3600).toString();
 
             Map<String, Object> response = new HashMap<>();
             response.put("message", "Completion image uploaded successfully");
-            response.put("shift", shift);
+            ShiftDTO shiftDTO = new ShiftDTO(
+                    shift,
+                    shift.getArrivalImage() != null
+                            ? s3Service.getPresignedUrl(shift.getArrivalImage().getS3Key(), 3600).toString()
+                            : null,
+                    shift.getCompletionImage() != null
+                            ? s3Service.getPresignedUrl(shift.getCompletionImage().getS3Key(), 3600).toString()
+                            : null
+            );
+            response.put("shift", shiftDTO);
+            response.put("imageUrl", presignedUrl);
 
             return ResponseEntity.ok(response);
+
         } catch (IOException e) {
             return ResponseEntity
                     .status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body(createErrorResponse("Error uploading file: " + e.getMessage()));
-        } catch (Exception e) {
-            return ResponseEntity
-                    .status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body(createErrorResponse("An unexpected error occurred: " + e.getMessage()));
         }
     }
+
 
     @GetMapping("/{shiftId}/completion-image")
     @Tag(name = "shifts", description = "Shift and Image Management APIs")

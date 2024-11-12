@@ -54,7 +54,7 @@ public class ShiftDTO {
         this.presentWorkers = shift.getPresentWorkers();
         this.completedWorkers = shift.getCompletedWorkers();
         this.completionImage = shift.getCompletionImage() != null
-                ? new ImageDTO(shift.getCompletionImage(), arrivalPresignedUrl)
+                ? new ImageDTO(shift.getCompletionImage(), completionPresignedUrl)
                 : null;
     }
 }
@@ -69,6 +69,7 @@ class ImageDTO {
     private String presignedUrl;
 
     public ImageDTO(Image image, String presignedUrl) {
+        System.out.println("image is null");
         if (image != null) {
             this.s3Key = image.getS3Key();
             this.uploadTime = image.getUploadTime();
