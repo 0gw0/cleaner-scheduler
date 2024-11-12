@@ -31,6 +31,9 @@ public class ShiftDTO {
     private LocalTime originalStartTime;
     private LocalTime originalEndTime;
     private boolean isRescheduled;
+    private Set<Long> presentWorkers;
+    private Set<Long> completedWorkers;
+
 
     public ShiftDTO(Shift shift, String arrivalPresignedUrl, String completionPresignedUrl) {
         this.id = shift.getId();
@@ -48,6 +51,8 @@ public class ShiftDTO {
         this.originalDate = shift.getOriginalDate();
         this.originalStartTime = shift.getOriginalStartTime();
         this.originalEndTime = shift.getOriginalEndTime();
+        this.presentWorkers = shift.getPresentWorkers();
+        this.completedWorkers = shift.getCompletedWorkers();
         this.completionImage = shift.getCompletionImage() != null
                 ? new ImageDTO(shift.getCompletionImage(), arrivalPresignedUrl)
                 : null;
