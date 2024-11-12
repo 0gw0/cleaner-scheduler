@@ -80,6 +80,8 @@ export interface Shift {
   originalDate: string;
   originalStartTime : string;
   originalEndTime: string;
+  presentWorkers : number[],
+  completedWorkers: number[]
 }
 
 export interface Worker {
