@@ -48,7 +48,7 @@ export interface WorkerData {
 	annualLeaves: any[];
 	password: string;
 	medicalLeaves: MedicalLeave[];
-	// homePostalCode: string;
+	homePostalCode: string;
 }
 
 export interface DialogState {
