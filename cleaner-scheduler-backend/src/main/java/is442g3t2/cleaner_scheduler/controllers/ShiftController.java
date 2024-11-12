@@ -99,6 +99,7 @@ public class ShiftController {
         return ResponseEntity.ok(result);
     }
 
+
     @Tag(name = "shifts")
     @Operation(description = "Get all shifts across all workers with optional filtering", summary = "Get all shifts with optional filters")
     @GetMapping

@@ -1,5 +1,6 @@
 package is442g3t2.cleaner_scheduler.controllers;
 
+import com.google.maps.model.LatLng;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import is442g3t2.cleaner_scheduler.dto.leave.AnnualLeaveDTO;
@@ -10,16 +11,14 @@ import is442g3t2.cleaner_scheduler.dto.shift.GetShiftCountResponse;
 import is442g3t2.cleaner_scheduler.dto.shift.ShiftDTO;
 import is442g3t2.cleaner_scheduler.dto.shift.bulk.BulkAddShiftRequest;
 import is442g3t2.cleaner_scheduler.dto.shift.bulk.BulkAddShiftResponse;
-import is442g3t2.cleaner_scheduler.dto.worker.PostWorkerRequest;
-import is442g3t2.cleaner_scheduler.dto.worker.UpdateWorker;
-import is442g3t2.cleaner_scheduler.dto.worker.TakeLeaveRequest;
-import is442g3t2.cleaner_scheduler.dto.worker.WorkerDTO;
+import is442g3t2.cleaner_scheduler.dto.worker.*;
 import is442g3t2.cleaner_scheduler.exceptions.ShiftsOverlapException;
 import is442g3t2.cleaner_scheduler.models.leave.MedicalCertificate;
 import is442g3t2.cleaner_scheduler.models.property.Property;
 import is442g3t2.cleaner_scheduler.models.leave.AnnualLeave;
 import is442g3t2.cleaner_scheduler.models.leave.MedicalLeave;
 import is442g3t2.cleaner_scheduler.models.shift.ShiftStatus;
+import is442g3t2.cleaner_scheduler.models.shift.TravelTime;
 import is442g3t2.cleaner_scheduler.models.worker.Worker;
 import is442g3t2.cleaner_scheduler.models.Admin;
 import is442g3t2.cleaner_scheduler.models.shift.Frequency;
@@ -30,6 +29,7 @@ import is442g3t2.cleaner_scheduler.services.WorkerService;
 import is442g3t2.cleaner_scheduler.services.EmailSenderService;
 import jakarta.validation.Valid;
 import org.antlr.v4.runtime.misc.LogManager;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -42,10 +42,14 @@ import is442g3t2.cleaner_scheduler.models.leave.LeaveStatus;
 
 import java.io.IOException;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.time.YearMonth;
 import java.util.*;
 import java.util.stream.Collectors;
+
+import static is442g3t2.cleaner_scheduler.models.property.Property.getCoordinatesFromPostalCode;
+import static is442g3t2.cleaner_scheduler.models.worker.WorkerLocationFinder.*;
 
 
 @RestController()
@@ -752,6 +756,105 @@ public class WorkerController {
             throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR,
                     "Failed to process medical certificate", e);
         }
+
+
     }
+
+    @GetMapping("/{workerId}/travel-time")
+    @Tag(name = "shifts")
+    @Operation(summary = "Get travel time for specific worker", description = "Calculate travel time from worker's current/home location to target postal code")
+    public ResponseEntity<WorkerTravelTimeResponse> getWorkerTravelTime(
+            @PathVariable Long workerId,
+            @RequestParam String targetPostalCode,
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date,
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.TIME) LocalTime startTime,
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.TIME) LocalTime endTime
+    ) {
+        Worker worker = workerRepository.findById(workerId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Worker not found"));
+
+        // Get target location coordinates
+        LatLng targetLocationLatLng = getCoordinatesFromPostalCode(targetPostalCode);
+        LocalDateTime targetDateTime = LocalDateTime.of(date, startTime);
+
+        // Check for leaves
+        List<AnnualLeave> annualLeaves = worker.getAnnualLeavesByYear(date.getYear());
+        List<MedicalLeave> medicalLeaves = worker.getMedicalLeavesByYear(date.getYear());
+
+        boolean isOnLeave = annualLeaves.stream()
+                .anyMatch(leave -> !date.isBefore(leave.getStartDate()) && !date.isAfter(leave.getEndDate()));
+        boolean isOnMedicalLeave = medicalLeaves.stream()
+                .anyMatch(leave -> !date.isBefore(leave.getStartDate()) && !date.isAfter(leave.getEndDate()));
+
+        if (isOnLeave || isOnMedicalLeave) {
+            return ResponseEntity.ok(new WorkerTravelTimeResponse(
+                    workerId,
+                    worker.getName(),
+                    null,
+                    null,
+                    worker.getHomePostalCode(),
+                    isOnLeave ? "Annual Leave" : "Medical Leave",
+                    false
+            ));
+        }
+
+        // Find previous shift and determine starting location
+        Optional<Shift> previousShift = findPreviousShift(worker, date, startTime);
+        LatLng workerLocation;
+        String originPostalCode;
+        Shift newShift = new Shift(date, startTime, endTime);
+        boolean canMakeIt = true;
+        String unavailabilityReason = null;
+
+        if (previousShift.isPresent()) {
+            Shift prevShift = previousShift.get();
+
+            // Check for shift overlap
+            if (worker.shiftsOverlap(prevShift, newShift) && prevShift.getDate().equals(date)) {
+                return ResponseEntity.ok(new WorkerTravelTimeResponse(
+                        workerId,
+                        worker.getName(),
+                        null,
+                        new FindClosestAvailableWorkersResponse.ShiftInfo(prevShift.getDate(), prevShift.getStartTime(), prevShift.getEndTime()),
+                        worker.getHomePostalCode(),
+                        "Overlapping Shift",
+                        false
+                ));
+            }
+
+            // Check if worker can make it from previous shift
+            if (isShiftBeforeTargetAndPossibleDistance(prevShift, targetLocationLatLng, date, startTime)) {
+                workerLocation = getCoordinatesFromPostalCode(prevShift.getProperty().getPostalCode());
+                originPostalCode = prevShift.getProperty().getPostalCode();
+            } else {
+                workerLocation = getCoordinatesFromPostalCode(worker.getHomePostalCode());
+                originPostalCode = worker.getHomePostalCode();
+                if (prevShift.getDate().equals(date)) {
+                    canMakeIt = false;
+                    unavailabilityReason = "Cannot reach location in time from previous shift";
+                }
+            }
+        } else {
+            workerLocation = getCoordinatesFromPostalCode(worker.getHomePostalCode());
+            originPostalCode = worker.getHomePostalCode();
+        }
+
+        TravelTime travelTime = getTravelTime(workerLocation, targetLocationLatLng, targetDateTime);
+
+        return ResponseEntity.ok(new WorkerTravelTimeResponse(
+                workerId,
+                worker.getName(),
+                travelTime.getTotalTravelTime() >= 0 ? travelTime : null,
+                previousShift.map(shift -> new FindClosestAvailableWorkersResponse.ShiftInfo(
+                        shift.getDate(),
+                        shift.getStartTime(),
+                        shift.getEndTime()
+                )).orElse(null),
+                originPostalCode,
+                unavailabilityReason,
+                canMakeIt
+        ));
+    }
+
 
 }

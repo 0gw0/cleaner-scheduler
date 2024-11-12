@@ -30,7 +30,7 @@ public class WorkerLocationFinder {
         context = new GeoApiContext.Builder().apiKey(API_KEY).build();
     }
 
-    private static TravelTime getTravelTime(LatLng origin, LatLng destination, LocalDateTime departureTime) {
+    public static TravelTime getTravelTime(LatLng origin, LatLng destination, LocalDateTime departureTime) {
         try {
             ZonedDateTime zonedDateTime = departureTime.atZone(ZoneId.systemDefault());
             Instant instant = zonedDateTime.toInstant();
@@ -283,7 +283,7 @@ public class WorkerLocationFinder {
         return Optional.empty(); // Worker is not available
     }
 
-    private static Optional<Shift> findPreviousShift(Worker worker, LocalDate targetDate, LocalTime targetStartTime) {
+    public static Optional<Shift> findPreviousShift(Worker worker, LocalDate targetDate, LocalTime targetStartTime) {
         LocalDateTime targetDateTime = LocalDateTime.of(targetDate, targetStartTime);
         return worker.getShifts().stream()
                 .filter(shift -> {
@@ -301,8 +301,8 @@ public class WorkerLocationFinder {
                 shiftEndDateTime.plusHours(1).equals(targetDateTime);
     }
 
-    private static boolean isShiftBeforeTargetAndPossibleDistance(Shift previousShift, LatLng targetLocationLatLng,
-            LocalDate targetDate, LocalTime targetStartTime) {
+    public static boolean isShiftBeforeTargetAndPossibleDistance(Shift previousShift, LatLng targetLocationLatLng,
+                                                                 LocalDate targetDate, LocalTime targetStartTime) {
         LocalDateTime previousShiftEndDateTime = LocalDateTime.of(previousShift.getDate(), previousShift.getEndTime());
         LocalDateTime targetDateTime = LocalDateTime.of(targetDate, targetStartTime);
 
