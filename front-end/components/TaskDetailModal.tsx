@@ -26,13 +26,39 @@ export const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ shiftData, isO
   const [currentStep, setCurrentStep] = useState(0); 
   const [assignmentType, setAssignmentType] = useState<'manual' | 'automatic'>('manual'); 
   const [availableWorkers, setAvailableWorkers] = useState<WorkerTravelData[]>([]); // this is for automatic
+  const [topFiveWorkers, setTopFiveWorkers] = useState<WorkerTravelData[]>([]); // this is for automatic
   const [selectedWorkers, setSelectedWorkers] = useState<WorkerData[]>([]); // this is for manual selected
   const [showSuccess, setShowSuccess] = useState(false);
   const [workerChoice, setWorkerChoice] = useState<WorkerData[]>([]); // these are choices given if manual selected
   const [error, setError] = useState("");
   const [showFailure, setShowFailure] = useState(false); //not available to perform update because no available workers
   const [searchTerm, setSearchTerm] = useState(''); 
+  const [travelTimes, setTravelTimes] = useState<{ [workerId: number]: number }>({});
 
+  const handleRetrieveTravelTime = async (workerId : number, targetPostalCode : string, date : string, startTime : string, endTime : string) => {
+    try {
+      // Make an API request with required path and query parameters
+      const response = await axios.get(`http://localhost:8080/workers/${workerId}/travel-time`, {
+        params: {
+          targetPostalCode: targetPostalCode,
+          date: date,
+          startTime: startTime,
+          endTime: endTime,
+        },
+      });
+      const travelTime = response.data.travelTimeToTarget.totalTravelTime; // Adjust according to your API response
+  
+      setTravelTimes((prev) => ({
+        ...prev,
+        [workerId]: travelTime,
+      }));
+    } catch (error) {
+      console.error(`Error retrieving travel time for worker ID ${workerId}:`, error);
+    }
+  };
+
+  console.log("travelTimes", travelTimes)
+  
 
   const handleChange = (field: keyof Shift, value: any) => {
     setUpdatedShift((prev) => ({ ...prev, [field]: value }));
@@ -72,6 +98,7 @@ export const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ shiftData, isO
         const response = await axios.post('http://localhost:8080/shifts/available-workers', requestBody);
         const workersData = response.data;
         const selectedWorkers = workersData.slice(0, shiftData.workers.length);
+        setTopFiveWorkers(workersData)
         setAvailableWorkers(selectedWorkers);
         console.log('Selected workers:', selectedWorkers);
       } catch (error) {
@@ -299,7 +326,7 @@ export const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ shiftData, isO
                 {assignmentType === 'manual' && !showFailure ? (
                   <div className="space-y-4">
                   <p>These are the top 5 suggested workers:</p>
-                  {availableWorkers.map((worker, index) => (
+                  {topFiveWorkers.map((worker, index) => (
                     <motion.div
                       key={worker.id}
                       className="p-4 rounded-lg bg-slate-200 text-black"
@@ -337,18 +364,23 @@ export const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ shiftData, isO
                       >
                         <div className="flex items-center justify-between">
                           <h3 className="font-semibold">{worker.name}</h3>
-                          <Button
-                            className="ml-4 px-3 py-1 bg-slate-500 text-white rounded hover:bg-black text-sm"
-                            onClick={(e) => {
-                              e.stopPropagation(); // Prevents triggering parent onClick
-                              console.log(`Retrieving travel time for ${worker.name}`);
-                            }}
-                          >
-                            <Clock/>
-                          </Button>
+                          {/* TODO: uncomment this stuff out cuhz */}
+                          {/* {!topFiveWorkers.some(topWorker => topWorker.name === worker.name) && ( */}
+                            <Button
+                              className="ml-4 px-3 py-1 bg-slate-500 text-white rounded hover:bg-black text-sm"
+                              onClick={(e) => {
+                                e.stopPropagation(); // Prevents triggering parent onClick
+                                handleRetrieveTravelTime(worker.id, updatedShift.property.postalCode, updatedShift.date, updatedShift.startTime, updatedShift.endTime);
+                              }}
+                            >
+                              <Clock/>
+                            </Button>
+                          {/* )} */}
                         </div>
-
-                        
+                        {/* Conditionally display travel time if available */}
+                        {travelTimes[worker.id] !== undefined && (
+                            <p className="text-sm">Travel Time: {travelTimes[worker.id]} mins</p>
+                          )}
                       </motion.div>
                     );
                   })}
