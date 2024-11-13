@@ -37,83 +37,6 @@ const initialFormData: FormData = {
   endDate: ""
 }
 
-const fakeWorkerTravelData: WorkerTravelData[] = [
-  {
-    id: 1,
-    name: "John Doe",
-    travelTimeToTarget: {
-      totalTravelTime: 45,
-      travelTimeWithoutTraffic: 30,
-      travelTimeInTraffic: 15,
-    },
-    relevantShift: {
-      date: "2024-10-13",
-      startTime: "09:00:00",
-      endTime: "17:00:00",
-    },
-    originLocation: "123 Main St, Singapore",
-  },
-  {
-    id: 2,
-    name: "Jane Smith",
-    travelTimeToTarget: {
-      totalTravelTime: 30,
-      travelTimeWithoutTraffic: 25,
-      travelTimeInTraffic: 5,
-    },
-    relevantShift: {
-      date: "2024-10-14",
-      startTime: "10:00:00",
-      endTime: "18:00:00",
-    },
-    originLocation: "456 Another St, Singapore",
-  },
-  {
-    id: 3,
-    name: "Alex Johnson",
-    travelTimeToTarget: {
-      totalTravelTime: 60,
-      travelTimeWithoutTraffic: 50,
-      travelTimeInTraffic: 10,
-    },
-    relevantShift: {
-      date: "2024-10-15",
-      startTime: "08:00:00",
-      endTime: "16:00:00",
-    },
-    originLocation: "789 Some Blvd, Singapore",
-  },
-  {
-    id: 4,
-    name: "Bobby",
-    travelTimeToTarget: {
-      totalTravelTime: 60,
-      travelTimeWithoutTraffic: 50,
-      travelTimeInTraffic: 10,
-    },
-    relevantShift: {
-      date: "2024-10-15",
-      startTime: "08:00:00",
-      endTime: "16:00:00",
-    },
-    originLocation: "700 DingDong Blvd, Singapore",
-  },
-  {
-    id: 5,
-    name: "Kevin",
-    travelTimeToTarget: {
-      totalTravelTime: 60,
-      travelTimeWithoutTraffic: 50,
-      travelTimeInTraffic: 10,
-    },
-    relevantShift: {
-      date: "2024-10-15",
-      startTime: "08:00:00",
-      endTime: "16:00:00",
-    },
-    originLocation: "750 Dingus Blvd, Singapore",
-  },
-];
 
 interface AddTaskFormProps {
   onTaskAdded: () => void; 
@@ -128,8 +51,8 @@ export default function AddTaskForm({ onTaskAdded }: AddTaskFormProps) {
   const [error, setError] = useState("")
   const [properties, setProperties] = useState([]);
   const [selectedProperty, setSelectedProperty] = useState<Property | null>(null);
+  const [showFailure, setShowFailure] = useState(false); //not available to perform update because no available workers
 
-  
   const handleInputChange = async (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value, type } = e.target;
     setFormData(prev => ({
@@ -199,6 +122,11 @@ export default function AddTaskForm({ onTaskAdded }: AddTaskFormProps) {
   
           const response = await axios.post('http://localhost:8080/shifts/available-workers', requestData);
           const workersData: WorkerTravelData[] = response.data;
+
+          if (response.data.length < formData.numberOfWorkers) {
+            setShowFailure(true);
+          }
+
           const selectedWorkers = workersData.slice(0, formData.numberOfWorkers);
           setAvailableWorkers(selectedWorkers);
         } catch (error) {
@@ -456,9 +384,8 @@ export default function AddTaskForm({ onTaskAdded }: AddTaskFormProps) {
                             </div>
                           )}
   
-                          {currentStep === 1 && (
+                          {currentStep === 1 && !showFailure && (
                           <div className="space-y-4">
-                            {/* TODO: add error handling if no available workers found, or less than the amount of workers needed */}
                             <p>The following workers have been assigned:</p>
                             {availableWorkers.slice(0, formData.numberOfWorkers).map((worker, index) => (
                               <motion.div
@@ -478,6 +405,36 @@ export default function AddTaskForm({ onTaskAdded }: AddTaskFormProps) {
                             ))}
                           </div>
                         )}
+
+                        {currentStep === 1 && showFailure && (
+                          <div className="space-y-4 text-center">
+                            <p className="text-red-500 text-lg">Not enough available workers to fulfill the shift requirements.</p>
+                            <div className="flex justify-between mt-6">
+                              <Button
+                                type="button"
+                                variant="outline"
+                                onClick={() => currentStep > 0 && (setCurrentStep((prev) => prev - 1), setShowFailure(false))}
+                                >
+                                <ChevronLeft className="mr-2 h-4 w-4" />
+                                Back
+                              </Button>
+                              <Button
+                                type="button"
+                                variant="secondary"
+                                onClick={() => {
+                                  setIsOpen(false);
+                                  setShowFailure(false);
+                                  setCurrentStep(0);
+                                  setFormData(initialFormData);
+                                  setError("");
+
+                                }}
+                              >
+                                Cancel
+                              </Button>
+                            </div>
+                          </div>
+                        )}
   
                           {currentStep === 2 && (
                             <div className="space-y-4">
@@ -493,6 +450,7 @@ export default function AddTaskForm({ onTaskAdded }: AddTaskFormProps) {
                           )}
                         </motion.div>
   
+                        {!showFailure && (
                         <div className="flex justify-between mt-6">
                           <Button
                             type="button"
@@ -517,6 +475,8 @@ export default function AddTaskForm({ onTaskAdded }: AddTaskFormProps) {
                             )}
                           </Button>
                         </div>
+                      )}
+
                       </form>
                     )}
                   </AnimatePresence>
@@ -524,7 +484,13 @@ export default function AddTaskForm({ onTaskAdded }: AddTaskFormProps) {
               </Card>
   
               <button
-                onClick={() => setIsOpen(false)}
+              onClick={() => {
+                setIsOpen(false);
+                setShowFailure(false);
+                setCurrentStep(0);
+                setFormData(initialFormData);
+                setError("");
+              }}
                 className="absolute top-4 right-4 p-2 rounded-full bg-gray-200 hover:bg-gray-300"
               >
                 <X className="w-6 h-6" />
