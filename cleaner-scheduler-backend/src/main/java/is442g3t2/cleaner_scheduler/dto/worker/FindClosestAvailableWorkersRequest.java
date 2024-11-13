@@ -16,4 +16,5 @@ public class FindClosestAvailableWorkersRequest {
     LocalTime startTime;
     LocalTime endTime;
     LocalDate date;
+    Long supervisorId;
 }

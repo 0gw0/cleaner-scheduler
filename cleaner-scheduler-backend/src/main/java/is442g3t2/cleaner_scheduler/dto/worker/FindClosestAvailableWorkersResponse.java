@@ -18,6 +18,7 @@ public class FindClosestAvailableWorkersResponse {
     private ShiftInfo relevantShift;
     private String originLocation;
 
+
     @Getter
     @Setter
     @AllArgsConstructor

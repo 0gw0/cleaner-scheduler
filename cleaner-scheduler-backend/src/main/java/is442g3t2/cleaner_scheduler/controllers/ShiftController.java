@@ -62,11 +62,10 @@ public class ShiftController {
             @RequestBody FindClosestAvailableWorkersRequest request
     ) {
 
-        System.out.println("REQUEST RECEIVED");
         String postalCode = request.getPostalCode();
         LatLng targetLocationLatLng = getCoordinatesFromPostalCode(postalCode);
 
-        List<Worker> workers = workerRepository.findAll();
+        List<Worker> workers = workerRepository.findBySupervisor_Id(request.getSupervisorId());
         List<WorkerWithTravelTime> topFiveWorkers = findTopFiveClosestWorkers(
                 targetLocationLatLng,
                 request.getDate(),
