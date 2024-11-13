@@ -182,13 +182,6 @@ export const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ shiftData, isO
             >
               {shiftData.status}
             </span>
-            <Button
-            onClick={onClose}
-            variant="ghost"
-            className="absolute right-4 top-1 p-2 hover:bg-gray-100 rounded-full"
-            aria-label="Close dialog"
-          >
-          </Button>
           </DialogHeader>
 
           {showSuccess ? (
