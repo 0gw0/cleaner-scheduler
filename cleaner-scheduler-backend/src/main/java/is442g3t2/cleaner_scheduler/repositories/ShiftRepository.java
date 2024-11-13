@@ -17,15 +17,13 @@ import org.springframework.stereotype.Repository;
 @Repository
 public interface ShiftRepository extends JpaRepository<Shift, Long> {
 
-    // List<Shift> findByShiftStatusAndStartTimeBefore(ShiftStatus status,
-    // LocalDateTime dateTime);
-    @Query("SELECT DISTINCT s FROM Shift s " +
-            "LEFT JOIN FETCH s.workers " +
-            "WHERE s.status = 'UPCOMING' AND s.date = :currentDate " +
-            "AND s.startTime < :cutoffTime")
-    List<Shift> findByShiftStatusAndStartTimeBefore(
-            @Param("currentDate") LocalDate currentDate,
-            @Param("cutoffTime") LocalTime cutoffTime);
+        @Query("SELECT DISTINCT s FROM Shift s " +
+                        "LEFT JOIN FETCH s.workers " +
+                        "WHERE s.date = :currentDate " +
+                        "AND s.startTime < :cutoffTime ")
+        List<Shift> findByShiftStatusAndStartTimeBefore(
+                        @Param("currentDate") LocalDate currentDate,
+                        @Param("cutoffTime") LocalTime cutoffTime);
 
     Optional<Shift> findByDateAndStartTimeAndEndTimeAndProperty(
             LocalDate date,

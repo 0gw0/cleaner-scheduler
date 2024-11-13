@@ -32,7 +32,7 @@ public class DataInitializer {
         return args -> {
             // Create and save Admins
             Admin admin1 = new Admin("Mr Admin", "password123", "fraserlishious@gmail.com");
-            Admin admin2 = new Admin("Mrs VeryAdmin", "password123", "admin2@gmail.com");
+            Admin admin2 = new Admin("Mrs VeryAdmin", "password123", "f3qiog@gmail.com");
             Admin admin3 = new Admin("Super Admin", "password123", "admin3@gmail.com");
             adminRepository.save(admin1);
             adminRepository.save(admin2);
