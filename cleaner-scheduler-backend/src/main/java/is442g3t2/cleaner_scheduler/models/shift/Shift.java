@@ -37,8 +37,6 @@ public class Shift {
     @Column(nullable = true)
     private Set<Long> presentWorkers;
 
-    @Column(nullable = true)
-    private Set<Long> completedWorkers;
 
     @ManyToOne
     @JoinColumn(name = "property_id")
@@ -149,9 +147,6 @@ public class Shift {
         presentWorkers.add(workerId);
     }
 
-    public Set<Long> getCompletedWorkersAsSet() {
-        return new HashSet<>(this.completedWorkers);
-    }
     
 
     public boolean isRescheduled() {
