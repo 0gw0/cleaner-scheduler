@@ -186,11 +186,15 @@ export default function AddTaskForm({ onTaskAdded }: AddTaskFormProps) {
     
       if (selectedProperty) {
         try {
+          const userDetails = localStorage.getItem('user');
+          const supervisorId = userDetails ? JSON.parse(userDetails).id : null; 
+
           const requestData = {
             postalCode: selectedProperty.postalCode,
             startTime: formData.startTime, 
             endTime: formData.endTime,
             date: formData.date,
+            supervisorId: supervisorId
           };
   
           const response = await axios.post('http://localhost:8080/shifts/available-workers', requestData);

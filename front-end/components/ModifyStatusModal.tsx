@@ -68,11 +68,18 @@ const ModifyStatusModal: React.FC<ModifyStatusModalProps> = ({
               onChange={handleStatusChange}
               className="w-full px-3 py-2 border rounded-md"
             >
-              {statusOptions.map(option => (
-                <option key={option.value} value={option.value}>
-                  {option.label}
-                </option>
-              ))}
+              {statusOptions
+                .filter(option => {
+                    if (currentStatus === "ABSENT") {
+                    return option === statusOptions[0]; 
+                    } else if (currentStatus === "IN_PROGRESS") {
+                    return option === statusOptions[1]; }
+                })
+                .map(option => (
+                    <option key={option.value} value={option.value}>
+                    {option.label}
+                    </option>
+                ))}
             </select>
           </div>
 

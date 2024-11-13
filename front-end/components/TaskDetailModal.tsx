@@ -85,11 +85,15 @@ export const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ shiftData, isO
       setError("")}
 
     if (currentStep === 0) {
+
+      const userDetails = localStorage.getItem('user');
+      const supervisorId = userDetails ? JSON.parse(userDetails).id : null;
       const requestBody = {
         postalCode: shiftData.property.postalCode,
         startTime: updatedShift.startTime,
         endTime: updatedShift.endTime,
-        date: updatedShift.date
+        date: updatedShift.date,
+        supervisorId: supervisorId
       };
 
       try {
