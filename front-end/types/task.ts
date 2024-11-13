@@ -81,7 +81,17 @@ export interface Shift {
   originalStartTime : string;
   originalEndTime: string;
   presentWorkers : number[],
-  completedWorkers: number[]
+  completedWorkers: number[],
+  arrivalImages: Photo[],
+  completionImages: Photo[]
+}
+
+export interface Photo{
+  s3Key: string,
+  uploadTime: string,
+  fileName: string,
+  presignedUrl: string,
+  workerId: number
 }
 
 export interface Worker {

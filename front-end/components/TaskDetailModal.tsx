@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Shift, WorkerTravelData } from '@/types/task';
-import { CalendarIcon, ClockIcon, MapPinIcon, UserIcon, BuildingIcon, Check, TimerIcon, Clock } from 'lucide-react';
+import { CalendarIcon, ClockIcon, MapPinIcon, UserIcon, BuildingIcon, Check, TimerIcon, Clock, PersonStanding, X } from 'lucide-react';
 import Image from 'next/image'
 import { PersonIcon } from '@radix-ui/react-icons';
 import axios from 'axios';
@@ -31,29 +31,8 @@ export const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ shiftData, isO
   const [workerChoice, setWorkerChoice] = useState<WorkerData[]>([]); // these are choices given if manual selected
   const [error, setError] = useState("");
   const [showFailure, setShowFailure] = useState(false); //not available to perform update because no available workers
-  const [arrivalImgSrc, setarrivalImgSrc] = useState('');
   const [searchTerm, setSearchTerm] = useState(''); 
 
-  useEffect(() => {
-    setarrivalImgSrc('');
-    const fetchImage = async () => {
-      if (shiftData.id && (shiftData.status === "COMPLETED" || shiftData.status === "IN PROGRESS")) {
-        try {
-          const response = await fetch(`http://localhost:8080/shifts/${shiftData.id}/arrival-image`);
-          if (response.ok) {
-            const data = await response.json();
-            setarrivalImgSrc(data.url); // Assuming `imageUrl` is the key returned by the API
-          } else {
-            console.error('Failed to fetch image');
-          }
-        } catch (error) {
-          console.error('Error fetching image:', error);
-        }
-      }
-    };
-
-    fetchImage();
-  }, [shiftData.id, shiftData.status]);
 
   const handleChange = (field: keyof Shift, value: any) => {
     setUpdatedShift((prev) => ({ ...prev, [field]: value }));
@@ -165,8 +144,12 @@ export const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ shiftData, isO
       await onEdit(updatedShift); 
       setIsEditing(false); 
       setShowSuccess(true)
-      setCurrentStep(0); 
-      onTaskUpdate();
+      setTimeout(() => {
+        setShowSuccess(false);
+        setCurrentStep(0);
+        onTaskUpdate();
+        onClose();
+      }, 2000);
     } catch (error) {
       console.error('Failed to update shift:', error);
     }
@@ -177,19 +160,19 @@ export const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ shiftData, isO
   );
 
   const steps = [
-    { title: 'Edit task', description: 'Change the details of the task' },
+    { title: 'View task', description: 'Details of the task' },
     { title: 'Worker assignment', description: 'Assign the desired workers' },
     { title: 'Confirmation', description: 'Review and confirm task details' },
   ]
 
   return (
       <Dialog open={isOpen} onOpenChange={onClose}>
-        <DialogContent className="sm:max-w-[425px]">
-          <DialogHeader>
+        <DialogContent className="sm:max-w-[600px] max-h-[600px] overflow-y-auto">
+          <DialogHeader className="sticky pr-8">
             <DialogTitle>{steps[currentStep].title}</DialogTitle>
             <DialogDescription>{steps[currentStep].description}</DialogDescription>
             <span
-              className={`absolute top-2 right-2 px-2 py-1 rounded-full text-xs z-10 font-semibold ${
+              className={`absolute top-1 right-5 px-2 py-1 rounded-full text-xs z-10 font-semibold ${
                 shiftData.status === 'COMPLETED'
                   ? 'bg-green-100 text-green-600'
                   : shiftData.status === 'IN PROGRESS'
@@ -199,6 +182,13 @@ export const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ shiftData, isO
             >
               {shiftData.status}
             </span>
+            <Button
+            onClick={onClose}
+            variant="ghost"
+            className="absolute right-4 top-1 p-2 hover:bg-gray-100 rounded-full"
+            aria-label="Close dialog"
+          >
+          </Button>
           </DialogHeader>
 
           {showSuccess ? (
@@ -213,7 +203,7 @@ export const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ shiftData, isO
             <p className="text-lg font-semibold mb-2">Task updated successfully!</p>
             <p className="text-sm text-gray-500">You will be redirected shortly.</p>
           </motion.div>
-        ) :
+          ) :
           isEditing ? (
             <>
               {currentStep === 0 && (
@@ -483,18 +473,70 @@ export const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ shiftData, isO
                   {shiftData.workers.length}
                 </span>
               </div>
+              <div className="grid grid-cols-4 items-center gap-4">
+                <span className="font-bold col-span-1">Assigned worker ID(s):</span>
+                <span className="col-span-3 flex items-center">
+                  <PersonStanding className="w-4 h-4 mr-2" />
+                    {shiftData.workerIds.join(", ")}
+                </span>
+              </div>
 
               {/* Photo of proof */}
-              {(shiftData.status === "COMPLETED" || shiftData.status === "IN PROGRESS") &&
-              <div className="grid grid-cols-4 items-center gap-4">
-              <span className="font-bold col-span-1">Arrival photo:</span>
-                  <Image
-                    src={arrivalImgSrc}
-                    alt="Arrival photo"
-                    width={300}
-                    height={300}
-                  />
-              </div>}
+              {(shiftData.status === "COMPLETED" || shiftData.status === "IN PROGRESS") && (
+                <div className="overflow-x-auto">
+                <div
+                  className="flex gap-6"
+                  style={{ minWidth: '600px' }} // Set a minimum width for the entire container
+                >
+                  {shiftData.workerIds.map((workerId) => {
+                    const arrivalPhoto = shiftData.arrivalImages.find((photo) => photo.workerId === workerId);
+                    const completionPhoto = shiftData.completionImages.find((photo) => photo.workerId === workerId);
+              
+                    return (
+                      <div
+                        key={workerId}
+                        className="p-4 border rounded-lg shadow-md bg-white w-72" 
+                      >
+                        <h4 className="font-semibold text-lg mb-2 text-center">Worker ID: {workerId}</h4>
+              
+                        <div className="space-y-4">
+                          <div>
+                            <h5 className="font-bold mb-1 text-sm">Arrival Photo:</h5>
+                            {arrivalPhoto ? (
+                              <Image
+                                src={arrivalPhoto.presignedUrl || 'default-arrival-placeholder.jpg'}
+                                alt={`Arrival photo for Worker ID ${workerId}`}
+                                width={200}
+                                height={200}
+                                className="rounded-lg object-cover"
+                              />
+                            ) : (
+                              <p className="text-red-500 text-sm">Worker has yet to upload an arrival photo</p>
+                            )}
+                          </div>
+              
+                          <div>
+                            <h5 className="font-bold mb-1 text-sm">Completion Photo:</h5>
+                            {completionPhoto ? (
+                              <Image
+                                src={completionPhoto.presignedUrl || 'default-completion-placeholder.jpg'}
+                                alt={`Completion photo for Worker ID ${workerId}`}
+                                width={200}
+                                height={200}
+                                className="rounded-lg object-cover"
+                              />
+                            ) : (
+                              <p className="text-red-500 text-sm">Worker has yet to upload a completion photo</p>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>                                        
+              )}
+
 
               {/* if got rescheduling */}
               {(shiftData.date !== shiftData.originalDate || 

@@ -89,7 +89,7 @@ const ManageTasks: React.FC = () => {
   const handleTaskUpdate = () => {
     fetchShifts(); 
     setTimeout(() => {
-      setIsTaskDetailModalOpen(false);}, 1200)
+      setIsTaskDetailModalOpen(false);}, 5000)
       setSelectedTask(null)
   };
 
