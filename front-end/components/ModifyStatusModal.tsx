@@ -2,6 +2,9 @@ import React, { useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from './ui/dialog';
 import { Checkbox } from "@/components/ui/checkbox";
 import { Button } from './ui/button';
+import axios from 'axios';
+import { Check } from 'lucide-react';
+import { motion } from 'framer-motion';
 
 interface ModifyStatusModalProps {
   isOpen: boolean;
@@ -11,6 +14,8 @@ interface ModifyStatusModalProps {
   onStatusChange: (status: string) => void;
   onWorkerSelectionChange: (selectedWorkers: number[]) => void;
   presentWorkers: number[]
+  shiftId: number;
+  refetchAfterChange: () => void;
 }
 
 const ModifyStatusModal: React.FC<ModifyStatusModalProps> = ({ 
@@ -20,10 +25,13 @@ const ModifyStatusModal: React.FC<ModifyStatusModalProps> = ({
   currentStatus, 
   onStatusChange, 
   onWorkerSelectionChange,
-  presentWorkers
+  presentWorkers,
+  shiftId,
+  refetchAfterChange
 }) => {
   const [selectedStatus, setSelectedStatus] = useState<string>(currentStatus);
   const [selectedWorkerIds, setSelectedWorkerIds] = useState<number[]>([]);
+  const [showSuccess, setShowSuccess] = useState<boolean>(false);
 
   const statusOptions = [
     { value: 'IN_PROGRESS', label: 'In Progress' },
@@ -45,9 +53,28 @@ const ModifyStatusModal: React.FC<ModifyStatusModalProps> = ({
     });
   };
 
-  const handleSave = () => {
-    onWorkerSelectionChange(selectedWorkerIds);
-    onClose();
+  const handleSave = async () => {
+    try {
+      const response = await axios.put(`http://localhost:8080/shifts/${shiftId}/update-status`, null, {
+        params: {
+          status: selectedStatus,
+          workerIds: selectedWorkerIds.join(','),
+        },
+      });
+      
+      setShowSuccess(true)
+      onWorkerSelectionChange(selectedWorkerIds);
+
+      await refetchAfterChange();
+
+      setTimeout(() => {
+        setShowSuccess(false);
+        onClose();
+      }, 2000);
+
+    } catch (error) {
+      console.error('Failed to update shift status:', error);
+    }
   };
 
   return (
@@ -61,59 +88,74 @@ const ModifyStatusModal: React.FC<ModifyStatusModalProps> = ({
         </DialogHeader>
 
         <div className="space-y-4 mt-4">
-          <div>
-            <label className="block text-sm font-medium mb-1">Change Status:</label>
-            <select
-              value={selectedStatus}
-              onChange={handleStatusChange}
-              className="w-full px-3 py-2 border rounded-md"
+          {showSuccess ? (
+            <motion.div
+              key="success"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -20 }}
+              className="text-center py-8"
             >
-              {statusOptions
-                .filter(option => {
-                    if (currentStatus === "ABSENT") {
-                    return option === statusOptions[0]; 
-                    } else if (currentStatus === "IN_PROGRESS") {
-                    return option;}
-                })
-                .map(option => (
-                    <option key={option.value} value={option.value}>
-                    {option.label}
-                    </option>
-                ))}
-            </select>
-          </div>
+              <Check className="w-16 h-16 text-green-500 mx-auto mb-4" />
+              <p className="text-lg font-semibold mb-2">Status and attendance updated successfully!</p>
+            </motion.div>
+          ) : (
+            <>
+              <div>
+                <label className="block text-sm font-medium mb-1">Change Status:</label>
+                <select
+                  value={selectedStatus}
+                  onChange={handleStatusChange}
+                  className="w-full px-3 py-2 border rounded-md"
+                >
+                  {statusOptions
+                    .filter(option => {
+                      if (currentStatus === "ABSENT") {
+                        return option === statusOptions[0]; 
+                      } else if (currentStatus === "IN_PROGRESS") {
+                        return option;
+                      }
+                    })
+                    .map(option => (
+                      <option key={option.value} value={option.value}>
+                        {option.label}
+                      </option>
+                    ))}
+                </select>
+              </div>
 
-          <div>
-            <label className="block text-sm font-medium mb-1">Select Present Workers:</label>
-            <div className="space-y-2">
-                {workers.map(worker => (
-                <div key={worker} className="flex items-center">
-                    <Checkbox
-                    checked={selectedWorkerIds.includes(worker) || (presentWorkers?.includes(worker) ?? false)}
-                    disabled={presentWorkers?.includes(worker) ?? false}
-                    onCheckedChange={() => {
-                        if (!presentWorkers?.includes(worker)) {
-                        toggleWorkerSelection(worker);
-                        }
-                    }}
-                    id={`worker-${worker}`}
-                    />
-                    <label htmlFor={`worker-${worker}`} className="ml-2">
-                    {worker}
-                    </label>
+              <div>
+                <label className="block text-sm font-medium mb-1">Select Present Workers:</label>
+                <div className="space-y-2">
+                  {workers.map(worker => (
+                    <div key={worker} className="flex items-center">
+                      <Checkbox
+                        checked={selectedWorkerIds.includes(worker) || (presentWorkers?.includes(worker) ?? false)}
+                        disabled={presentWorkers?.includes(worker) ?? false}
+                        onCheckedChange={() => {
+                          if (!presentWorkers?.includes(worker)) {
+                            toggleWorkerSelection(worker);
+                          }
+                        }}
+                        id={`worker-${worker}`}
+                      />
+                      <label htmlFor={`worker-${worker}`} className="ml-2">
+                        {worker}
+                      </label>
+                    </div>
+                  ))}
                 </div>
-                ))}
-            </div>
-            </div>
+              </div>
 
-          <DialogFooter className="flex justify-end mt-4">
-            <Button variant="outline" onClick={onClose}>Cancel</Button>
-            <Button variant="default" onClick={handleSave}>Save Changes</Button>
-          </DialogFooter>
+              <DialogFooter className="flex justify-end mt-4">
+                <Button variant="outline" onClick={onClose}>Cancel</Button>
+                <Button variant="default" onClick={handleSave}>Save Changes</Button>
+              </DialogFooter>
+            </>
+          )}
         </div>
       </DialogContent>
     </Dialog>
   );
 };
-
 export default ModifyStatusModal;

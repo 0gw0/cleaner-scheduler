@@ -10,9 +10,10 @@ interface TaskCardProps {
   shiftData: Shift
   onCardClick: (shift: Shift) => void
   cancelShift: (shift: Shift) => void
+  refetchAfterChange: () => void;
 }
 
-export const TaskCard: React.FC<TaskCardProps> = ({ shiftData, onCardClick, cancelShift }) => {
+export const TaskCard: React.FC<TaskCardProps> = ({ shiftData, onCardClick, cancelShift, refetchAfterChange }) => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isModifyStatusModalOpen, setIsModifyStatusModalOpen] = useState(false);
   const [currentStatus, setCurrentStatus] = useState('UPCOMING');
@@ -135,6 +136,8 @@ export const TaskCard: React.FC<TaskCardProps> = ({ shiftData, onCardClick, canc
         onStatusChange={handleStatusChange}
         onWorkerSelectionChange={handleWorkerAttendanceChange}
         presentWorkers={shiftData.presentWorkers}
+        shiftId = {shiftData.id}
+        refetchAfterChange = {refetchAfterChange}
       />
 
       {/* Confirmation Modal */}
