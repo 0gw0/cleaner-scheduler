@@ -76,7 +76,7 @@ public class DataInitializer {
                     property1,
                     ShiftStatus.COMPLETED
             );
-            shift1.setArrivalImage(new ArrivalImage("arrivals/1/resized_image.jpg", LocalDateTime.now(), "resized_image.jpg"));
+            shift1.setArrivalImage(new ArrivalImage("arrivals/1/resized_image.jpg", LocalDateTime.now(), "resized_image.jpg", worker1.getId()));
             shift1.addWorker(worker1);  // Use the new addWorker method
             shiftRepository.save(shift1);
 

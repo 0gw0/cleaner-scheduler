@@ -18,14 +18,16 @@ import java.time.LocalDateTime;
 @AttributeOverrides({
         @AttributeOverride(name = "s3Key", column = @Column(name = "completion_s3_key")),
         @AttributeOverride(name = "uploadTime", column = @Column(name = "completion_upload_time")),
-        @AttributeOverride(name = "fileName", column = @Column(name = "completion_file_name"))
+        @AttributeOverride(name = "fileName", column = @Column(name = "completion_file_name")),
+        @AttributeOverride(name = "workerId", column = @Column(name = "completion_worker_id"))
+
 })
 public class CompletionImage extends Image {
-    public CompletionImage(String s3Key, String fileName) {
-        super(s3Key, fileName);
+    public CompletionImage(String s3Key, String fileName, Long workerId) {
+        super(s3Key, fileName, workerId);
     }
 
-    public CompletionImage(String s3Key, LocalDateTime uploadTime, String fileName) {
-        super(s3Key, uploadTime, fileName);
+    public CompletionImage(String s3Key, LocalDateTime uploadTime, String fileName, Long workerId) {
+        super(s3Key, uploadTime, fileName, workerId);
     }
 }

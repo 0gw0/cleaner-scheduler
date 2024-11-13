@@ -18,10 +18,12 @@ public abstract class Image {
     private String s3Key;
     private LocalDateTime uploadTime;
     private String fileName;
+    private Long workerId;
 
-    public Image(String s3Key, String fileName) {
+    public Image(String s3Key, String fileName, Long workerId) {
         this.s3Key = s3Key;
         this.fileName = fileName;
+        this.workerId = workerId;
         this.uploadTime = LocalDateTime.now();
     }
 }

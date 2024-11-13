@@ -159,7 +159,8 @@ public class ShiftController {
     @PostMapping(value = "/{shiftId}/arrival-image", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<?> uploadArrivalImage(
             @PathVariable Long shiftId,
-            @RequestParam("file") MultipartFile file) {
+            @RequestParam("file") MultipartFile file,
+            @RequestParam("workerId") Long workerId) {
         try {
             if (file.isEmpty()) {
                 return ResponseEntity
@@ -186,7 +187,7 @@ public class ShiftController {
 
             s3Service.saveToS3(s3Key, file.getInputStream(), file.getContentType());
 
-            ArrivalImage arrivalImage = new ArrivalImage(s3Key, file.getOriginalFilename());
+            ArrivalImage arrivalImage = new ArrivalImage(s3Key, file.getOriginalFilename(), workerId);
             shift.setArrivalImage(arrivalImage);
 
             shift = shiftRepository.save(shift);
@@ -262,7 +263,8 @@ public class ShiftController {
     @PostMapping(value = "/{shiftId}/completion-image", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<?> uploadCompletionImage(
             @PathVariable Long shiftId,
-            @RequestParam("file") MultipartFile file) {
+            @RequestParam("file") MultipartFile file,
+            @RequestParam("workerId") Long workerId) {
         try {
             if (file.isEmpty()) {
                 return ResponseEntity
@@ -290,7 +292,7 @@ public class ShiftController {
 
             s3Service.saveToS3(s3Key, file.getInputStream(), file.getContentType());
 
-            CompletionImage completionImage = new CompletionImage(s3Key, file.getOriginalFilename());
+            CompletionImage completionImage = new CompletionImage(s3Key, file.getOriginalFilename(), workerId);
             shift.setCompletionImage(completionImage);
 
             shift = shiftRepository.save(shift);

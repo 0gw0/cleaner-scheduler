@@ -67,6 +67,7 @@ class ImageDTO {
     private LocalDateTime uploadTime;
     private String fileName;
     private String presignedUrl;
+    private Long workerId;
 
     public ImageDTO(Image image, String presignedUrl) {
         System.out.println("image is null");
@@ -75,6 +76,7 @@ class ImageDTO {
             this.uploadTime = image.getUploadTime();
             this.fileName = image.getFileName();
             this.presignedUrl = presignedUrl;
+            this.workerId = image.getWorkerId();
         }
     }
 }
