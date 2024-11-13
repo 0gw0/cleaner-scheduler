@@ -37,8 +37,6 @@ public class Shift {
     @Column(nullable = true)
     private Set<Long> presentWorkers;
 
-    @Column(nullable = true)
-    private Set<Long> completedWorkers;
 
     @ManyToOne
     @JoinColumn(name = "property_id")
@@ -134,6 +132,22 @@ public class Shift {
         this.endTime = newEndTime;
         this.isRescheduled = true;
     }
+
+    public Set<Long> getPresentWorkersAsSet() {
+        if (presentWorkers == null) {
+            presentWorkers = new HashSet<>(); 
+        }
+        return presentWorkers;
+    }
+    
+    public void addPresentWorker(Long workerId) {
+        if (presentWorkers == null) {
+            presentWorkers = new HashSet<>();
+        }
+        presentWorkers.add(workerId);
+    }
+
+    
 
     public boolean isRescheduled() {
         return isRescheduled ||
