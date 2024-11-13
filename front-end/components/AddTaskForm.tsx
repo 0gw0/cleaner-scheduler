@@ -458,7 +458,7 @@ export default function AddTaskForm({ onTaskAdded }: AddTaskFormProps) {
   
                           {currentStep === 1 && (
                           <div className="space-y-4">
-                            {/* TODO: add error handling if no available workers found */}
+                            {/* TODO: add error handling if no available workers found, or less than the amount of workers needed */}
                             <p>The following workers have been assigned:</p>
                             {availableWorkers.slice(0, formData.numberOfWorkers).map((worker, index) => (
                               <motion.div
@@ -467,7 +467,7 @@ export default function AddTaskForm({ onTaskAdded }: AddTaskFormProps) {
                                 initial={{ opacity: 0, y: 20 }}
                                 animate={{ opacity: 1, y: 0 }}
                                 exit={{ opacity: 0, y: -20 }}
-                                transition={{ duration: 0.5, delay: index * 0.2 }} // Sequential delay for staggered appearance
+                                transition={{ duration: 0.5, delay: index * 0.2 }} 
                               >
                                 <h3 className="font-semibold">{worker.name}</h3>
                                 <p className="text-sm">Location: {worker.originLocation}</p>
