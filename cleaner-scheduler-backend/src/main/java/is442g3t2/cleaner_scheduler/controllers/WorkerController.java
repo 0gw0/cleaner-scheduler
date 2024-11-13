@@ -627,11 +627,12 @@ public class WorkerController {
     @Operation(description = "Get all available workers at a specific date and time",
             summary = "get available workers")
     @GetMapping("/available")
-    public ResponseEntity<List<WorkerDTO>> getAvailableWorkers(
+    public ResponseEntity<AvailableWorkersResponse> getAvailableWorkers(
             @RequestParam LocalDate date,
             @RequestParam LocalTime startTime,
             @RequestParam LocalTime endTime,
-            @RequestParam(required = false) Long supervisorId) {
+            @RequestParam(required = false) Long supervisorId,
+            @RequestParam(required = false) Long shiftId) {
 
         // temporary shift object JUST TOI CHECK overlap
         Shift tempShift = new Shift(date, startTime, endTime, null, ShiftStatus.UPCOMING);
@@ -662,7 +663,18 @@ public class WorkerController {
                 .map(worker -> new WorkerDTO(worker, s3Service))
                 .collect(Collectors.toList());
 
-        return ResponseEntity.ok(availableWorkers);
+        List<WorkerDTO> currentWorkersDTO = new ArrayList<>();
+
+        if (shiftId != null) {
+            Optional<Shift> shiftOptional = shiftRepository.findById(shiftId);
+            if (shiftOptional.isPresent()) {
+                Shift shift = shiftOptional.get();
+                List<Worker> currentWorkers = shift.getWorkers();
+                currentWorkersDTO = currentWorkers.stream().map(worker -> new WorkerDTO(worker, s3Service)).toList();
+            }
+        }
+
+        return ResponseEntity.ok(new AvailableWorkersResponse(currentWorkersDTO, availableWorkers));
     }
 
     @Tag(name = "workers - leaves")
