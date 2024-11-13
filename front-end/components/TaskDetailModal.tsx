@@ -107,15 +107,18 @@ export const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ shiftData, isO
     }
     if (currentStep === 0 && assignmentType === 'manual') {
       try {
+        const userDetails = localStorage.getItem('user');
+        const supervisorId = userDetails ? JSON.parse(userDetails).id : null;
         const response = await axios.get('http://localhost:8080/workers/available', {
-          params: { date: updatedShift.date, startTime: updatedShift.startTime, endTime: updatedShift.endTime }
+          params: { date: updatedShift.date, startTime: updatedShift.startTime, endTime: updatedShift.endTime, supervisorId:supervisorId, shiftId:updatedShift.id  }
         });  
         if (response.data.length < shiftData.workers.length) {
           setError('Not enough available workers to fulfill the shift requirements.');
           setShowFailure(true);
         }
         else {
-          setWorkerChoice(response.data);
+          const combinedWorkers = [...response.data.newWorkers, ...response.data.currentWorkers]
+          setWorkerChoice(combinedWorkers);
         }
        }
        catch (error) {
