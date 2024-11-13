@@ -137,9 +137,24 @@ public class WorkerLocationFinder {
         PriorityQueue<WorkerWithTravelTime> closestWorkers = new PriorityQueue<>(5,
                 Comparator.comparingLong(WorkerWithTravelTime::getTotalTravelTimeToTarget));
         LocalDateTime targetDateTime = LocalDateTime.of(targetDate, targetStartTime);
+        Shift targetShift = new Shift(targetDate, targetStartTime, targetEndTime);
 
         for (Worker worker : workers) {
             System.out.println("\nChecking worker: " + worker.getId());
+
+            // First, check if worker has any overlapping shift on the target date
+            boolean hasOverlappingShift = worker.getShifts().stream()
+                    .filter(shift -> shift.getDate().equals(targetDate))
+                    .anyMatch(shift -> {
+                        LocalTime shiftStart = shift.getStartTime();
+                        LocalTime shiftEnd = shift.getEndTime();
+                        return !(shiftEnd.isBefore(targetStartTime) || shiftStart.isAfter(targetEndTime));
+                    });
+
+            if (hasOverlappingShift) {
+                System.out.println("Worker filtered out: Has overlapping shift on target date");
+                continue;
+            }
 
             List<AnnualLeave> annualLeaves = worker.getAnnualLeavesByYear(targetDate.getYear());
             List<MedicalLeave> medicalLeaves = worker.getMedicalLeavesByYear(targetDate.getYear());
@@ -147,6 +162,7 @@ public class WorkerLocationFinder {
                     targetLocationLatLng);
 
             System.out.println("Available shift present: " + availableShift.isPresent());
+            System.out.println("Available shift: " + availableShift.toString());
 
             // check if worker on leave during shift date
             boolean isOnLeave = annualLeaves.stream().anyMatch(
@@ -156,74 +172,52 @@ public class WorkerLocationFinder {
                     leave -> !targetDate.isBefore(leave.getStartDate()) && !targetDate.isAfter(leave.getEndDate()));
             System.out.println("Worker is on medical leave: " + isOnMedicalLeave);
 
-            Shift targetShift = new Shift(targetDate, targetStartTime, targetEndTime);
+            if (isOnLeave || isOnMedicalLeave) {
+                System.out.println("Worker filtered out: On " + (isOnLeave ? "Annual" : "Medical") + " leave");
+                continue;
+            }
 
-            if (!isOnLeave) {
-                if (!isOnMedicalLeave) {
-                    if (!availableShift.isPresent()) {
-                        Optional<Shift> previousShift = findPreviousShift(worker, targetDate, targetStartTime);
-    
-                        if (isShiftBeforeTargetAndPossibleDistance(previousShift.get(), targetLocationLatLng,
-                                targetDate, targetStartTime)) {
-                            // If the worker can make it from the previous shift location, allow them
-                            availableShift = Optional.of(new Shift(targetDate, targetStartTime, targetEndTime));
-    
-                        } else {
-                            // If they can't make it, filter out the worker
-                            System.out.println("Worker filtered out: No available shift");
-                            System.out.println(previousShift);
-                            System.out.println(
-                                    isShiftBeforeTargetAndPossibleDistance(previousShift.get(), targetLocationLatLng,
-                                            targetDate, targetStartTime));
-                            continue;
-                        }
-                    }
-                } else {
-                    System.out.println("Worker filtered out: On Medical leave");
-                    continue;
-                }
-                
-
-                LatLng workerLocation;
+            if (!availableShift.isPresent()) {
                 Optional<Shift> previousShift = findPreviousShift(worker, targetDate, targetStartTime);
-                // System.out.println("Previous shift present: " + previousShift.isPresent());
-                // System.out.println("Previous shift details: " + previousShift);
 
-                if (previousShift.isPresent() && worker.shiftsOverlap(previousShift.get(), targetShift) && previousShift.get().getDate() == targetDate) {
-                    System.out.println("Worker filtered out: Shifts overlap");
+                if (previousShift.isPresent() && isShiftBeforeTargetAndPossibleDistance(previousShift.get(),
+                        targetLocationLatLng, targetDate, targetStartTime)) {
+                    System.out.println("Have previous shift: " + previousShift);
+                    availableShift = Optional.of(targetShift);
+                } else {
+                    System.out.println("Worker filtered out: No available shift");
                     continue;
                 }
+            }
 
-                try {
-                    // check if the fella can make it from previous location
-                    if (previousShift.isPresent() &&
-                            isShiftBeforeTargetAndPossibleDistance(previousShift.get(), targetLocationLatLng,
-                                    targetDate,
-                                    targetStartTime)) {
-                        System.out.println("Worker can make it from previous location");
-                        workerLocation = getPropertyLocation(previousShift.get().getProperty().getPostalCode());
-                    } else {
-                        System.out.println("Worker will start from home");
-                        workerLocation = getCoordinatesFromPostalCode(worker.getHomePostalCode());
-                    }
+            LatLng workerLocation;
+            Optional<Shift> previousShift = findPreviousShift(worker, targetDate, targetStartTime);
 
-                    TravelTime travelTimeToTarget = getTravelTime(workerLocation, targetLocationLatLng, targetDateTime);
-                    System.out.println("Travel time calculated: " + travelTimeToTarget.totalTravelTime);
-
-                    if (travelTimeToTarget.totalTravelTime >= 0) {
-                        updateClosestWorkers(closestWorkers,
-                                new WorkerWithTravelTime(worker, travelTimeToTarget, availableShift.get(),
-                                        workerLocation));
-                        System.out.println("Worker added to closest workers queue");
-                    } else {
-                        System.out.println("Worker filtered out: Invalid travel time");
-                    }
-                } catch (Exception e) {
-                    System.err.println("Error processing worker: " + e.getMessage());
-                    e.printStackTrace();
+            try {
+                if (previousShift.isPresent() &&
+                        isShiftBeforeTargetAndPossibleDistance(previousShift.get(), targetLocationLatLng,
+                                targetDate, targetStartTime)) {
+                    System.out.println("Worker can make it from previous location");
+                    workerLocation = getPropertyLocation(previousShift.get().getProperty().getPostalCode());
+                } else {
+                    System.out.println("Worker will start from home");
+                    workerLocation = getCoordinatesFromPostalCode(worker.getHomePostalCode());
                 }
-            } else {
-                System.out.println("Worker filtered out: On Annual leave");
+
+                TravelTime travelTimeToTarget = getTravelTime(workerLocation, targetLocationLatLng, targetDateTime);
+                System.out.println("Travel time calculated: " + travelTimeToTarget.totalTravelTime);
+
+                if (travelTimeToTarget.totalTravelTime >= 0) {
+                    updateClosestWorkers(closestWorkers,
+                            new WorkerWithTravelTime(worker, travelTimeToTarget, availableShift.get(),
+                                    workerLocation));
+                    System.out.println("Worker added to closest workers queue");
+                } else {
+                    System.out.println("Worker filtered out: Invalid travel time");
+                }
+            } catch (Exception e) {
+                System.err.println("Error processing worker: " + e.getMessage());
+                e.printStackTrace();
             }
         }
 
@@ -302,7 +296,7 @@ public class WorkerLocationFinder {
     }
 
     public static boolean isShiftBeforeTargetAndPossibleDistance(Shift previousShift, LatLng targetLocationLatLng,
-                                                                 LocalDate targetDate, LocalTime targetStartTime) {
+            LocalDate targetDate, LocalTime targetStartTime) {
         LocalDateTime previousShiftEndDateTime = LocalDateTime.of(previousShift.getDate(), previousShift.getEndTime());
         LocalDateTime targetDateTime = LocalDateTime.of(targetDate, targetStartTime);
 
