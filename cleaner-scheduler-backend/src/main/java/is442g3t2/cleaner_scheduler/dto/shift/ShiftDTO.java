@@ -36,7 +36,6 @@ public class ShiftDTO {
     private LocalTime originalEndTime;
     private boolean isRescheduled;
     private Set<Long> presentWorkers;
-    private Set<Long> completedWorkers;
 
 
     public ShiftDTO(Shift shift, List<String> arrivalPresignedUrls, List<String> completionPresignedUrls) {
@@ -54,7 +53,6 @@ public class ShiftDTO {
         this.originalStartTime = shift.getOriginalStartTime();
         this.originalEndTime = shift.getOriginalEndTime();
         this.presentWorkers = shift.getPresentWorkers();
-        this.completedWorkers = shift.getCompletedWorkers();
         this.arrivalImages = new ArrayList<>();
         this.completionImages = new ArrayList<>();
 

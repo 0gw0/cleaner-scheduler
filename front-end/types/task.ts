@@ -81,7 +81,6 @@ export interface Shift {
   originalStartTime : string;
   originalEndTime: string;
   presentWorkers : number[],
-  completedWorkers: number[],
   arrivalImages: Photo[],
   completionImages: Photo[]
 }

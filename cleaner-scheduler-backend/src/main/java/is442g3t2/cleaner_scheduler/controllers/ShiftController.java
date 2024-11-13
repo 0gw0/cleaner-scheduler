@@ -212,6 +212,13 @@ public class ShiftController {
             // As long as one worker present, shift status updated to In Progress
             shift.setStatus(ShiftStatus.IN_PROGRESS);
 
+            // update all worker's status to in working once arrival image uploaded
+            Optional<Worker> workerOptional = workerRepository.findById(workerId);
+            Worker worker = workerOptional.get();
+            worker.setStatus("In Working");
+            workerRepository.save(worker);
+
+
             shift = shiftRepository.save(shift);
 
             // Get presigned URL for immediate access
@@ -327,11 +334,16 @@ public class ShiftController {
             CompletionImage completionImage = new CompletionImage(s3Key, file.getOriginalFilename(), workerId);
             shift.addCompletionImage(completionImage);
 
-            // Add worker to completedWorkers Set
-            shift.getCompletedWorkersAsSet().add(workerId);
-
             // As long as one worker complete, shift status updated to Completed
             shift.setStatus(ShiftStatus.COMPLETED);
+
+            // update all present worker's status back to Available once shift ends
+            for (Worker worker: shift.getWorkers()) {
+                if (shift.getPresentWorkers().contains(worker.getId())) {
+                    worker.setStatus("Available");
+                    workerRepository.save(worker);
+                }
+            }
 
             shift = shiftRepository.save(shift);
 
