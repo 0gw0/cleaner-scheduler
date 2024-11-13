@@ -443,11 +443,38 @@ public class ShiftController {
 
 
     @PutMapping("/{shiftId}/update-status")
-    @Tag(name = "shifts", description = "Update the status of a shift")
-    @Operation(summary = "Update shift status", description = "Update the status for a specific shift")
+    @Tag(name = "shifts", description = "Update the status of a shift and/or present workers")
+    @Operation(summary = "Update shift status and/or present workers", description = "Update the status for a specific shift and/or present workers")
     public ResponseEntity<?> updateShiftStatus(
             @PathVariable Long shiftId,
-            @RequestParam ShiftStatus status) {
+            @RequestParam(required = true) ShiftStatus status,
+            @RequestParam(required = false) Set<Long> workerIds){
+        
+        Shift shift = shiftRepository.getReferenceById(shiftId);
+        if (!workerIds.isEmpty() || !(workerIds == null)) {
+            try {
+                for (Long workerId : shift.getWorkerIds()) {
+                    if (!shift.getPresentWorkersAsSet().contains(workerId)) {
+                        shift.getPresentWorkersAsSet().add(workerId);
+                        Worker worker = workerRepository.findById(workerId)
+                            .orElseThrow(() -> new IllegalArgumentException("Worker with ID " + workerId + " not found."));
+                        worker.setStatus("In Working");
+                        workerRepository.save(worker);
+                    }
+                }
+            } catch (Exception e) {
+                return ResponseEntity.badRequest().body(createErrorResponse("Failed to update present workers: " + e.getMessage()));
+            }
+        }
+
+        if (status.getDisplayName() == "Completed") {
+            for (Long workerId : shift.getPresentWorkersAsSet()) {
+                Worker worker = workerRepository.findById(workerId)
+                    .orElseThrow(() -> new IllegalArgumentException("Worker with ID " + workerId + " not found."));
+                worker.setStatus("Available");
+                workerRepository.save(worker);
+            }
+        }
 
         try {
             Shift updatedShift = shiftService.updateShiftStatus(shiftId, status);
