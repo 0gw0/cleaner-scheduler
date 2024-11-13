@@ -84,7 +84,7 @@ const Dashboard: React.FC = () => {
 							postalCode: client.properties[0]?.postalCode || '',
 							status: client.status,
 							cleaningJobs: [],
-							preferredCleaner: 'Fatmimah',
+							preferredCleaner: 'Wati',
 							jobs: clientJobCounts.get(client.id) || 0,
 						})
 					);

@@ -36,6 +36,11 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
     (data) => data.month !== "Invalid Date"
   );
 
+  console.table(shifts)
+  
+  const rescheduleShiftsCount = shifts.filter((shift) => shift.rescheduled).length;
+  const cancelledShiftCount = shifts.filter((shift) => shift.status === "CANCELLED").length;
+
   const currentMonth = validMonthlyData[validMonthlyData.length - 1] || {
     month: "",
     jobs: 0,
@@ -106,7 +111,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
         </button>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 mb-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3 gap-6 mb-6">
         <StatusCard
           title="Total Jobs (All Time)"
           value={totalJobs}
@@ -124,13 +129,16 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
           icon={Briefcase}
         />
         <StatusCard
-          title="Latest Month Jobs"
-          value={currentMonth.jobs}
+          title="Number of rescheduled Shifts"
+          value={rescheduleShiftsCount}
           icon={Clock}
         />
-      </div>
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 mb-6">
-        <StatusCard
+         <StatusCard
+          title="Number of cancelled Shifts"
+          value={cancelledShiftCount}
+          icon={Clock}
+        />
+         <StatusCard
           title="Total Workers"
           value={workerStats.totalWorkers}
           icon={Users}
