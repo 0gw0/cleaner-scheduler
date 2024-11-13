@@ -11,6 +11,8 @@ import lombok.Setter;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Set;
 
 @Getter
@@ -26,6 +28,8 @@ public class ShiftDTO {
     private String status;
     private ImageDTO arrivalImage;
     private ImageDTO completionImage;
+    private List<ImageDTO> arrivalImages;
+    private List<ImageDTO> completionImages;
     private Set<Long> workerIds;  // Matching your current structure
     private LocalDate originalDate;
     private LocalTime originalStartTime;
@@ -35,7 +39,7 @@ public class ShiftDTO {
     private Set<Long> completedWorkers;
 
 
-    public ShiftDTO(Shift shift, String arrivalPresignedUrl, String completionPresignedUrl) {
+    public ShiftDTO(Shift shift, List<String> arrivalPresignedUrls, List<String> completionPresignedUrls) {
         this.id = shift.getId();
         this.workers = shift.getWorkerIds();  // Already returns Set<Long>
         this.property = shift.getProperty();  // Already returns PropertyInfo
@@ -43,9 +47,7 @@ public class ShiftDTO {
         this.startTime = shift.getStartTime();
         this.endTime = shift.getEndTime();
         this.status = shift.getStatus().toString();
-        this.arrivalImage = shift.getArrivalImage() != null
-                ? new ImageDTO(shift.getArrivalImage(), arrivalPresignedUrl)
-                : null;
+
         this.workerIds = shift.getWorkerIds();  // Duplicate of workers, matching current structure
         this.isRescheduled = shift.isRescheduled();
         this.originalDate = shift.getOriginalDate();
@@ -53,9 +55,22 @@ public class ShiftDTO {
         this.originalEndTime = shift.getOriginalEndTime();
         this.presentWorkers = shift.getPresentWorkers();
         this.completedWorkers = shift.getCompletedWorkers();
-        this.completionImage = shift.getCompletionImage() != null
-                ? new ImageDTO(shift.getCompletionImage(), completionPresignedUrl)
-                : null;
+        this.arrivalImages = new ArrayList<>();
+        this.completionImages = new ArrayList<>();
+
+        if (shift.getArrivalImages() != null) {
+            for (int i = 0; i < shift.getArrivalImages().size(); i++) {
+                String url = i < arrivalPresignedUrls.size() ? arrivalPresignedUrls.get(i) : null;
+                this.arrivalImages.add(new ImageDTO(shift.getArrivalImages().get(i), url));
+            }
+        }
+
+        if (shift.getCompletionImages() != null) {
+            for (int i = 0; i < shift.getCompletionImages().size(); i++) {
+                String url = i < completionPresignedUrls.size() ? completionPresignedUrls.get(i) : null;
+                this.completionImages.add(new ImageDTO(shift.getCompletionImages().get(i), url));
+            }
+        }
     }
 }
 

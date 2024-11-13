@@ -57,11 +57,33 @@ public class Shift {
     @Column(nullable = false)
     private ShiftStatus status;
 
-    @Embedded
-    private ArrivalImage arrivalImage;
+    @ElementCollection
+    @CollectionTable(
+            name = "shift_arrival_images",
+            joinColumns = @JoinColumn(name = "shift_id")
+    )
+    private List<ArrivalImage> arrivalImages = new ArrayList<>();
 
-    @Embedded
-    private CompletionImage completionImage;
+    @ElementCollection
+    @CollectionTable(
+            name = "shift_completion_images",
+            joinColumns = @JoinColumn(name = "shift_id")
+    )
+    private List<CompletionImage> completionImages = new ArrayList<>();
+
+    public void addArrivalImage(ArrivalImage image) {
+        if (arrivalImages == null) {
+            arrivalImages = new ArrayList<>();
+        }
+        arrivalImages.add(image);
+    }
+
+    public void addCompletionImage(CompletionImage image) {
+        if (completionImages == null) {
+            completionImages = new ArrayList<>();
+        }
+        completionImages.add(image);
+    }
 
     @Column(nullable = false)
     private LocalDate originalDate;
@@ -142,7 +164,7 @@ public class Shift {
                     property.getPostalCode());
         } else {
             return null; // Or you can throw an exception, or return a default value, depending on your
-                         // use case.
+            // use case.
         }
     }
 

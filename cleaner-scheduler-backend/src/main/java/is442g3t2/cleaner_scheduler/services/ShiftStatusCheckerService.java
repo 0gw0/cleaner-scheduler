@@ -70,7 +70,7 @@ public class ShiftStatusCheckerService {
     @Transactional 
     private void sendShiftStatusReminder(Shift shift) {
         try {
-            if (shift.getArrivalImage() == null) {
+            if (shift.getArrivalImages() == null) {
                 log.info("missing arrival image", shift.getId());
                 List<Worker> workers = shift.getWorkers();
                 ArrayList<String> supervisorEmails = new ArrayList<>(); 
@@ -92,7 +92,7 @@ public class ShiftStatusCheckerService {
     @Transactional 
     private void updateShiftStatus(Shift shift) {
         try {
-            if (shift.getArrivalImage() == null) {
+            if (shift.getArrivalImages() == null) {
                 shift.setStatus(ShiftStatus.ABSENT);
                 log.info("Shift {} marked as CANCELLED due to missing arrival image", shift.getId());
             } 

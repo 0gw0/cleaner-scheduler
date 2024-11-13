@@ -129,17 +129,33 @@ public class ShiftController {
         }
 
         List<ShiftDTO> shiftDTOs = shifts.stream()
-                .map(shift -> new ShiftDTO(shift,
-                        shift.getArrivalImage() != null
-                                ? s3Service.getPresignedUrl(shift.getArrivalImage().getS3Key(), 3600).toString()
-                                : null,
-                        shift.getCompletionImage() != null
-                                ? s3Service.getPresignedUrl(shift.getCompletionImage().getS3Key(), 3600).toString()
-                                : null
+                .map(shift -> new ShiftDTO(
+                        shift,
+                        getPresignedUrlsForImages(shift.getArrivalImages(), s3Service),
+                        getPresignedUrlsForImages(shift.getCompletionImages(), s3Service)
                 ))
                 .collect(Collectors.toList());
 
         return ResponseEntity.ok(shiftDTOs);
+    }
+
+
+    private List<String> getPresignedUrlsForImages(List<? extends Image> images, S3Service s3Service) {
+        if (images == null || images.isEmpty()) {
+            return new ArrayList<>();
+        }
+
+        return images.stream()
+                .map(image -> {
+                    try {
+                        return s3Service.getPresignedUrl(image.getS3Key(), 3600).toString();
+                    } catch (Exception e) {
+                        System.err.println("Error generating presigned URL for image: " + e.getMessage());
+                        return null;
+                    }
+                })
+                .filter(url -> url != null)
+                .collect(Collectors.toList());
     }
 
     private boolean filterByStatus(Shift shift, String status) {
@@ -188,7 +204,7 @@ public class ShiftController {
             s3Service.saveToS3(s3Key, file.getInputStream(), file.getContentType());
 
             ArrivalImage arrivalImage = new ArrivalImage(s3Key, file.getOriginalFilename(), workerId);
-            shift.setArrivalImage(arrivalImage);
+            shift.addArrivalImage(arrivalImage);
 
             shift = shiftRepository.save(shift);
 
@@ -199,12 +215,8 @@ public class ShiftController {
             response.put("message", "Arrival image uploaded successfully");
             ShiftDTO shiftDTO = new ShiftDTO(
                     shift,
-                    shift.getArrivalImage() != null
-                            ? s3Service.getPresignedUrl(shift.getArrivalImage().getS3Key(), 3600).toString()
-                            : null,
-                    shift.getCompletionImage() != null
-                            ? s3Service.getPresignedUrl(shift.getCompletionImage().getS3Key(), 3600).toString()
-                            : null
+                    getPresignedUrlsForImages(shift.getArrivalImages(), s3Service),
+                    getPresignedUrlsForImages(shift.getCompletionImages(), s3Service)
             );
             response.put("shift", shiftDTO);
             response.put("imageUrl", presignedUrl);
@@ -238,17 +250,31 @@ public class ShiftController {
             }
             Shift shift = shiftOptional.get();
 
-            if (shift.getArrivalImage() == null) {
+            if (shift.getArrivalImages().isEmpty()) {
                 return ResponseEntity
                         .status(HttpStatus.NOT_FOUND)
                         .body(createErrorResponse("Error: No arrival image found for shift with id: " + shiftId));
             }
 
-            URL presignedUrl = s3Service.getPresignedUrl(shift.getArrivalImage().getS3Key(), 3600); // URL valid for 1 hour
+            List<Map<String, String>> imageDetails = shift.getArrivalImages().stream()
+                    .map(image -> {
+                        Map<String, String> details = new HashMap<>();
+                        try {
+                            details.put("url", s3Service.getPresignedUrl(image.getS3Key(), 3600).toString());
+                            details.put("fileName", image.getFileName());
+                            details.put("uploadTime", image.getUploadTime().toString());
+                            details.put("workerId", image.getWorkerId().toString());
+                        } catch (Exception e) {
+                            System.err.println("Error generating presigned URL for image: " + e.getMessage());
+                        }
+                        return details;
+                    })
+                    .filter(details -> !details.isEmpty())
+                    .collect(Collectors.toList());
 
             Map<String, Object> response = new HashMap<>();
-            response.put("message", "Arrival image URL retrieved successfully");
-            response.put("url", presignedUrl.toString());
+            response.put("message", "Arrival image URLs retrieved successfully");
+            response.put("images", imageDetails);
 
             return ResponseEntity.ok(response);
         } catch (Exception e) {
@@ -293,7 +319,7 @@ public class ShiftController {
             s3Service.saveToS3(s3Key, file.getInputStream(), file.getContentType());
 
             CompletionImage completionImage = new CompletionImage(s3Key, file.getOriginalFilename(), workerId);
-            shift.setCompletionImage(completionImage);
+            shift.addCompletionImage(completionImage);
 
             shift = shiftRepository.save(shift);
 
@@ -304,12 +330,8 @@ public class ShiftController {
             response.put("message", "Completion image uploaded successfully");
             ShiftDTO shiftDTO = new ShiftDTO(
                     shift,
-                    shift.getArrivalImage() != null
-                            ? s3Service.getPresignedUrl(shift.getArrivalImage().getS3Key(), 3600).toString()
-                            : null,
-                    shift.getCompletionImage() != null
-                            ? s3Service.getPresignedUrl(shift.getCompletionImage().getS3Key(), 3600).toString()
-                            : null
+                    getPresignedUrlsForImages(shift.getArrivalImages(), s3Service),
+                    getPresignedUrlsForImages(shift.getCompletionImages(), s3Service)
             );
             response.put("shift", shiftDTO);
             response.put("imageUrl", presignedUrl);
@@ -337,17 +359,32 @@ public class ShiftController {
             }
             Shift shift = shiftOptional.get();
 
-            if (shift.getCompletionImage() == null) {
+            if (shift.getCompletionImages().isEmpty()) {
                 return ResponseEntity
                         .status(HttpStatus.NOT_FOUND)
-                        .body(createErrorResponse("Error: No completion image found for shift with id: " + shiftId));
+                        .body(createErrorResponse("Error: No completion images found for shift with id: " + shiftId));
             }
 
-            URL presignedUrl = s3Service.getPresignedUrl(shift.getCompletionImage().getS3Key(), 3600); // URL valid for 1 hour
+            List<Map<String, Object>> imageDetails = shift.getCompletionImages().stream()
+                    .map(image -> {
+                        try {
+                            Map<String, Object> details = new HashMap<>();
+                            details.put("url", s3Service.getPresignedUrl(image.getS3Key(), 3600).toString());
+                            details.put("fileName", image.getFileName());
+                            details.put("uploadTime", image.getUploadTime());
+                            details.put("workerId", image.getWorkerId());
+                            return details;
+                        } catch (Exception e) {
+                            System.err.println("Error generating presigned URL for image: " + e.getMessage());
+                            return null;
+                        }
+                    })
+                    .filter(details -> details != null)
+                    .collect(Collectors.toList());
 
             Map<String, Object> response = new HashMap<>();
-            response.put("message", "completion image URL retrieved successfully");
-            response.put("url", presignedUrl.toString());
+            response.put("message", "Completion image URLs retrieved successfully");
+            response.put("images", imageDetails);
 
             return ResponseEntity.ok(response);
         } catch (Exception e) {
@@ -375,12 +412,8 @@ public class ShiftController {
 
         ShiftDTO shiftDTO = new ShiftDTO(
                 updatedShift,
-                updatedShift.getArrivalImage() != null
-                        ? s3Service.getPresignedUrl(updatedShift.getArrivalImage().getS3Key(), 3600).toString()
-                        : null,
-                updatedShift.getCompletionImage() != null
-                        ? s3Service.getPresignedUrl(updatedShift.getCompletionImage().getS3Key(), 3600).toString()
-                        : null
+                getPresignedUrlsForImages(updatedShift.getArrivalImages(), s3Service),
+                getPresignedUrlsForImages(updatedShift.getCompletionImages(), s3Service)
         );
         return ResponseEntity.ok(shiftDTO);
     }
@@ -399,12 +432,8 @@ public class ShiftController {
             // Create a DTO or response based on your needs, or return a basic success message
             ShiftDTO shiftDTO = new ShiftDTO(
                     updatedShift,
-                    updatedShift.getArrivalImage() != null
-                            ? s3Service.getPresignedUrl(updatedShift.getArrivalImage().getS3Key(), 3600).toString()
-                            : null,
-                    updatedShift.getCompletionImage() != null
-                            ? s3Service.getPresignedUrl(updatedShift.getCompletionImage().getS3Key(), 3600).toString()
-                            : null
+                    getPresignedUrlsForImages(updatedShift.getArrivalImages(), s3Service),
+                    getPresignedUrlsForImages(updatedShift.getCompletionImages(), s3Service)
             );
             return ResponseEntity.ok(shiftDTO);
         } catch (Exception e) {
@@ -432,7 +461,6 @@ public class ShiftController {
         // Get base list of shifts
         List<Shift> shifts = shiftRepository.findAll();
 
-        // Filter and process shifts
         List<ShiftDTO> rescheduledShifts = shifts.stream()
                 .filter(Shift::isRescheduled)
                 // Filter by date range if provided
@@ -449,14 +477,10 @@ public class ShiftController {
                     }
                     return s1.getDate().compareTo(s2.getDate());
                 })
-                .map(shift -> new ShiftDTO(shift,
-                        shift.getArrivalImage() != null
-                                ? s3Service.getPresignedUrl(shift.getArrivalImage().getS3Key(), 3600).toString()
-                                : null,
-                        shift.getCompletionImage() != null
-                                ? s3Service.getPresignedUrl(shift.getCompletionImage().getS3Key(), 3600).toString()
-                                : null
-
+                .map(shift -> new ShiftDTO(
+                        shift,
+                        getPresignedUrlsForImages(shift.getArrivalImages(), s3Service),
+                        getPresignedUrlsForImages(shift.getCompletionImages(), s3Service)
                 ))
                 .collect(Collectors.toList());
 
@@ -479,14 +503,10 @@ public class ShiftController {
         shift.setRescheduled(true);
 
         shift = shiftRepository.save(shift);
-        return ResponseEntity.ok(new ShiftDTO(shift,
-                shift.getArrivalImage() != null
-                        ? s3Service.getPresignedUrl(shift.getArrivalImage().getS3Key(), 3600).toString()
-                        : null,
-                shift.getCompletionImage() != null
-                        ? s3Service.getPresignedUrl(shift.getCompletionImage().getS3Key(), 3600).toString()
-                        : null
-
+        return ResponseEntity.ok(new ShiftDTO(
+                shift,
+                getPresignedUrlsForImages(shift.getArrivalImages(), s3Service),
+                getPresignedUrlsForImages(shift.getCompletionImages(), s3Service)
         ));
     }
 }

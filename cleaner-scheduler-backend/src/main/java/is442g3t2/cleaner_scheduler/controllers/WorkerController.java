@@ -17,12 +17,9 @@ import is442g3t2.cleaner_scheduler.models.leave.MedicalCertificate;
 import is442g3t2.cleaner_scheduler.models.property.Property;
 import is442g3t2.cleaner_scheduler.models.leave.AnnualLeave;
 import is442g3t2.cleaner_scheduler.models.leave.MedicalLeave;
-import is442g3t2.cleaner_scheduler.models.shift.ShiftStatus;
-import is442g3t2.cleaner_scheduler.models.shift.TravelTime;
+import is442g3t2.cleaner_scheduler.models.shift.*;
 import is442g3t2.cleaner_scheduler.models.worker.Worker;
 import is442g3t2.cleaner_scheduler.models.Admin;
-import is442g3t2.cleaner_scheduler.models.shift.Frequency;
-import is442g3t2.cleaner_scheduler.models.shift.Shift;
 import is442g3t2.cleaner_scheduler.repositories.*;
 import is442g3t2.cleaner_scheduler.services.S3Service;
 import is442g3t2.cleaner_scheduler.services.WorkerService;
@@ -498,14 +495,10 @@ public class WorkerController {
     public ResponseEntity<List<ShiftDTO>> getShiftsBySupervisorId(@PathVariable Long supervisorId) {
         List<ShiftDTO> shiftDTOs = workerService.getAllShiftsBySupervisorId(supervisorId)
                 .stream()
-                .map(shift -> new ShiftDTO(shift,
-                        shift.getArrivalImage() != null
-                                ? s3Service.getPresignedUrl(shift.getArrivalImage().getS3Key(), 3600).toString()
-                                : null,
-                        shift.getCompletionImage() != null
-                                ? s3Service.getPresignedUrl(shift.getCompletionImage().getS3Key(), 3600).toString()
-                                : null
-
+                .map(shift -> new ShiftDTO(
+                        shift,
+                        getPresignedUrlsForImages(shift.getArrivalImages(), s3Service),
+                        getPresignedUrlsForImages(shift.getCompletionImages(), s3Service)
                 ))
                 .collect(Collectors.toList());
 
@@ -515,6 +508,24 @@ public class WorkerController {
         }
 
         return ResponseEntity.ok(shiftDTOs);
+    }
+
+    private List<String> getPresignedUrlsForImages(List<? extends Image> images, S3Service s3Service) {
+        if (images == null || images.isEmpty()) {
+            return new ArrayList<>();
+        }
+
+        return images.stream()
+                .map(image -> {
+                    try {
+                        return s3Service.getPresignedUrl(image.getS3Key(), 3600).toString();
+                    } catch (Exception e) {
+                        System.err.println("Error generating presigned URL for image: " + e.getMessage());
+                        return null;
+                    }
+                })
+                .filter(url -> url != null)
+                .collect(Collectors.toList());
     }
 
     @Tag(name = "workers")
