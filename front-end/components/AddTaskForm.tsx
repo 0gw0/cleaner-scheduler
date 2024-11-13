@@ -302,6 +302,7 @@ export default function AddTaskForm({ onTaskAdded }: AddTaskFormProps) {
                           transition={{ duration: 0.2 }}
                         >
                           {currentStep === 0 && (
+                            // TODO: if i have time: make the client ID a dropdown
                             <div className="space-y-4">
                               <div>
                                 <Label htmlFor="clientId">Client ID</Label>
@@ -376,6 +377,7 @@ export default function AddTaskForm({ onTaskAdded }: AddTaskFormProps) {
                                   )}
                                 </div>
                                 <div>
+                                {/* // TODO: set the duration of the shift instead of making admin key in the end time */}
                                   <Label htmlFor="endTime">End Time</Label>
                                   <Input
                                     id="endTime"

@@ -79,7 +79,7 @@ export const TaskCard: React.FC<TaskCardProps> = ({ shiftData, onCardClick, canc
           </div>
         </CardContent>
 
-        {shiftData.status === "COMPLETED" || shiftData.status === "CANCELLED" ? (
+        {shiftData.status != "UPCOMING" ? (
           <CardFooter className="flex justify-center">
             <Button variant="outline" className="w-full mb-3 inline-flex" onClick={() => onCardClick(shiftData)}>
               <EyeIcon className="w-4 h-4 mr-2" />

@@ -46,7 +46,7 @@ export const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ shiftData, isO
           endTime: endTime,
         },
       });
-      const travelTime = response.data.travelTimeToTarget.totalTravelTime; // Adjust according to your API response
+      const travelTime = response.data.travelTimeToTarget.totalTravelTime; 
   
       setTravelTimes((prev) => ({
         ...prev,
@@ -367,8 +367,7 @@ export const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ shiftData, isO
                       >
                         <div className="flex items-center justify-between">
                           <h3 className="font-semibold">{worker.name}</h3>
-                          {/* TODO: uncomment this stuff out cuhz */}
-                          {/* {!topFiveWorkers.some(topWorker => topWorker.name === worker.name) && ( */}
+                          {!topFiveWorkers.some(topWorker => topWorker.name === worker.name) && (
                             <Button
                               className="ml-4 px-3 py-1 bg-slate-500 text-white rounded hover:bg-black text-sm"
                               onClick={(e) => {
@@ -378,7 +377,7 @@ export const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ shiftData, isO
                             >
                               <Clock/>
                             </Button>
-                          {/* )} */}
+                          )}
                         </div>
                         {/* Conditionally display travel time if available */}
                         {travelTimes[worker.id] !== undefined && (
