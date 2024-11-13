@@ -67,13 +67,15 @@ const Navbar = () => {
 				<div className="flex justify-between h-16">
 					<div className="flex">
 						<div className="flex-shrink-0 flex items-center">
+							
 							<Link href="/dashboard">
 								<Image
 									src="/logo.png"
-									alt="fraser"
-									width={40}
+									alt="abba"
+									width={65}
 									height={40}
-									className="h-10 w-auto"
+									className="h-10 w-auto mx-2 px-3"
+									style={{ transform: 'scale(3)' }}
 								/>
 							</Link>
 						</div>
