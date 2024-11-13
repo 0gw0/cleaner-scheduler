@@ -29,6 +29,8 @@ interface ScheduleItem {
   endTime: string;
   arrivalImage: string;
   completionImage: string;
+  presentWorkers: number[];
+  workerIds: number[];
 }
 
 interface WorkerScheduleProps {
@@ -45,6 +47,9 @@ const WorkerSchedule: React.FC<WorkerScheduleProps> = ({ schedule }) => {
   const now = new Date();
   const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
   today.setHours(0, 0, 0, 0);
+
+  const userDetails = localStorage.getItem('user');
+  const workerId = userDetails ? JSON.parse(userDetails).id : null;
 
   const categorizeSchedule = () => {
     return schedule.reduce(
@@ -131,6 +136,32 @@ const WorkerSchedule: React.FC<WorkerScheduleProps> = ({ schedule }) => {
                   <p className="font-semibold">
                     {new Date(item.date).toLocaleDateString()}
                   </p>
+                  {/* add the status badge below */}
+                  {title === 'Past Schedule' && (
+                    <div>
+                      {(() => {
+                        const userDetails = localStorage.getItem('user');
+                        const workerId = userDetails ? JSON.parse(userDetails).id : null;
+
+                        const isPresent = item.presentWorkers?.some(
+                          (presentWorker) => presentWorker === workerId
+                        );
+                        return (
+                          <p className="flex items-center">
+                            {isPresent ? (
+                              <span className="inline-block px-2 py-1 text-xs font-semibold bg-green-100 text-green-800 rounded-md">
+                                Attended
+                              </span>
+                            ) : (
+                              <span className="inline-block px-2 py-1 text-xs font-semibold bg-red-100 text-red-800 rounded-md">
+                                Absent
+                              </span>
+                            )}
+                          </p>
+                        );
+                      })()}
+                    </div>
+                  )}
                 </div>
                 <p>{`${item.startTime} - ${item.endTime}`}</p>
                 <p>{`Address: ${item.property.address}`}</p>
@@ -138,6 +169,7 @@ const WorkerSchedule: React.FC<WorkerScheduleProps> = ({ schedule }) => {
                 <p>{`Property ID: ${item.property.propertyId}`}</p>
                 <p>{`Client ID: ${item.property.clientId}`}</p>
 
+              
                 {title === 'Current Schedule' && item.arrivalImage === null && (
                  <div>
                  {/* Button to open arrival photo dialog */}
