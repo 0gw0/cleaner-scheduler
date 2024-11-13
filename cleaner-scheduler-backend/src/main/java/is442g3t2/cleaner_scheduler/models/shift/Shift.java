@@ -135,6 +135,25 @@ public class Shift {
         this.isRescheduled = true;
     }
 
+    public Set<Long> getPresentWorkersAsSet() {
+        if (presentWorkers == null) {
+            presentWorkers = new HashSet<>(); 
+        }
+        return presentWorkers;
+    }
+    
+    public void addPresentWorker(Long workerId) {
+        if (presentWorkers == null) {
+            presentWorkers = new HashSet<>();
+        }
+        presentWorkers.add(workerId);
+    }
+
+    public Set<Long> getCompletedWorkersAsSet() {
+        return new HashSet<>(this.completedWorkers);
+    }
+    
+
     public boolean isRescheduled() {
         return isRescheduled ||
                 !date.equals(originalDate) ||

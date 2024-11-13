@@ -206,6 +206,12 @@ public class ShiftController {
             ArrivalImage arrivalImage = new ArrivalImage(s3Key, file.getOriginalFilename(), workerId);
             shift.addArrivalImage(arrivalImage);
 
+            // Add worker to presentWorkers Set
+            shift.getPresentWorkersAsSet().add(workerId);
+
+            // As long as one worker present, shift status updated to In Progress
+            shift.setStatus(ShiftStatus.IN_PROGRESS);
+
             shift = shiftRepository.save(shift);
 
             // Get presigned URL for immediate access
@@ -320,6 +326,12 @@ public class ShiftController {
 
             CompletionImage completionImage = new CompletionImage(s3Key, file.getOriginalFilename(), workerId);
             shift.addCompletionImage(completionImage);
+
+            // Add worker to completedWorkers Set
+            shift.getCompletedWorkersAsSet().add(workerId);
+
+            // As long as one worker complete, shift status updated to Completed
+            shift.setStatus(ShiftStatus.COMPLETED);
 
             shift = shiftRepository.save(shift);
 
