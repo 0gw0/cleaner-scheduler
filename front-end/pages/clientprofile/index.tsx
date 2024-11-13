@@ -7,6 +7,7 @@ import {
   Briefcase,
   Check,
   Filter,
+  Menu,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -35,6 +36,11 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  Sheet,
+  SheetContent,
+  SheetTrigger,
+} from "@/components/ui/sheet";
 import { Badge } from "@/components/ui/badge";
 import AddClientForm from "@/components/AddClientForm";
 import { Label } from "@/components/ui/label";
@@ -91,7 +97,7 @@ interface Worker {
   id: number;
   name: string;
   phoneNumber: string;
-  supervisor: number;
+  supervisorId: number;
   bio: string;
   homePostalCode: string;
 }
@@ -361,8 +367,6 @@ const ClientProfiles = () => {
       setIsLoading(true);
       try {
         await axios.delete(`http://localhost:8080/properties/${selectedProperty.id}`);
-        
-        // Instead of removing the property, update its active status
         setProperties(prevProperties => 
           prevProperties.map(prop => 
             prop.id === selectedProperty.id 
@@ -444,8 +448,7 @@ const ClientProfiles = () => {
             ))}
           </TableBody>
         </Table>
-  
-        {/* Modify Property Dialog */}
+
         <Dialog open={isModifyDialogOpen} onOpenChange={setIsModifyDialogOpen}>
           <DialogContent>
             <DialogHeader>
@@ -487,7 +490,6 @@ const ClientProfiles = () => {
           </DialogContent>
         </Dialog>
   
-        {/* Delete Property Dialog */}
         <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
           <DialogContent>
             <DialogHeader>
@@ -569,7 +571,7 @@ const ClientProfiles = () => {
 
     const getSupervisors = (workerIds: number[]) => {
       return workerIds
-        .map((id) => workerDetails[id]?.supervisor || "Loading...")
+        .map((id) => workerDetails[id]?.supervisorId || "Loading...")
         .join(", ");
     };
 
@@ -683,10 +685,51 @@ const ClientProfiles = () => {
   );
 
   return (
-    <div className="container mx-auto px-4 py-8">
-      <div className="flex justify-between items-center mb-8">
-        <h1 className="text-2xl font-bold">Client Profiles</h1>
-        <div className="flex items-center gap-4">
+    <div className="container mx-auto px-4 py-4 md:py-8">
+     <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 md:mb-8 space-y-4 md:space-y-0">
+     <h1 className="text-xl md:text-2xl font-bold">Client Profiles</h1>
+     <div className="w-full md:hidden">
+          <Sheet>
+            <SheetTrigger asChild>
+              <Button variant="outline" className="w-full flex justify-between items-center">
+                <span>Filters & Options</span>
+                <Menu className="h-4 w-4" />
+              </Button>
+            </SheetTrigger>
+            <SheetContent>
+              <div className="space-y-4 mt-8">
+                <div className="relative">
+                  <Search className="absolute left-2 top-2.5 h-4 w-4 text-gray-500" />
+                  <Input
+                    placeholder="Search clients..."
+                    className="pl-8 w-full"
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                  />
+                </div>
+                <Select value={statusFilter} onValueChange={setStatusFilter}>
+                  <SelectTrigger className="w-full">
+                    <div className="flex items-center gap-2">
+                      <Filter className="w-4 h-4" />
+                      <SelectValue placeholder="Filter by status" />
+                    </div>
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="ALL">All Statuses</SelectItem>
+                    {getUniqueStatuses().map((status) => (
+                      <SelectItem key={status} value={status}>
+                        {status}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <AddClientForm onClientAdded={handleClientAdded} />
+              </div>
+            </SheetContent>
+          </Sheet>
+        </div>
+
+        <div className="hidden md:flex items-center gap-4">
           <div className="relative w-64">
             <Search className="absolute left-2 top-2.5 h-4 w-4 text-gray-500" />
             <Input
@@ -716,23 +759,21 @@ const ClientProfiles = () => {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
         {filteredClients.map((client) => (
           <Card key={client.id} className="hover:shadow-lg transition-shadow">
-            <CardHeader className="flex flex-row items-center justify-between space-x-4 pb-2">
-              <div className="flex-1">
-                <CardTitle className="text-lg">{client.name}</CardTitle>
-                <Badge variant="secondary" className="mt-1">
-                  {client.status}
-                </Badge>
+            <CardHeader className="flex flex-col sm:flex-row items-start sm:items-center justify-between space-y-2 sm:space-y-0 sm:space-x-4 pb-2">
+              <div className="flex-1 space-y-1">
+                <CardTitle className="text-lg break-words">{client.name}</CardTitle>
+                <Badge variant="secondary">{client.status}</Badge>
                 <div className="flex items-center text-sm text-gray-500 mt-2">
-                  <MapPin className="w-4 h-4 mr-1" />
+                  <MapPin className="w-4 h-4 mr-1 flex-shrink-0" />
                   <p className="truncate">{client.properties[0]?.address}</p>
                 </div>
               </div>
               {client.status === "Active" && (
                 <Button
-                  className="text-red-500 hover:bg-red-50 rounded-full bg-white"
+                  className="text-red-500 hover:bg-red-50 rounded-full bg-white w-full sm:w-auto"
                   onClick={() => setClientToTerminate(client.id)}
                 >
                   Remove Client
@@ -740,10 +781,10 @@ const ClientProfiles = () => {
               )}
             </CardHeader>
             <CardContent>
-              <div className="space-y-4">
+              <div className="space-y-3">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center text-sm text-gray-600">
-                    <User className="w-4 h-4 mr-1" />
+                    <User className="w-4 h-4 mr-1 flex-shrink-0" />
                     <span>Postal Code:</span>
                   </div>
                   <span className="text-sm font-medium">
@@ -751,26 +792,30 @@ const ClientProfiles = () => {
                   </span>
                 </div>
 
-                <Dialog>
-                  <DialogTrigger asChild>
-                    <Button variant="outline" className="w-full">
-                      <Calendar className="w-4 h-4 mr-2" />
-                      View Properties ({client.properties.length})
-                    </Button>
-                  </DialogTrigger>
-                  <PropertiesDialog properties={client.properties} 
-                    clientId={client.id} />
-                </Dialog>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                  <Dialog>
+                    <DialogTrigger asChild>
+                      <Button variant="outline" className="w-full">
+                        <Calendar className="w-4 h-4 mr-2" />
+                        Properties ({client.properties.length})
+                      </Button>
+                    </DialogTrigger>
+                    <PropertiesDialog 
+                      properties={client.properties}
+                      clientId={client.id}
+                    />
+                  </Dialog>
 
-                <Dialog>
-                  <DialogTrigger asChild>
-                    <Button variant="outline" className="w-full">
-                      <Briefcase className="w-4 h-4 mr-2" />
-                      View Jobs
-                    </Button>
-                  </DialogTrigger>
-                  <ShiftsDialog clientId={client.id} />
-                </Dialog>
+                  <Dialog>
+                    <DialogTrigger asChild>
+                      <Button variant="outline" className="w-full">
+                        <Briefcase className="w-4 h-4 mr-2" />
+                        Jobs
+                      </Button>
+                    </DialogTrigger>
+                    <ShiftsDialog clientId={client.id} />
+                  </Dialog>
+                </div>
               </div>
             </CardContent>
           </Card>

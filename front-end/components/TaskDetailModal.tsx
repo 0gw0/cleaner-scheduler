@@ -98,7 +98,7 @@ export const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ shiftData, isO
         const selectedWorkers = workersData.slice(0, shiftData.workers.length);
         setTopFiveWorkers(workersData)
         setAvailableWorkers(selectedWorkers);
-        console.log('Selected workers:', selectedWorkers);
+
       } catch (error) {
         console.error('Failed to fetch available workers:', error);
       }

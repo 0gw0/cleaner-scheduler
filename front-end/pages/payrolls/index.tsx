@@ -42,6 +42,7 @@ interface Shift {
   startTime: string;
   endTime: string;
   status: "COMPLETED" | "UPCOMING" | string;
+  presentWorkers? : any[];
 }
 
 interface PayrollData {
@@ -109,6 +110,7 @@ const PayrollManagementPage = () => {
       console.error("Error fetching shifts:", error);
     }
   };
+  console.log(shifts);
 
   const workerIds: number[] = JSON.parse(
     localStorage.getItem("user") || "{}"
@@ -149,6 +151,8 @@ const PayrollManagementPage = () => {
         const shiftHours = (end.getTime() - start.getTime()) / (1000 * 60 * 60);
 
         shift.workers.forEach(workerId => {
+          try{
+            if(shift.presentWorkers?.includes(workerId)){
           const workerData = workerPayrollMap.get(workerId);
           if (workerData) {
             const currentTotalHours = workerData.regularHours + workerData.overtimeHours;
@@ -163,6 +167,10 @@ const PayrollManagementPage = () => {
             }
 
             workerData.shifts.push(shift);
+          }}}
+          catch(error){
+            console.log(error);
+
           }
         });
       }
