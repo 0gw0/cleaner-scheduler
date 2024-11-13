@@ -74,7 +74,7 @@ export interface Shift {
   date: string; 
   startTime: string; 
   endTime: string;
-  status: "COMPLETED" | "PENDING" | "UPCOMING" | "IN_PROGRESS" | "CANCELLED"; 
+  status: "COMPLETED" | "PENDING" | "UPCOMING" | "IN_PROGRESS" | "CANCELLED" | "ABSENT"; 
   arrivalImage?: ArrivalImage | null; 
   workerIds: number[]; 
   originalDate: string;

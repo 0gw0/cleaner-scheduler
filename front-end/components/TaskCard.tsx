@@ -1,9 +1,10 @@
 import React, { useState } from 'react'
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Shift } from "@/types/task"
-import { BanIcon, CalendarIcon, ClockIcon, EyeIcon, MapPinIcon, Pencil, PersonStandingIcon, UserIcon } from 'lucide-react'
+import { BanIcon, CalendarIcon, ClockIcon, EyeIcon, MapPinIcon, Pencil, PersonStandingIcon, UserCheck, UserIcon } from 'lucide-react'
 import { Button } from './ui/button'
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from './ui/dialog'
+import ModifyStatusModal from './ModifyStatusModal'
 
 interface TaskCardProps {
   shiftData: Shift
@@ -13,6 +14,9 @@ interface TaskCardProps {
 
 export const TaskCard: React.FC<TaskCardProps> = ({ shiftData, onCardClick, cancelShift }) => {
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isModifyStatusModalOpen, setIsModifyStatusModalOpen] = useState(false);
+  const [currentStatus, setCurrentStatus] = useState('UPCOMING');
+  const [presentWorkers, setPresentWorkers] = useState<number[]>([]);
 
   const handleCancelClick = () => {
     setIsModalOpen(true);
@@ -23,8 +27,21 @@ export const TaskCard: React.FC<TaskCardProps> = ({ shiftData, onCardClick, canc
     setIsModalOpen(false);
   };
 
+  const handleStatusChange = (status: string) => {
+    setCurrentStatus(status);
+  };
+
+  const handleWorkerAttendanceChange = (selectedWorkerIds: number[]) => {
+    setPresentWorkers(selectedWorkerIds);
+  };
+
   const handleCloseModal = () => {
     setIsModalOpen(false);
+    setIsModifyStatusModalOpen(false);
+  };
+
+  const handleModifyStatusClick = () => {
+    setIsModifyStatusModalOpen(true);
   };
 
   const getStatusBadge = (status: string) => {
@@ -80,11 +97,20 @@ export const TaskCard: React.FC<TaskCardProps> = ({ shiftData, onCardClick, canc
         </CardContent>
 
         {shiftData.status != "UPCOMING" ? (
-          <CardFooter className="flex justify-center">
-            <Button variant="outline" className="w-full mb-3 inline-flex" onClick={() => onCardClick(shiftData)}>
+          <CardFooter className="flex flex-col items-center">
+          <Button variant="outline" className="w-full mb-3 inline-flex" onClick={() => onCardClick(shiftData)}>
               <EyeIcon className="w-4 h-4 mr-2" />
               View shift details
             </Button>
+
+            {(shiftData.status == "ABSENT" || shiftData.status == "IN_PROGRESS") && (
+              <Button variant="outline" className="w-full mb-3 inline-flex" onClick={handleModifyStatusClick}>
+              <UserCheck className="w-4 h-4 mr-2" />
+                Modify status/attendance
+              </Button>
+            )}
+
+
           </CardFooter>
         ) : (
           <CardFooter className="flex flex-col items-center">
@@ -100,6 +126,16 @@ export const TaskCard: React.FC<TaskCardProps> = ({ shiftData, onCardClick, canc
           </CardFooter>
         )}
       </Card>
+      
+      <ModifyStatusModal
+        isOpen={isModifyStatusModalOpen}
+        onClose={handleCloseModal}
+        workers={shiftData.workers}
+        currentStatus={shiftData.status}
+        onStatusChange={handleStatusChange}
+        onWorkerSelectionChange={handleWorkerAttendanceChange}
+        presentWorkers={shiftData.presentWorkers}
+      />
 
       {/* Confirmation Modal */}
       <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
@@ -116,6 +152,7 @@ export const TaskCard: React.FC<TaskCardProps> = ({ shiftData, onCardClick, canc
           </DialogFooter>
         </DialogContent>
       </Dialog>
+      
     </>
   )
 }

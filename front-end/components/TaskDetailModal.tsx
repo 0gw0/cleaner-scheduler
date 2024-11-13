@@ -10,7 +10,6 @@ import { motion } from 'framer-motion';
 import { WorkerData } from '@/types/dashboard';
 import { validateShift } from '@/utils/timeUtils';
 
-
 interface TaskDetailModalProps {
   shiftData: Shift;
   isOpen: boolean;
@@ -37,7 +36,6 @@ export const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ shiftData, isO
 
   const handleRetrieveTravelTime = async (workerId : number, targetPostalCode : string, date : string, startTime : string, endTime : string) => {
     try {
-      // Make an API request with required path and query parameters
       const response = await axios.get(`http://localhost:8080/workers/${workerId}/travel-time`, {
         params: {
           targetPostalCode: targetPostalCode,
@@ -195,6 +193,7 @@ export const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ shiftData, isO
     { title: 'Confirmation', description: 'Review and confirm task details' },
   ]
 
+
   return (
       <Dialog open={isOpen} onOpenChange={onClose}>
         <DialogContent className="sm:max-w-[600px] max-h-[600px] overflow-y-auto">
@@ -205,7 +204,8 @@ export const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ shiftData, isO
               className={`absolute top-1 right-5 px-2 py-1 rounded-full text-xs z-10 font-semibold ${
                 shiftData.status === 'COMPLETED'
                   ? 'bg-green-100 text-green-600'
-                  : shiftData.status === 'IN PROGRESS'
+                  // TODO: remove the underscore lol
+                  : shiftData.status === 'IN_PROGRESS'
                   ? 'bg-yellow-100 text-yellow-600'
                   : 'bg-blue-100 text-blue-600'
               }`}
@@ -509,7 +509,7 @@ export const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ shiftData, isO
               </div>
 
               {/* Photo of proof */}
-              {(shiftData.status === "COMPLETED" || shiftData.status === "IN PROGRESS") && (
+              {(shiftData.status === "COMPLETED" || shiftData.status === "IN_PROGRESS") && (
                 <div className="overflow-x-auto">
                 <div
                   className="flex gap-6"
