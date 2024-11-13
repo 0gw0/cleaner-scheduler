@@ -73,7 +73,7 @@ const ModifyStatusModal: React.FC<ModifyStatusModalProps> = ({
                     if (currentStatus === "ABSENT") {
                     return option === statusOptions[0]; 
                     } else if (currentStatus === "IN_PROGRESS") {
-                    return option === statusOptions[1]; }
+                    return option;}
                 })
                 .map(option => (
                     <option key={option.value} value={option.value}>
