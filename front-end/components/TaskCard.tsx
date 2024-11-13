@@ -1,7 +1,7 @@
 import React, { useState } from 'react'
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Shift } from "@/types/task"
-import { BanIcon, CalendarIcon, ClockIcon, EyeIcon, MapPinIcon, Pencil, PersonStandingIcon, UserCheck, UserIcon } from 'lucide-react'
+import { BanIcon, CalendarIcon, ClockIcon, EyeIcon, MapPinIcon, Pencil, PersonStandingIcon, UserCheck, UserIcon, UserRoundCheck, UserRoundX } from 'lucide-react'
 import { Button } from './ui/button'
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from './ui/dialog'
 import ModifyStatusModal from './ModifyStatusModal'
@@ -95,8 +95,50 @@ export const TaskCard: React.FC<TaskCardProps> = ({ shiftData, onCardClick, canc
               Assigned worker ID(s): {shiftData.workerIds.join(", ")}
             </p>
           </div>
+
+          {shiftData.status !== "UPCOMING" && shiftData.status !== "CANCELLED" && (
+          <div className="flex justify-between mt-4 text-sm space-x-4">
+            {/* Present Workers */}
+            {shiftData.presentWorkers && shiftData.presentWorkers.length > 0 ? (
+              <p className="flex text-green-800 items-center">
+              <UserRoundCheck className="w-4 h-4 mr-2" />
+              Present workers: {shiftData.presentWorkers.join(", ")}
+              </p>
+            ) : (
+              <p className="text-green-600">No present workers.</p>
+            )}
+
+            {/* Absent Workers */}
+            {shiftData.workerIds
+            .filter(
+              (workerId) =>
+                !shiftData.presentWorkers.some(
+                  (presentWorker) => presentWorker === workerId
+                )
+            ).length != 0 ? (
+              <p className="flex text-red-800 items-center">
+                <UserRoundX className="w-4 h-4 mr-2" />
+                Absent workers:{" "}
+                {shiftData.workerIds
+                  .filter(
+                    (workerId) =>
+                      !shiftData.presentWorkers.some(
+                        (presentWorker) => presentWorker === workerId
+                      )
+                  )
+                  .join(", ")}
+              </p>
+            ) : (
+              <p className="text-red-600">No absent workers.</p>
+            )}
+
+          </div>
+        )}
+
+
         </CardContent>
 
+        {/* Buttons depending on status of shift */}
         {shiftData.status != "UPCOMING" ? (
           <CardFooter className="flex flex-col items-center">
           <Button variant="outline" className="w-full mb-3 inline-flex" onClick={() => onCardClick(shiftData)}>
@@ -110,8 +152,6 @@ export const TaskCard: React.FC<TaskCardProps> = ({ shiftData, onCardClick, canc
                 Modify status/attendance
               </Button>
             )}
-
-
           </CardFooter>
         ) : (
           <CardFooter className="flex flex-col items-center">
