@@ -42,6 +42,8 @@ interface EventData {
     TaskId: number; // Task ID
 }
 
+
+
 export default function Schedule() {
     const [apiData, setApiData] = useState<ApiItem[]>([]);
     const [eventsData, setEventsData] = useState<EventData[]>([]);
@@ -144,8 +146,9 @@ export default function Schedule() {
                 </div>
                 <div className="w-full">
                     <ScheduleComponent
-                    // className="m-12"
-                    width="100%"
+                    className="mx-auto"
+      
+                    width="95%"
                     height={650}
                     allowMultiDrag={true}
                     eventSettings={{
