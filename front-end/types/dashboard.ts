@@ -56,28 +56,19 @@ export interface Shift {
 	date: string;
 	startTime: string;
 	endTime: string;
-	status: 'COMPLETED' | 'UPCOMING' | string;
+	arrivalImage: string;
+	completionImage: string;
+	arrivalImages: any[];
+	completionImages: any[];
+	presentWorkers: number[] | null;
+	workerIds: number[];
 }
 
 export interface WorkerData {
 	id: number;
 	name: string;
 	role: string;
-	shifts: Array<{
-		id: number;
-		worker: number;
-		property: {
-			propertyId: number;
-			clientId: number;
-			address: string;
-			postalCode: string;
-		};
-		date: string;
-		startTime: string;
-		endTime: string;
-		arrivalImage: string;
-		completionImage: string;
-	}>;
+	shifts: Shift[];
 	phoneNumber: number;
 	supervisorId: number;
 	bio: string;

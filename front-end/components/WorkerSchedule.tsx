@@ -1,28 +1,12 @@
 import React, { useState } from 'react';
 import { Card, CardHeader, CardContent, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { CheckCircle2 } from 'lucide-react';
 import PhotoUploadDialog from './PhotoUploadDialog';
-
-interface ScheduleItem {
-	id: number;
-	worker: number;
-	property: {
-		propertyId: number;
-		clientId: number;
-		address: string;
-		postalCode: string;
-	};
-	date: string;
-	startTime: string;
-	endTime: string;
-	arrivalImages: any[];
-	completionImages: any[];
-	presentWorkers: number[] | null;
-	workerIds: number[];
-}
+import { Shift } from '@/types/dashboard';
 
 interface WorkerScheduleProps {
-	schedule: ScheduleItem[];
+	schedule: Shift[];
 	onScheduleUpdate: () => Promise<any>;
 }
 
@@ -36,6 +20,10 @@ const WorkerSchedule: React.FC<WorkerScheduleProps> = ({
 		'arrival'
 	);
 	const [isUpdating, setIsUpdating] = useState(false);
+	const [statusMessage, setStatusMessage] = useState<{
+		type: 'success' | 'error';
+		message: string;
+	} | null>(null);
 
 	const now = new Date();
 	const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
@@ -72,6 +60,7 @@ const WorkerSchedule: React.FC<WorkerScheduleProps> = ({
 		setSelectedShiftId(shiftId);
 		setUploadType(type);
 		setIsPhotoDialogOpen(true);
+		setStatusMessage(null); // Clear any previous status message
 	};
 
 	const handleClosePhotoDialog = () => {
@@ -83,8 +72,27 @@ const WorkerSchedule: React.FC<WorkerScheduleProps> = ({
 		try {
 			setIsUpdating(true);
 			await onScheduleUpdate();
+
+			// Show success message
+			setStatusMessage({
+				type: 'success',
+				message: `${
+					uploadType === 'arrival' ? 'Arrival' : 'Completion'
+				} photo uploaded successfully!`,
+			});
+
+			// Clear success message after 3 seconds
+			setTimeout(() => {
+				setStatusMessage(null);
+			}, 3000);
 		} catch (error) {
 			console.error('Error updating schedule:', error);
+
+			// Show error message
+			setStatusMessage({
+				type: 'error',
+				message: 'Failed to upload photo. Please try again.',
+			});
 		} finally {
 			setIsUpdating(false);
 			handleClosePhotoDialog();
@@ -103,12 +111,26 @@ const WorkerSchedule: React.FC<WorkerScheduleProps> = ({
 				<CardTitle>{title}</CardTitle>
 			</CardHeader>
 			<CardContent>
+				{/* Status Message */}
+				{statusMessage && (
+					<div
+						className={`mb-4 p-3 rounded-md ${
+							statusMessage.type === 'success'
+								? 'bg-green-100 text-green-800 border border-green-200'
+								: 'bg-red-100 text-red-800 border border-red-200'
+						}`}
+					>
+						{statusMessage.message}
+					</div>
+				)}
+
 				<div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
 					{items.map((item) => {
 						const isWorkerPresent =
 							item.presentWorkers?.includes(workerId);
 						const hasCompletionImage =
 							item.completionImages?.length > 0;
+						const hasArrivalImage = item.arrivalImages?.length > 0;
 
 						return (
 							<Card key={item.id} className="bg-secondary">
@@ -140,6 +162,22 @@ const WorkerSchedule: React.FC<WorkerScheduleProps> = ({
 									<p>{`Postal Code: ${item.property.postalCode}`}</p>
 									<p>{`Property ID: ${item.property.propertyId}`}</p>
 									<p>{`Client ID: ${item.property.clientId}`}</p>
+
+									{/* Photo Upload Status */}
+									<div className="mt-2 space-y-1">
+										{hasArrivalImage && (
+											<div className="flex items-center text-sm text-green-600">
+												<CheckCircle2 className="h-4 w-4 mr-1" />
+												Arrival photo uploaded
+											</div>
+										)}
+										{hasCompletionImage && (
+											<div className="flex items-center text-sm text-green-600">
+												<CheckCircle2 className="h-4 w-4 mr-1" />
+												Completion photo uploaded
+											</div>
+										)}
+									</div>
 
 									{title === 'Current Schedule' &&
 										!hasCompletionImage && (
