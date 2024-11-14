@@ -24,7 +24,8 @@ const WorkerDashboard: React.FC<WorkerDashboardProps> = ({ workerData }) => {
 		}).length;
 	};
 
-	const refreshWorkerData = async () => {
+	// Modified to return void
+	const refreshWorkerData = async (): Promise<void> => {
 		try {
 			const userDetails = localStorage.getItem('user');
 			const userId = userDetails ? JSON.parse(userDetails).id : null;
@@ -36,7 +37,6 @@ const WorkerDashboard: React.FC<WorkerDashboardProps> = ({ workerData }) => {
 			);
 
 			setCurrentWorkerData(response.data);
-			return response.data;
 		} catch (error) {
 			console.error('Error refreshing worker data:', error);
 		}
