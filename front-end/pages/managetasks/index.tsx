@@ -14,7 +14,7 @@ import { CustomPagination } from '@/components/CustomPagination';
 const ManageTasks: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState<string>('');
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">('desc');
-  const [statusFilter, setStatusFilter] = useState<"ALL" | "COMPLETED" | "PENDING" | "UPCOMING" | "Cancelled">("ALL");
+  const [statusFilter, setStatusFilter] = useState<"ALL" | "COMPLETED" | "PENDING" | "UPCOMING" | "CANCELLED">("ALL");
   const [selectedTask, setSelectedTask] = useState<Shift | null>(null);
   const [isTaskDetailModalOpen, setIsTaskDetailModalOpen] = useState(false);
   const [workers, setWorkers] = useState<number[]>([]); 
@@ -173,8 +173,8 @@ const ManageTasks: React.FC = () => {
 
           <Select
             value={statusFilter}
-            onValueChange={(value: any) => setStatusFilter(value)}
-          >
+            onValueChange={(value: "ALL" | "COMPLETED" | "PENDING" | "UPCOMING" | "CANCELLED") => setStatusFilter(value)}
+            >
             <SelectTrigger className="w-full md:w-auto">
               <SelectValue placeholder="Filter by status" />
             </SelectTrigger>
@@ -239,6 +239,7 @@ const ManageTasks: React.FC = () => {
         shiftData={selectedTask}
         isOpen={isTaskDetailModalOpen}
         onClose={handleCloseTaskDetailModal}
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
         onEdit={async (selectedTask: Shift) => {
           return Promise.resolve();
         }}
