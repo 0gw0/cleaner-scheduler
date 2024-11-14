@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { CheckCircle2 } from 'lucide-react';
 import PhotoUploadDialog from './PhotoUploadDialog';
 import { Shift } from '@/types/dashboard';
+import { WorkerData } from '@/types/dashboard';
 
 interface PhotoUploadResponse {
 	shift: Shift;
@@ -13,7 +14,7 @@ interface PhotoUploadResponse {
 
 interface WorkerScheduleProps {
 	schedule: Shift[];
-	onScheduleUpdate: () => Promise<void>;
+	onScheduleUpdate: () => Promise<WorkerData | undefined>;
 }
 
 const WorkerSchedule: React.FC<WorkerScheduleProps> = ({
