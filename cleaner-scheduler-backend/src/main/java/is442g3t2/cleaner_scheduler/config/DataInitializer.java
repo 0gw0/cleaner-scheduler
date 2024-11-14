@@ -53,8 +53,8 @@ public class DataInitializer {
             clientRepository.save(client2);
 
             // Create Workers
-            Worker worker1 = new Worker("Fraser", "+6598470525", "eg bio 1", "email1@gmail.com", "password123", "188065");
-            Worker worker2 = new Worker("Adrian", "+6583030321", "eg bio 2", "email2@gmail.com", "password123", "188065");
+            Worker worker1 = new Worker("Fraser", "+6583030321", "eg bio 1", "email1@gmail.com", "password123", "188065");
+            Worker worker2 = new Worker("Adrian", "+6598470525", "eg bio 2", "email2@gmail.com", "password123", "188065");
             Worker worker3 = new Worker("Henry", "+6584207195", "eg bio 3", "email3@gmail.com", "password123", "188065");
             Worker worker4 = new Worker("Min Tun", "+6596211649", "eg bio 4", "email4@gmail.com", "password123", "460416");
             Worker worker5 = new Worker("Wati", "+6596211649", "eg bio 5", "email5@gmail.com", "password123", "460416");
