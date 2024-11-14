@@ -54,7 +54,7 @@ const Navbar = () => {
 		},
 		{ href: '/workermc', label: 'Manage Leaves', roles: ['worker'] },
 		{ href: '/manageAdmins', label: 'Manage Admins', roles: ['root'] },
-		{ href: '/profile', label: 'Profile', roles: ['admin', 'worker'] },
+		{ href: '/profile', label: 'Profile', roles: ['admin', 'worker','root'] },
 	];
 
 	const filteredNavLinks = navLinks.filter((link) =>
