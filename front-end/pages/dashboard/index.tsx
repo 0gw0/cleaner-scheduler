@@ -139,17 +139,14 @@ const Dashboard: React.FC = () => {
 	}, [userData]);
 
 	const filterCurrentYearShifts = (shifts: Shift[]): Shift[] => {
-		const currentYear = new Date().getFullYear();
 		return shifts.filter((shift) => {
 			const shiftDate = new Date(shift.date);
-			// return shiftDate.getFullYear() === currentYear;
 			return !isNaN(shiftDate.getTime()); // Working Hours Chart
 		});
 	};
 
 	const processShiftData = (shifts: Shift[]): MonthlyData[] => {
 		const currentDate = new Date();
-		const currentYear = new Date().getFullYear();
 		const monthlyJobCounts: { [key: string]: number } = {};
 		const validMonthlyJobCounts: { [key: string]: number } = {};
 
