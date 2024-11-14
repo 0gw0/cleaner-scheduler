@@ -58,18 +58,23 @@ public class DataInitializer {
             Worker worker3 = new Worker("Henry", "+6584207195", "eg bio 3", "email3@gmail.com", "password123", "188065");
             Worker worker4 = new Worker("Min Tun", "+6596211649", "eg bio 4", "email4@gmail.com", "password123", "460416");
             Worker worker5 = new Worker("Wati", "+6596211649", "eg bio 5", "email5@gmail.com", "password123", "460416");
+            Worker worker6 = new Worker("Lynn", "+6596211649", "eg bio 6", "email6@gmail.com", "password123", "460416");
+
 
             worker1.setSupervisor(admin1);
             worker2.setSupervisor(admin1);
             worker3.setSupervisor(admin1);
             worker4.setSupervisor(admin1);
             worker5.setSupervisor(admin1);
+            worker6.setSupervisor(admin2);
+
 
             worker1.setIsVerified(true);
             worker2.setIsVerified(true);
             worker3.setIsVerified(true);
             worker4.setIsVerified(true);
             worker5.setIsVerified(true);
+            worker6.setIsVerified(true);
 
             // Save workers first
             workerRepository.save(worker1);
@@ -77,7 +82,7 @@ public class DataInitializer {
             workerRepository.save(worker3);
             workerRepository.save(worker4);
             workerRepository.save(worker5);
-
+            workerRepository.save(worker6);
 
             // Create shifts and assign workers
             Shift shift1 = new Shift(
