@@ -12,8 +12,13 @@ import axios from 'axios';
 
 const Dashboard: React.FC = () => {
 	const [userData, setUserData] = useState<UserData | null>(() => {
-		const storedUser = localStorage.getItem('user');
-		return storedUser ? JSON.parse(storedUser) : null;
+		try {
+			const storedUser = localStorage.getItem('user');
+			return storedUser ? JSON.parse(storedUser) : null;
+		} catch (error) {
+			console.error('Error parsing user data from localStorage:', error);
+			return null;
+		}
 	});
 
 	const [dashboardData, setDashboardData] = useState<{
@@ -31,6 +36,16 @@ const Dashboard: React.FC = () => {
 		isLoading: true,
 	});
 
+	// Add a function to update user data
+	const updateUserData = (newUserData: UserData) => {
+		try {
+			localStorage.setItem('user', JSON.stringify(newUserData));
+			setUserData(newUserData);
+		} catch (error) {
+			console.error('Error updating user data:', error);
+		}
+	};
+
 	useEffect(() => {
 		const fetchDashboardData = async () => {
 			if (!userData) return;
@@ -42,6 +57,16 @@ const Dashboard: React.FC = () => {
 					const workerResponse = await axios.get<WorkerData>(
 						`http://localhost:8080/workers/${userData.id}`
 					);
+
+					// Convert the worker ID to string for comparison
+					if (workerResponse.data.id.toString() === userData.id) {
+						updateUserData({
+							...userData,
+							name: workerResponse.data.name,
+							// Only include properties that exist in UserData interface
+							role: 'worker',
+						});
+					}
 
 					setDashboardData((prev) => ({
 						...prev,
