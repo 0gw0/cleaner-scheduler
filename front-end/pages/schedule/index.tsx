@@ -2,6 +2,7 @@ import { ScheduleComponent, ViewsDirective, ViewDirective, Inject, Day, Week, Mo
 import { registerLicense } from "@syncfusion/ej2-base";
 import React, { useEffect, useState } from "react";
 import axios from 'axios';
+import ProfilePage from "../profile";
 
 registerLicense("Ngo9BigBOggjHTQxAR8/V1NDaF5cWWtCf1JpRGRGfV5ycEVHYlZTRXxcR00DNHVRdkdnWH9feHVXRGFfV012V0U=");
 
@@ -51,6 +52,8 @@ export default function Schedule() {
     // const [uniqueWorkerIds, setUniqueWorkerIds] = useState<number[]>([]);
     const [uniqueWorkers, setUniqueWorkers] = useState<{ id: number; name: string }[]>([]);
     const [searchTerm, setSearchTerm] = useState("");
+    const [userRole, setUserRole] = useState("");
+    const [userId, setUserId] = useState<number | null>(null);
 
     useEffect(() => {
         // Fetch shift and worker data from the API and transform it
@@ -98,15 +101,24 @@ export default function Schedule() {
         }
     }, [apiData, uniqueWorkers]);
 
+    useEffect(() => {
+        // Fetch the user role and user ID from local storage
+        const storedUser = localStorage.getItem('user');
+        if (storedUser) {
+            const user = JSON.parse(storedUser);
+            setUserRole(user.role);
+            setUserId(user.id); // Set the user's ID
+        }
+    }, []);
 
     // Filtered data based on the selected worker ID or name and search term
     const filteredEvents = eventsData.filter(event => {
         // Exclude events with a "Cancelled" status
         if (event.Status.toLowerCase() === "cancelled") return false;
 
-        const matchesWorkerFilter = workerIdFilter !== null 
-            ? event.Ids.includes(workerIdFilter)
-            : true;
+        const matchesWorkerFilter = userRole === "admin" 
+            ? (workerIdFilter !== null ? event.Ids.includes(workerIdFilter) : true)
+            : event.Ids.includes(userId!); // Only show events for the logged-in worker
 
         // Combine worker names and IDs into a single searchable string
         const workerDetails = event.Ids.map(id => {
@@ -123,27 +135,30 @@ export default function Schedule() {
 
     return (
         <main className="flex flex-col items-center min-h-screen">
+            {userRole === "admin" && (
+            <div className="w-full max-w-5xl text-center">
                 {/* Dropdown to select worker */}
-                <div className="w-full max-w-5xl text-center">
-                    <select onChange={(e) => setWorkerIdFilter(Number(e.target.value) || null)} className="m-4 p-2 border">
-                        <option value="">All Workers</option>
-                        {uniqueWorkers.map(worker => (
-                            <option key={worker.id} value={worker.id}>
-                                {worker.id}. {worker.name}
-                            </option>
-                        ))}
+                <select onChange={(e) => setWorkerIdFilter(Number(e.target.value) || null)} className="m-4 p-2 border">
+                    <option value="">All Workers</option>
+                    {uniqueWorkers.map(worker => (
+                        <option key={worker.id} value={worker.id}>
+                            {worker.id}. {worker.name}
+                        </option>
+                    ))}
                     {/* Add more options dynamically or as needed */}
-                    </select>
+                </select>
 
-                    {/* Search input */}
-                    <input
-                        type="text"
-                        placeholder="Search for Worker..."
-                        value={searchTerm}
-                        onChange={(e) => setSearchTerm(e.target.value)}
-                        className="p-2 border border-gray-300 rounded ml-2"
-                    />
-                </div>
+                {/* Search input */}
+                <input
+                    type="text"
+                    placeholder="Search for Worker..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="p-2 border border-gray-300 rounded ml-2"
+                />
+            </div>
+        )}
+                
                 <div className="w-full">
                     <ScheduleComponent
                     className="mx-auto"
