@@ -1,5 +1,5 @@
 import React from 'react';
-import { MonthlyData, ClientData, WorkerData } from '@/types/dashboard';
+import { MonthlyData, ClientData, WorkerData, Shift } from '@/types/dashboard';
 import StatusCard from './StatusCard';
 import JobsChart from './JobsChart';
 import ClientsTable from './ClientsTable';
@@ -14,21 +14,6 @@ import {
 	Calendar,
 	Download,
 } from 'lucide-react';
-
-interface Shift {
-	id: number;
-	status: string;
-	rescheduled: boolean;
-	property: {
-		propertyId: number;
-		clientId: number;
-		address: string;
-		postalCode: string;
-	};
-	date: string;
-	startTime: string;
-	endTime: string;
-}
 
 interface AdminDashboardProps {
 	monthlyData: MonthlyData[];

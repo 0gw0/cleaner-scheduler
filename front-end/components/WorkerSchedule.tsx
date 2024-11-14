@@ -5,9 +5,15 @@ import { CheckCircle2 } from 'lucide-react';
 import PhotoUploadDialog from './PhotoUploadDialog';
 import { Shift } from '@/types/dashboard';
 
+interface PhotoUploadResponse {
+	shift: Shift;
+	imageUrl: string;
+	message: string;
+}
+
 interface WorkerScheduleProps {
 	schedule: Shift[];
-	onScheduleUpdate: () => Promise<any>;
+	onScheduleUpdate: () => Promise<void>;
 }
 
 const WorkerSchedule: React.FC<WorkerScheduleProps> = ({
@@ -46,10 +52,7 @@ const WorkerSchedule: React.FC<WorkerScheduleProps> = ({
 				}
 				return acc;
 			},
-			{ past: [], current: [], upcoming: [] } as Record<
-				string,
-				ScheduleItem[]
-			>
+			{ past: [], current: [], upcoming: [] } as Record<string, Shift[]>
 		);
 	};
 
@@ -60,7 +63,7 @@ const WorkerSchedule: React.FC<WorkerScheduleProps> = ({
 		setSelectedShiftId(shiftId);
 		setUploadType(type);
 		setIsPhotoDialogOpen(true);
-		setStatusMessage(null); // Clear any previous status message
+		setStatusMessage(null);
 	};
 
 	const handleClosePhotoDialog = () => {
@@ -68,27 +71,26 @@ const WorkerSchedule: React.FC<WorkerScheduleProps> = ({
 		setSelectedShiftId(null);
 	};
 
-	const handlePhotoUploadSuccess = async (response: any) => {
+	const handlePhotoUploadSuccess = async (response: PhotoUploadResponse) => {
 		try {
 			setIsUpdating(true);
 			await onScheduleUpdate();
 
-			// Show success message
 			setStatusMessage({
 				type: 'success',
-				message: `${
-					uploadType === 'arrival' ? 'Arrival' : 'Completion'
-				} photo uploaded successfully!`,
+				message:
+					response.message ||
+					`${
+						uploadType === 'arrival' ? 'Arrival' : 'Completion'
+					} photo uploaded successfully!`,
 			});
 
-			// Clear success message after 3 seconds
 			setTimeout(() => {
 				setStatusMessage(null);
 			}, 3000);
 		} catch (error) {
 			console.error('Error updating schedule:', error);
 
-			// Show error message
 			setStatusMessage({
 				type: 'error',
 				message: 'Failed to upload photo. Please try again.',
@@ -104,7 +106,7 @@ const WorkerSchedule: React.FC<WorkerScheduleProps> = ({
 		items,
 	}: {
 		title: string;
-		items: ScheduleItem[];
+		items: Shift[];
 	}) => (
 		<Card className="mb-6">
 			<CardHeader>

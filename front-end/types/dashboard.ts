@@ -20,23 +20,16 @@ export interface Property {
 export interface ClientData {
 	id: number;
 	name: string;
-	properties: Property[];
-	status: 'Active' | 'Inactive';
-	cleaningJobs?: Array<{
+	properties: Array<{
 		id: number;
-		property: {
-			propertyId: number;
-			clientId: number;
-			address: string;
-			postalCode: string;
-		};
-		date: string;
-		startTime: string;
-		endTime: string;
-		worker: number;
+		address: string;
+		postalCode: string;
+		active: boolean;
+		client: number;
 	}>;
-	preferredCleaner: string;
-	jobs: number;
+	status: 'Active' | 'Inactive';
+	preferredCleaner?: string;
+	jobs?: number;
 }
 
 export interface Workers {
@@ -44,9 +37,17 @@ export interface Workers {
 	jobs: number;
 }
 
+export interface ShiftImage {
+	s3Key: string;
+	uploadTime: string;
+	fileName: string;
+	presignedUrl: string;
+	workerId: number;
+}
+
 export interface Shift {
 	id: number;
-	worker: number;
+	workers: number[];
 	property: {
 		propertyId: number;
 		clientId: number;
@@ -56,12 +57,17 @@ export interface Shift {
 	date: string;
 	startTime: string;
 	endTime: string;
-	arrivalImage: string;
-	completionImage: string;
-	arrivalImages: any[];
-	completionImages: any[];
-	presentWorkers: number[] | null;
+	status: 'COMPLETED' | 'UPCOMING' | 'CANCELLED' | string;
+	arrivalImage: string | null;
+	completionImage: string | null;
+	arrivalImages: ShiftImage[];
+	completionImages: ShiftImage[];
 	workerIds: number[];
+	originalDate: string;
+	originalStartTime: string;
+	originalEndTime: string;
+	presentWorkers: number[] | null;
+	rescheduled: boolean;
 }
 
 export interface WorkerData {
