@@ -107,7 +107,8 @@ public class DataInitializer {
             );
             shift2.addWorker(worker1);
             shift2.addWorker(worker2);  // Adding multiple workers to the same shift
-            shift2.setPresentWorkers(Set.of(1L,2L));
+            shift2.addWorker(worker6);
+            shift2.setPresentWorkers(Set.of(1L,2L, 6L));
             shiftRepository.save(shift2);
 
             Shift shift3 = new Shift(

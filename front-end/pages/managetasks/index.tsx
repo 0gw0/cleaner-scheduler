@@ -79,7 +79,7 @@ const ManageTasks: React.FC = () => {
 			}
 		} catch (error) {
 			console.error('Failed to fetch shifts:', error);
-			setError('Failed to load shifts');
+			setError('No shifts available.');
 		} finally {
 			setIsLoading(false);
 		}
