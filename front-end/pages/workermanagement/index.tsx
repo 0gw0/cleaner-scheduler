@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Search, AlertTriangle } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
@@ -19,10 +19,9 @@ interface PendingMC {
 	isOverdue: boolean;
 }
 
-// Helper functions
+// Helper functions moved outside component to prevent unnecessary recreations
 const checkPendingMCDocuments = (worker: WorkerData): PendingMC[] => {
 	const currentDate = new Date();
-
 	return worker.medicalLeaves
 		.filter((mc) => !mc.medicalCertificate)
 		.map((mc) => ({
@@ -46,7 +45,6 @@ const WorkerManagement = () => {
 	const [workersWithPendingMC, setWorkersWithPendingMC] = useState<
 		Map<number, PendingMC[]>
 	>(new Map());
-
 	const [dialogState, setDialogState] = useState<DialogState>({
 		showSchedule: false,
 		showMCHistory: false,
@@ -57,8 +55,8 @@ const WorkerManagement = () => {
 
 	const workersPerPage = 9;
 
-	// Function to update pending MC status
-	const updatePendingMCStatus = (data: WorkerData[]) => {
+	// Memoize updatePendingMCStatus
+	const updatePendingMCStatus = useCallback((data: WorkerData[]) => {
 		const pendingMCMap = new Map<number, PendingMC[]>();
 		data.forEach((worker) => {
 			const pendingMCs = checkPendingMCDocuments(worker);
@@ -67,47 +65,39 @@ const WorkerManagement = () => {
 			}
 		});
 		setWorkersWithPendingMC(pendingMCMap);
-	};
+	}, []);
 
-	const fetchWorkerData = async () => {
+	// Memoize fetchWorkerData
+	const fetchWorkerData = useCallback(async () => {
 		try {
 			const response = await axios.get<WorkerData[]>(
-				`http://localhost:8080/workers`
+				'http://localhost:8080/workers'
 			);
 			const cleanedData = response.data;
 			setWorkerData(cleanedData);
 			updatePendingMCStatus(cleanedData);
 
-			// Also update selected worker if one exists
-			if (selectedWorker) {
-				const updatedSelectedWorker = cleanedData.find(
-					(w) => w.id === selectedWorker.id
+			// Update selected worker if one exists
+			setSelectedWorker((prevSelected) => {
+				if (!prevSelected) return null;
+				const updatedSelected = cleanedData.find(
+					(w) => w.id === prevSelected.id
 				);
-				if (updatedSelectedWorker) {
-					setSelectedWorker(updatedSelectedWorker);
-				}
-			}
+				return updatedSelected || null;
+			});
 		} catch (error) {
 			console.error('Error fetching worker data:', error);
 			setWorkerData([]);
 		}
-	};
+	}, [updatePendingMCStatus]);
 
-	const refreshWorkerData = async () => {
+	const refreshWorkerData = useCallback(async () => {
 		await fetchWorkerData();
-		if (selectedWorker) {
-			const updatedWorker = workerData.find(
-				(w) => w.id === selectedWorker.id
-			);
-			if (updatedWorker) {
-				setSelectedWorker(updatedWorker);
-			}
-		}
-	};
+	}, [fetchWorkerData]);
 
 	useEffect(() => {
 		fetchWorkerData();
-	}, []);
+	}, [fetchWorkerData]);
 
 	// Filter workers based on search
 	const filteredWorkers = React.useMemo(() => {
