@@ -3,6 +3,7 @@ import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import { AlertCircle } from 'lucide-react';
 import axios from 'axios';
+import WeeklyHoursCard from './WeeklyHoursCard';
 
 interface Property {
   propertyId: number;
@@ -28,7 +29,7 @@ interface WorkerStatisticsProps {
 }
 
 interface WorkerNames {
-  [key: number]: string;
+  [key: string]: string;
 }
 
 const WorkerStatistics: React.FC<WorkerStatisticsProps> = ({ shifts }) => {
@@ -163,9 +164,6 @@ const WorkerStatistics: React.FC<WorkerStatisticsProps> = ({ shifts }) => {
 
   const hasOvertimeData = Object.keys(statistics.overtimeHours).length > 0;
   const hasMonthlyData = Object.keys(statistics.monthlyHours).length > 0;
-  const hasWeeklyData = Object.keys(statistics.weeklyHours).length > 0;
-  console.log(statistics.monthlyHours);
-  console.log(statistics.weeklyHours); // Weekly Working Hours showing for ID 3, but not showing for bar chart :'()
   const hasAnnualData = Object.keys(statistics.annualHours).length > 0;
 
   // Custom tooltip to display worker names
@@ -194,7 +192,7 @@ const WorkerStatistics: React.FC<WorkerStatisticsProps> = ({ shifts }) => {
         <CardContent className="h-[300px]">
           {hasMonthlyData ? (
             <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={prepareChartData(statistics.monthlyHours, 'monthly')}>
+              <BarChart data={prepareChartData(statistics.monthlyHours)}>
                 <XAxis dataKey="period" />
                 <YAxis />
                 <Tooltip content={<CustomTooltip />} />
@@ -220,38 +218,7 @@ const WorkerStatistics: React.FC<WorkerStatisticsProps> = ({ shifts }) => {
         </CardContent>
       </Card>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Weekly Working Hours</CardTitle>
-        </CardHeader>
-        <CardContent className="h-[300px]">
-          {hasWeeklyData ? (
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={prepareChartData(statistics.weeklyHours, 'weekly')}>
-                <XAxis dataKey="period" />
-                <YAxis />
-                <Tooltip content={<CustomTooltip />} />
-                <Legend formatter={(value) => workerNames[value] || `Worker ${value}`} />
-                {Object.keys(statistics.weeklyHours[Object.keys(statistics.weeklyHours)[0]] || {}).map((workerId) => (
-                  <Bar 
-                    key={workerId} 
-                    dataKey={workerId} 
-                    name={workerId}
-                    fill={`#${Math.floor(Math.random()*16777215).toString(16)}`} 
-                  />
-                ))}
-              </BarChart>
-            </ResponsiveContainer>
-          ) : (
-            <div className="flex items-center justify-center h-full">
-              <div className="text-center text-gray-500">
-                <AlertCircle className="mx-auto h-8 w-8 mb-2" />
-                <p>No weekly data available</p>
-              </div>
-            </div>
-          )}
-        </CardContent>
-      </Card>
+      <WeeklyHoursCard statistics={statistics} workerNames={workerNames} />
 
       <Card>
         <CardHeader>
@@ -260,7 +227,7 @@ const WorkerStatistics: React.FC<WorkerStatisticsProps> = ({ shifts }) => {
         <CardContent className="h-[300px]">
           {hasAnnualData ? (
             <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={prepareChartData(statistics.annualHours, 'annually')}>
+              <BarChart data={prepareChartData(statistics.annualHours)}>
                 <XAxis dataKey="period" />
                 <YAxis />
                 <Tooltip content={<CustomTooltip />} />
@@ -293,7 +260,7 @@ const WorkerStatistics: React.FC<WorkerStatisticsProps> = ({ shifts }) => {
         <CardContent className="h-[300px]">
           {hasOvertimeData ? (
             <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={prepareChartData(statistics.overtimeHours, 'overtime')}>
+              <BarChart data={prepareChartData(statistics.overtimeHours)}>
                 <XAxis dataKey="period" />
                 <YAxis />
                 <Tooltip content={<CustomTooltip />} />
