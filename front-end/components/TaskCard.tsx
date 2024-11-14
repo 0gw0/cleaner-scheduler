@@ -16,8 +16,8 @@ interface TaskCardProps {
 export const TaskCard: React.FC<TaskCardProps> = ({ shiftData, onCardClick, cancelShift, refetchAfterChange }) => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isModifyStatusModalOpen, setIsModifyStatusModalOpen] = useState(false);
-  const [currentStatus, setCurrentStatus] = useState('UPCOMING');
-  const [presentWorkers, setPresentWorkers] = useState<number[]>([]);
+  const [, setCurrentStatus] = useState('UPCOMING');
+  const [, setPresentWorkers] = useState<number[]>([]);
 
   const handleCancelClick = () => {
     setIsModalOpen(true);
@@ -100,37 +100,38 @@ export const TaskCard: React.FC<TaskCardProps> = ({ shiftData, onCardClick, canc
           <div className="flex justify-between mt-4 text-sm space-x-4">
             {/* Present Workers */}
             {shiftData.presentWorkers && shiftData.presentWorkers.length > 0 ? (
-              <p className="flex text-green-800 items-center">
+              <p className="flex text-green-700 items-center">
               <UserRoundCheck className="w-4 h-4 mr-2" />
-              Present workers: {shiftData.presentWorkers.join(", ")}
+              Present workers IDs: {shiftData.presentWorkers.join(", ")}
               </p>
             ) : (
-              <p className="text-green-600">No present workers.</p>
+              
+              <p className="text-green-700 flex">
+                  <UserRoundCheck className="w-4 h-4 mr-2" /> No present workers.
+              </p>
             )}
 
             {/* Absent Workers */}
-            {shiftData.workerIds
-            .filter(
-              (workerId) =>
-                !shiftData.presentWorkers.some(
-                  (presentWorker) => presentWorker === workerId
-                )
-            ).length != 0 ? (
+            {shiftData.workerIds.length !== (shiftData.presentWorkers ? shiftData.presentWorkers.length : 0) ? (
               <p className="flex text-red-800 items-center">
                 <UserRoundX className="w-4 h-4 mr-2" />
-                Absent workers:{" "}
+                Absent workers IDs:{" "}
                 {shiftData.workerIds
                   .filter(
                     (workerId) =>
-                      !shiftData.presentWorkers.some(
+                      !(shiftData.presentWorkers || []).some(
                         (presentWorker) => presentWorker === workerId
                       )
                   )
                   .join(", ")}
               </p>
             ) : (
-              <p className="text-red-600">No absent workers.</p>
+              <p className="text-red-800 flex">
+                <UserRoundX className="w-4 h-4 mr-2" />
+                No absent workers.
+              </p>
             )}
+
 
           </div>
         )}

@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useCallback } from 'react';
-import { Filter } from 'lucide-react'; // Remove unused Plus import
+import { Filter } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { TaskCard } from '@/components/TaskCard';
@@ -203,6 +203,23 @@ const ManageTasks: React.FC = () => {
 						</SelectContent>
 					</Select>
 
+					<Select
+						value={statusFilter}
+						onValueChange={(value: StatusFilterType) =>
+							setStatusFilter(value)
+						}
+					>
+						<SelectTrigger className="w-full md:w-auto">
+							<SelectValue placeholder="Filter by status" />
+						</SelectTrigger>
+						<SelectContent>
+							<SelectItem value="ALL">All Statuses</SelectItem>
+							<SelectItem value="COMPLETED">Completed</SelectItem>
+							<SelectItem value="PENDING">Pending</SelectItem>
+							<SelectItem value="UPCOMING">Upcoming</SelectItem>
+							<SelectItem value="CANCELLED">Cancelled</SelectItem>
+						</SelectContent>
+					</Select>
 					<Select
 						value={statusFilter}
 						onValueChange={(value: StatusFilterType) =>
