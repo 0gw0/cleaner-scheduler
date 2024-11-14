@@ -15,8 +15,8 @@ interface ScheduleItem {
 	date: string;
 	startTime: string;
 	endTime: string;
-	arrivalImage: string | null;
-	completionImage: string | null;
+	arrivalImages: any[];
+	completionImages: any[];
 	presentWorkers: number[] | null;
 	workerIds: number[];
 }
@@ -107,11 +107,8 @@ const WorkerSchedule: React.FC<WorkerScheduleProps> = ({
 					{items.map((item) => {
 						const isWorkerPresent =
 							item.presentWorkers?.includes(workerId);
-						const showUploadButtons = title === 'Current Schedule';
-						const showArrivalButton =
-							!isWorkerPresent && !item.arrivalImage;
-						const showCompletionButton =
-							isWorkerPresent && !item.completionImage;
+						const hasCompletionImage =
+							item.completionImages?.length > 0;
 
 						return (
 							<Card key={item.id} className="bg-secondary">
@@ -144,38 +141,43 @@ const WorkerSchedule: React.FC<WorkerScheduleProps> = ({
 									<p>{`Property ID: ${item.property.propertyId}`}</p>
 									<p>{`Client ID: ${item.property.clientId}`}</p>
 
-									{showUploadButtons && (
-										<div className="mt-3">
-											{showArrivalButton && (
-												<Button
-													onClick={() =>
-														handleOpenPhotoDialog(
-															item.id,
-															'arrival'
-														)
-													}
-													className="w-full"
-													disabled={isUpdating}
-												>
-													Upload Arrival Photo
-												</Button>
-											)}
-											{showCompletionButton && (
-												<Button
-													onClick={() =>
-														handleOpenPhotoDialog(
-															item.id,
-															'completion'
-														)
-													}
-													className="w-full"
-													disabled={isUpdating}
-												>
-													Upload Completion Photo
-												</Button>
-											)}
-										</div>
-									)}
+									{title === 'Current Schedule' &&
+										!hasCompletionImage && (
+											<div className="mt-3">
+												{!isWorkerPresent && (
+													<Button
+														onClick={() =>
+															handleOpenPhotoDialog(
+																item.id,
+																'arrival'
+															)
+														}
+														className="w-full"
+														disabled={isUpdating}
+													>
+														Upload Arrival Photo
+													</Button>
+												)}
+												{isWorkerPresent &&
+													!hasCompletionImage && (
+														<Button
+															onClick={() =>
+																handleOpenPhotoDialog(
+																	item.id,
+																	'completion'
+																)
+															}
+															className="w-full"
+															disabled={
+																isUpdating
+															}
+														>
+															Upload Completion
+															Photo
+														</Button>
+													)}
+											</div>
+										)}
 								</CardContent>
 							</Card>
 						);
