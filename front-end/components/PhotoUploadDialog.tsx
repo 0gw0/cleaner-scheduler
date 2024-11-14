@@ -12,12 +12,53 @@ import {
 import { Input } from '@/components/ui/input';
 import axios from 'axios';
 
+interface Property {
+	propertyId: number;
+	clientId: number;
+	address: string;
+	postalCode: string;
+}
+
+interface ShiftImage {
+	s3Key: string;
+	uploadTime: string;
+	fileName: string;
+	presignedUrl: string;
+	workerId: number;
+}
+
+interface Shift {
+	id: number;
+	workers: number[];
+	property: Property;
+	date: string;
+	startTime: string;
+	endTime: string;
+	status: string;
+	arrivalImage: string | null;
+	completionImage: string | null;
+	arrivalImages: ShiftImage[];
+	completionImages: ShiftImage[];
+	workerIds: number[];
+	originalDate: string;
+	originalStartTime: string;
+	originalEndTime: string;
+	presentWorkers: number[];
+	rescheduled: boolean;
+}
+
+interface PhotoUploadResponse {
+	shift: Shift;
+	imageUrl: string;
+	message: string;
+}
+
 interface PhotoUploadDialogProps {
 	isOpen: boolean;
 	onClose: () => void;
 	endpoint: string;
 	shiftId: number;
-	onUploadSuccess?: (response: any) => void;
+	onUploadSuccess?: (response: PhotoUploadResponse) => void;
 }
 
 const PhotoUploadDialog: React.FC<PhotoUploadDialogProps> = ({
@@ -53,7 +94,7 @@ const PhotoUploadDialog: React.FC<PhotoUploadDialogProps> = ({
 			formData.append('workerId', workerId.toString());
 
 			try {
-				const response = await axios.post(
+				const response = await axios.post<PhotoUploadResponse>(
 					endpoint.replace(':shiftId', shiftId.toString()),
 					formData,
 					{
