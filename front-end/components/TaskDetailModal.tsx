@@ -1,8 +1,8 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Shift, WorkerTravelData } from '@/types/task';
-import { CalendarIcon, ClockIcon, MapPinIcon, UserIcon, BuildingIcon, Check, TimerIcon, Clock, PersonStanding, X } from 'lucide-react';
+import { CalendarIcon, ClockIcon, MapPinIcon, BuildingIcon, Check, Clock, PersonStanding } from 'lucide-react';
 import Image from 'next/image'
 import { PersonIcon } from '@radix-ui/react-icons';
 import axios from 'axios';
@@ -58,7 +58,7 @@ export const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ shiftData, isO
   console.log("travelTimes", travelTimes)
   
 
-  const handleChange = (field: keyof Shift, value: any) => {
+  const handleChange = (field: keyof Shift, value: string) => {
     setUpdatedShift((prev) => ({ ...prev, [field]: value }));
 
     setUpdatedShift((prev) => ({ ...prev, [field]: value }));

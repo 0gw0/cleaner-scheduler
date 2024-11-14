@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Filter, Plus } from 'lucide-react';
+import { Filter } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { TaskCard } from '@/components/TaskCard';

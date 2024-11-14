@@ -16,8 +16,8 @@ interface TaskCardProps {
 export const TaskCard: React.FC<TaskCardProps> = ({ shiftData, onCardClick, cancelShift, refetchAfterChange }) => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isModifyStatusModalOpen, setIsModifyStatusModalOpen] = useState(false);
-  const [currentStatus, setCurrentStatus] = useState('UPCOMING');
-  const [presentWorkers, setPresentWorkers] = useState<number[]>([]);
+  const [, setCurrentStatus] = useState('UPCOMING');
+  const [, setPresentWorkers] = useState<number[]>([]);
 
   const handleCancelClick = () => {
     setIsModalOpen(true);
