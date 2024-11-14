@@ -5,7 +5,7 @@ import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
-import axios from "axios";
+import axios, { AxiosError } from 'axios';
 import {
 	Dialog,
 	DialogContent,
@@ -15,10 +15,36 @@ import {
 } from '@/components/ui/dialog';
 import { useRouter } from 'next/navigation';
 
+interface FormData {
+	fullName: string;
+	phoneNumber: string;
+	email: string;
+	homePostalCode: string;
+	bio: string;
+	password: string;
+	confirmPassword: string;
+	supervisorId: string;
+}
+
+interface WorkerRegistrationRequest {
+	name: string;
+	phoneNumber: string;
+	bio: string;
+	email: string;
+	homePostalCode: string;
+	supervisorId: number;
+	password: string;
+}
+
+interface ApiError {
+	message: string;
+	status: number;
+}
+
 export default function Signup() {
 	const router = useRouter();
 	const [showDialog, setShowDialog] = useState(false);
-	const [formData, setFormData] = useState({
+	const [formData, setFormData] = useState<FormData>({
 		fullName: '',
 		phoneNumber: '',
 		email: '',
@@ -26,22 +52,32 @@ export default function Signup() {
 		bio: '',
 		password: '',
 		confirmPassword: '',
-		supervisorId: ''
+		supervisorId: '',
 	});
 
 	const [formError, setFormError] = useState<string | null>(null);
 
 	const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
 		const { id, value } = e.target;
-		setFormData(prev => ({
+		setFormData((prev) => ({
 			...prev,
-			[id]: value
+			[id]: value,
 		}));
 	};
 
 	const validateForm = () => {
-		const requiredFields = ['fullName', 'phoneNumber', 'email', 'homePostalCode', 'password', 'confirmPassword', 'supervisorId'];
-		const hasEmptyFields = requiredFields.some(field => !formData[field as keyof typeof formData].trim());
+		const requiredFields = [
+			'fullName',
+			'phoneNumber',
+			'email',
+			'homePostalCode',
+			'password',
+			'confirmPassword',
+			'supervisorId',
+		];
+		const hasEmptyFields = requiredFields.some(
+			(field) => !formData[field as keyof FormData].trim()
+		);
 
 		if (hasEmptyFields) {
 			setFormError('Please fill up all fields');
@@ -67,28 +103,42 @@ export default function Signup() {
 		e.preventDefault();
 		if (validateForm()) {
 			try {
-				const response = await axios.post("http://localhost:8080/workers", {
+				const requestData: WorkerRegistrationRequest = {
 					name: formData.fullName,
 					phoneNumber: formData.phoneNumber,
 					bio: formData.bio,
 					email: formData.email,
 					homePostalCode: formData.homePostalCode,
 					supervisorId: parseInt(formData.supervisorId),
-					password: formData.password
-				});
+					password: formData.password,
+				};
+
+				const response = await axios.post(
+					'http://localhost:8080/workers',
+					requestData
+				);
 
 				if (response.status === 201) {
 					setShowDialog(true);
 				}
-			} catch (error: any) {
-				if (error.response?.status === 409) {
-					setFormError('Email already exists');
-				} else if (error.response?.status === 404) {
-					setFormError('Supervisor not found');
+			} catch (error) {
+				if (axios.isAxiosError(error)) {
+					const axiosError = error as AxiosError<ApiError>;
+					if (axiosError.response?.status === 409) {
+						setFormError('Email already exists');
+					} else if (axiosError.response?.status === 404) {
+						setFormError('Supervisor not found');
+					} else {
+						setFormError('An error occurred. Please try again.');
+					}
+					console.error(
+						'Registration error:',
+						axiosError.response?.data
+					);
 				} else {
-					setFormError('An error occurred. Please try again.');
+					setFormError('An unexpected error occurred');
+					console.error('Registration error:', error);
 				}
-				console.error('Registration error:', error);
 			}
 		}
 	};
@@ -138,7 +188,9 @@ export default function Signup() {
 						</LabelInputContainer>
 
 						<LabelInputContainer>
-							<Label htmlFor="homePostalCode">Home Postal Code</Label>
+							<Label htmlFor="homePostalCode">
+								Home Postal Code
+							</Label>
 							<Input
 								id="homePostalCode"
 								placeholder="e.g. 549630"
@@ -182,7 +234,9 @@ export default function Signup() {
 						</LabelInputContainer>
 
 						<LabelInputContainer className="mb-4">
-							<Label htmlFor="confirmPassword">Confirm Password</Label>
+							<Label htmlFor="confirmPassword">
+								Confirm Password
+							</Label>
 							<Input
 								id="confirmPassword"
 								placeholder=""
@@ -211,9 +265,7 @@ export default function Signup() {
 							<BottomGradient />
 						</Button>
 
-						<Button
-							className="bg-gradient-to-br mt-2 relative group/btn from-black dark:from-zinc-900 dark:to-zinc-900 to-neutral-600 block dark:bg-zinc-800 w-full text-white rounded-md h-10 font-medium shadow-[0px_1px_0px_0px_#ffffff40_inset,0px_-1px_0px_0px_#ffffff40_inset] dark:shadow-[0px_1px_0px_0px_var(--zinc-800)_inset,0px_-1px_0px_0px_var(--zinc-800)_inset]"
-						>
+						<Button className="bg-gradient-to-br mt-2 relative group/btn from-black dark:from-zinc-900 dark:to-zinc-900 to-neutral-600 block dark:bg-zinc-800 w-full text-white rounded-md h-10 font-medium shadow-[0px_1px_0px_0px_#ffffff40_inset,0px_-1px_0px_0px_#ffffff40_inset] dark:shadow-[0px_1px_0px_0px_var(--zinc-800)_inset,0px_-1px_0px_0px_var(--zinc-800)_inset]">
 							<Link href="/login">Log In here</Link>
 							<BottomGradient />
 						</Button>
@@ -228,14 +280,14 @@ export default function Signup() {
 					<DialogHeader>
 						<DialogTitle>Registration Successful!</DialogTitle>
 						<DialogDescription className="pt-5 text-l">
-							To complete your registration, please check your email for a verification link. <br /> <br />
-							Click on the link to verify your email address and activate your account.
+							To complete your registration, please check your
+							email for a verification link. <br /> <br />
+							Click on the link to verify your email address and
+							activate your account.
 						</DialogDescription>
 					</DialogHeader>
 					<div className="flex justify-end mt-4">
-						<Button onClick={handleLoginRedirect}>
-							Login
-						</Button>
+						<Button onClick={handleLoginRedirect}>Login</Button>
 					</div>
 				</DialogContent>
 			</Dialog>
