@@ -109,7 +109,7 @@ const Dashboard: React.FC = () => {
 							postalCode: client.properties[0]?.postalCode || '',
 							status: client.status,
 							cleaningJobs: [],
-							preferredCleaner: 'Wati',
+							preferredCleaner: 'Fraser',
 							jobs: clientJobCounts.get(client.id) || 0,
 						})
 					);
