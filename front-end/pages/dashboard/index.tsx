@@ -142,29 +142,40 @@ const Dashboard: React.FC = () => {
 		const currentYear = new Date().getFullYear();
 		return shifts.filter((shift) => {
 			const shiftDate = new Date(shift.date);
-			return shiftDate.getFullYear() === currentYear;
+			// return shiftDate.getFullYear() === currentYear;
+			return !isNaN(shiftDate.getTime()); // Working Hours Chart
 		});
 	};
 
 	const processShiftData = (shifts: Shift[]): MonthlyData[] => {
+		const currentDate = new Date();
 		const currentYear = new Date().getFullYear();
 		const monthlyJobCounts: { [key: string]: number } = {};
+		const validMonthlyJobCounts: { [key: string]: number } = {};
 
 		shifts
 			.filter((shift) => {
-				const shiftDate = new Date(shift.date);
-				return shiftDate.getFullYear() === currentYear;
+				const status = shift.status;
+				return status.toLowerCase() === 'completed';
 			})
 			.forEach((shift) => {
 				const date = new Date(shift.date);
 				const monthYear = `${date.getFullYear()}-${String(
 					date.getMonth() + 1
 				).padStart(2, '0')}`;
+
+				// Count all shifts for Total Jobs (All Time) stat
 				monthlyJobCounts[monthYear] =
 					(monthlyJobCounts[monthYear] || 0) + 1;
+
+				// Count only past and current month shifts for other statistics
+				if (date <= currentDate) {
+					validMonthlyJobCounts[monthYear] =
+						(validMonthlyJobCounts[monthYear] || 0) + 1;
+				}
 			});
 
-		return Object.keys(monthlyJobCounts)
+		return Object.keys(validMonthlyJobCounts)
 			.map((monthYear) => {
 				const [year, month] = monthYear.split('-');
 				return {
@@ -172,12 +183,13 @@ const Dashboard: React.FC = () => {
 						parseInt(year),
 						parseInt(month) - 1
 					).toLocaleString('default', { month: 'short' }),
-					jobs: monthlyJobCounts[monthYear],
+					// month: monthYear,
+					jobs: validMonthlyJobCounts[monthYear],
 				};
 			})
 			.sort((a, b) => {
-				const dateA = new Date(`${a.month} 1, ${currentYear}`);
-				const dateB = new Date(`${b.month} 1, ${currentYear}`);
+				const dateA = new Date(`${a.month}-01`);
+				const dateB = new Date(`${b.month}-01`);
 				return dateA.getTime() - dateB.getTime();
 			});
 	};

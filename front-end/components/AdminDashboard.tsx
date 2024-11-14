@@ -32,6 +32,8 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
   workerData,
   shifts,
 }) => {
+  const currentDate = new Date();
+
   const validMonthlyData = monthlyData.filter(
     (data) => data.month !== "Invalid Date"
   );
@@ -45,10 +47,20 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
     month: "",
     jobs: 0,
   };
-  const totalJobs = validMonthlyData.reduce(
+  const completedJobs = validMonthlyData.reduce(
     (sum, month) => sum + month.jobs,
     0
   );
+  const totalJobs = shifts.length;
+
+  // Calculate latest month jobs
+  const latestMonth = new Date(currentDate.getFullYear(), currentDate.getMonth() - 1);
+  const latestMonthYear = `${latestMonth.getFullYear()}-${String(latestMonth.getMonth() + 1).padStart(2, '0')}`;
+  const latestMonthJobs = validMonthlyData.find(data => data.month === latestMonthYear)?.jobs || 0;
+
+  // Calculate average jobs per month
+  const totalValidJobs = validMonthlyData.reduce((sum, data) => sum + data.jobs, 0);
+  const averageJobsPerMonth = validMonthlyData.length > 0 ? totalValidJobs / validMonthlyData.length : 0;
 
   const workerStats = {
     totalWorkers: workerData.length,
@@ -109,6 +121,14 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
         </button>
       </div>
 
+      <div className="grid grid-cols-1 md:grid-cols lg:grid-cols xl:grid-cols gap-6 mb-6">
+        <StatusCard
+          title="Completed Jobs (All Time)"
+          value={completedJobs}
+          icon={Briefcase}
+        />
+      </div>
+
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3 gap-6 mb-6">
         <StatusCard
           title="Total Jobs (All Time)"
@@ -123,7 +143,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
 
         <StatusCard
           title="Average Jobs/Month"
-          value={Math.round(totalJobs / validMonthlyData.length) || 0}
+          value={averageJobsPerMonth}
           icon={Briefcase}
         />
         <StatusCard

@@ -90,7 +90,8 @@ const WorkerStatistics: React.FC<WorkerStatisticsProps> = ({ shifts }) => {
         typeof shift === 'object' && 
         shift !== null && 
         shift.workers && 
-        shift.workers.some(id => workerIds.includes(id))
+        shift.workers.some(id => workerIds.includes(id)) &&
+        shift.status.toLocaleLowerCase() === 'completed'
       );
 
       const stats: {
@@ -162,6 +163,10 @@ const WorkerStatistics: React.FC<WorkerStatisticsProps> = ({ shifts }) => {
 
   const hasOvertimeData = Object.keys(statistics.overtimeHours).length > 0;
   const hasMonthlyData = Object.keys(statistics.monthlyHours).length > 0;
+  const hasWeeklyData = Object.keys(statistics.weeklyHours).length > 0;
+  console.log(statistics.monthlyHours);
+  console.log(statistics.weeklyHours); // Weekly Working Hours showing for ID 3, but not showing for bar chart :'()
+  const hasAnnualData = Object.keys(statistics.annualHours).length > 0;
 
   // Custom tooltip to display worker names
   const CustomTooltip = ({ active, payload, label }: any) => {
@@ -209,6 +214,72 @@ const WorkerStatistics: React.FC<WorkerStatisticsProps> = ({ shifts }) => {
               <div className="text-center text-gray-500">
                 <AlertCircle className="mx-auto h-8 w-8 mb-2" />
                 <p>No monthly data available</p>
+              </div>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Weekly Working Hours</CardTitle>
+        </CardHeader>
+        <CardContent className="h-[300px]">
+          {hasWeeklyData ? (
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={prepareChartData(statistics.weeklyHours, 'weekly')}>
+                <XAxis dataKey="period" />
+                <YAxis />
+                <Tooltip content={<CustomTooltip />} />
+                <Legend formatter={(value) => workerNames[value] || `Worker ${value}`} />
+                {Object.keys(statistics.weeklyHours[Object.keys(statistics.weeklyHours)[0]] || {}).map((workerId) => (
+                  <Bar 
+                    key={workerId} 
+                    dataKey={workerId} 
+                    name={workerId}
+                    fill={`#${Math.floor(Math.random()*16777215).toString(16)}`} 
+                  />
+                ))}
+              </BarChart>
+            </ResponsiveContainer>
+          ) : (
+            <div className="flex items-center justify-center h-full">
+              <div className="text-center text-gray-500">
+                <AlertCircle className="mx-auto h-8 w-8 mb-2" />
+                <p>No weekly data available</p>
+              </div>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Annual Working Hours</CardTitle>
+        </CardHeader>
+        <CardContent className="h-[300px]">
+          {hasAnnualData ? (
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={prepareChartData(statistics.annualHours, 'annually')}>
+                <XAxis dataKey="period" />
+                <YAxis />
+                <Tooltip content={<CustomTooltip />} />
+                <Legend formatter={(value) => workerNames[value] || `Worker ${value}`} />
+                {Object.keys(statistics.annualHours[Object.keys(statistics.annualHours)[0]] || {}).map((workerId) => (
+                  <Bar 
+                    key={workerId} 
+                    dataKey={workerId} 
+                    name={workerId}
+                    fill={`#${Math.floor(Math.random()*16777215).toString(16)}`} 
+                  />
+                ))}
+              </BarChart>
+            </ResponsiveContainer>
+          ) : (
+            <div className="flex items-center justify-center h-full">
+              <div className="text-center text-gray-500">
+                <AlertCircle className="mx-auto h-8 w-8 mb-2" />
+                <p>No annually data available</p>
               </div>
             </div>
           )}
