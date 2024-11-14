@@ -34,6 +34,7 @@ const ModifyStatusModal: React.FC<ModifyStatusModalProps> = ({
   const [showSuccess, setShowSuccess] = useState<boolean>(false);
 
   const statusOptions = [
+    { value: 'ABSENT', label: 'Absent' },
     { value: 'IN_PROGRESS', label: 'In Progress' },
     { value: 'COMPLETED', label: 'Completed' },
   ];
@@ -41,6 +42,7 @@ const ModifyStatusModal: React.FC<ModifyStatusModalProps> = ({
   const handleStatusChange = (event: React.ChangeEvent<HTMLSelectElement>) => {
     setSelectedStatus(event.target.value);
     onStatusChange(event.target.value);
+    console.log("selectedStatus",selectedStatus)
   };
 
   const toggleWorkerSelection = (workerId: number) => {
@@ -55,10 +57,10 @@ const ModifyStatusModal: React.FC<ModifyStatusModalProps> = ({
 
   const handleSave = async () => {
     try {
-      const response = await axios.put(`http://localhost:8080/shifts/${shiftId}/update-status`, null, {
+        await axios.put(`http://localhost:8080/shifts/${shiftId}/update-status`, null, {
         params: {
           status: selectedStatus,
-          workerIds: selectedWorkerIds.join(','),
+          workerIds: [...selectedWorkerIds,...presentWorkers].join(','),
         },
       });
       
@@ -108,18 +110,11 @@ const ModifyStatusModal: React.FC<ModifyStatusModalProps> = ({
                   onChange={handleStatusChange}
                   className="w-full px-3 py-2 border rounded-md"
                 >
-                  {statusOptions
-                    .filter(option => {
-                      if (currentStatus === "ABSENT") {
-                        return option === statusOptions[0]; 
-                      } else if (currentStatus === "IN_PROGRESS") {
-                        return option;
-                      }
-                    })
+                  {(currentStatus === "ABSENT" ? [statusOptions[0], statusOptions[1]] : currentStatus === "IN_PROGRESS" ? [statusOptions[1], statusOptions[2]] : [])
                     .map(option => (
-                      <option key={option.value} value={option.value}>
+                        <option key={option.value} value={option.value}>
                         {option.label}
-                      </option>
+                        </option>
                     ))}
                 </select>
               </div>

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react'
+import React, { useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -90,9 +90,6 @@ export default function AddTaskForm({ onTaskAdded }: AddTaskFormProps) {
     setError('');
   };
 
-  const handleWorkerSelect = (worker: WorkerTravelData) => {
-    setFormData(prev => ({ ...prev, selectedWorker: worker }))
-  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     setError("")
