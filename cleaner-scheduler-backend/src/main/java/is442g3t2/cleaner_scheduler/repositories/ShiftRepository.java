@@ -25,17 +25,25 @@ public interface ShiftRepository extends JpaRepository<Shift, Long> {
                         @Param("currentDate") LocalDate currentDate,
                         @Param("cutoffTime") LocalTime cutoffTime);
 
-    Optional<Shift> findByDateAndStartTimeAndEndTimeAndProperty(
-            LocalDate date,
-            LocalTime startTime,
-            LocalTime endTime,
-            Property property);
+        Optional<Shift> findByDateAndStartTimeAndEndTimeAndProperty(
+                        LocalDate date,
+                        LocalTime startTime,
+                        LocalTime endTime,
+                        Property property);
 
-    @Query("SELECT s FROM Shift s WHERE " +
-            "(:status is null OR s.status = :status) AND " +
-            "(:startDate is null OR s.startTime >= :startDate) AND " +
-            "(:endDate is null OR s.startTime < :endDate)")
-    List<Shift> findByFilters(@Param("status") String status,
-                              @Param("startDate") LocalDateTime startDate,
-                              @Param("endDate") LocalDateTime endDate);
+        @Query("SELECT s FROM Shift s WHERE " +
+                        "(:status is null OR s.status = :status) AND " +
+                        "(:startDate is null OR s.startTime >= :startDate) AND " +
+                        "(:endDate is null OR s.startTime < :endDate)")
+        List<Shift> findByFilters(@Param("status") String status,
+                        @Param("startDate") LocalDateTime startDate,
+                        @Param("endDate") LocalDateTime endDate);
+
+        @Query("SELECT DISTINCT s FROM Shift s " +
+                        "LEFT JOIN FETCH s.workers " +
+                        "WHERE s.date = :currentDate " +
+                        "AND s.endTime < :targetTime ")
+        List<Shift> findByShiftStatusAndEndTimeAfter(
+                        @Param("currentDate") LocalDate currentDate,
+                        @Param("targetTime") LocalTime targetTime);
 }

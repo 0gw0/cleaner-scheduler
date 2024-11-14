@@ -29,6 +29,7 @@ public class ShiftStatusCheckerService {
     @Autowired
     private EmailSenderService emailSenderService;
 
+    // scheduler function for checking if arrival image uploaded 5 minutes after shift started
     @Transactional
     @Scheduled(fixedRate = 60000)
     public void firstCheckShiftStatus() {
@@ -44,7 +45,7 @@ public class ShiftStatusCheckerService {
 
         for (Shift shift : shiftsFirstCheck) {
             LocalDateTime currentShift = LocalDateTime.of(shift.getDate(), shift.getStartTime());
-            if (isWithinMinute(currentShift , targetShift)) {
+            if (isWithinMinute(currentShift , targetShift) && isWithinHour(currentShift, targetShift)) {
                 shiftsToCheck.add(shift);
             }
         }
@@ -77,10 +78,11 @@ public class ShiftStatusCheckerService {
                 emailSenderService.sendFirstShiftAbsentEmail(email, shift);
             }
         } catch (Exception e) {
-            log.info("Error updating shift status for shift {}: {}", shift.getId(), e.getMessage());
+            log.info("Error sending first shift status reminder {}: {}", shift.getId(), e.getMessage());
         }
     }
 
+    // scheduler function for checking if arrival image uploaded 15 minutes after shift started
     @Transactional
     @Scheduled(fixedRate = 60000)
     public void secondCheckShiftStatus() {
@@ -97,10 +99,12 @@ public class ShiftStatusCheckerService {
         
         for (Shift shift : shiftsFirstCheck) {
             LocalDateTime currentShift = LocalDateTime.of(shift.getDate(), shift.getStartTime());
-            if (isWithinMinute(currentShift , targetShift)) {
+            if (isWithinMinute(currentShift , targetShift) && isWithinHour(currentShift, targetShift)) {
                 shiftsToCheck.add(shift);
             }
         }
+
+        log.info("Retrieved {} shifts to check", shiftsToCheck.size());
 
         for (Shift shift : shiftsToCheck) {
             if (shift.getPresentWorkers() == null ||
@@ -136,9 +140,79 @@ public class ShiftStatusCheckerService {
         }
     }
 
-    
+    // scheduler function for checking if completion image uploaded 15 minutes after shift ended
+    @Transactional
+    @Scheduled(fixedRate = 60000)
+    public void completionImageCheck() {
+        log.info("Running completion image check...");
+        LocalDate currentDate = LocalDate.now();
+        LocalTime currentTime = LocalTime.now();
+        List<Shift> shiftsToCheck = new ArrayList<Shift>();
+        
+        List<Shift> completionImageCheck = shiftRepository.findByShiftStatusAndEndTimeAfter(
+                currentDate,
+                currentTime);
+        LocalDateTime targetShift = LocalDateTime.of(currentDate, currentTime);
+        log.info("TargetShift to check", completionImageCheck);
+        log.info("Current target shift: {}", targetShift);
 
+        for (Shift shift : completionImageCheck) {
+            LocalDateTime currentShift = LocalDateTime.of(shift.getDate(), shift.getEndTime().plusMinutes(15));
+            log.info("Current target shift vs CurrentShift: {} vs {}", targetShift, currentShift);
+            if (isWithinMinute(currentShift , targetShift) && isWithinHour(currentShift, targetShift)) {
+                shiftsToCheck.add(shift);
+            }
+        }
+
+        log.info("Retrieved {} shifts to check", shiftsToCheck.size());
+
+        for (Shift shift : shiftsToCheck) {
+            if (shift.getPresentWorkers() == null ||
+                    shift.getPresentWorkers().size() != shift.getWorkers().size()) {
+                        
+                        // for (Long workerId : shift.getPresentWorkers()) {
+                        //     log.info("Worker part of getPresentWorkersAsSet {} and type {}", workerId, workerId.getClass());
+                        // }
+                sendCompletionImageReminder(shift);
+            }
+        }
+    }
+
+    @Transactional
+    private void sendCompletionImageReminder(Shift shift) {
+        try {
+            log.info("missing completition image", shift.getId());
+            List<Worker> workers = shift.getWorkers();
+            ArrayList<String> supervisorEmails = new ArrayList<>();
+            for (Worker worker : workers) {
+                if (shift.getPresentWorkers() == null || !shift.getPresentWorkersAsSet().contains(worker.getId())) {
+                    String supervisorEmail = worker.getSupervisorEmail();
+                    if (!supervisorEmails.contains(supervisorEmail)) {
+                        supervisorEmails.add(supervisorEmail);
+                    }
+                }
+            }
+            for (String email : supervisorEmails) {
+                emailSenderService.sendAbsentCompletionEmail(email, shift);
+            }
+        } catch (Exception e) {
+            log.info("Error sending completion image reminder {}: {}", shift.getId(), e.getMessage());
+        }
+    }
+
+    // check if shift is within same minute
     private boolean isWithinMinute(LocalDateTime now, LocalDateTime target) {
         return now.getMinute() == target.getMinute() && now.getSecond() >= 0 && now.getSecond() < 60;
     }
+
+        // check if shift is within same minute
+    private boolean isWithinHour(LocalDateTime now, LocalDateTime target) {
+        return now.getHour() == target.getHour() && 
+               now.getMinute() >= 0 && 
+               now.getMinute() < 60;
+    }
+
 }
+
+
+
