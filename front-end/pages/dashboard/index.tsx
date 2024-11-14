@@ -11,7 +11,7 @@ import WorkerDashboard from '@/components/WorkerDashboard';
 import axios from 'axios';
 
 const Dashboard: React.FC = () => {
-	const [userData, setUserData] = useState<UserData | null>(() => {
+	const [userData, ] = useState<UserData | null>(() => {
 		const storedUser = localStorage.getItem('user');
 		return storedUser ? JSON.parse(storedUser) : null;
 	});

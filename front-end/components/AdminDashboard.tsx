@@ -63,8 +63,6 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
     totalInactive: clients.filter((c) => c.status !== "Active").length,
   };
 
-  const adminId = JSON.parse(localStorage.getItem("user") || "{}").id;
-
   const exportToCSV = () => {
     const csvContent = [
       [
