@@ -62,9 +62,7 @@ const ManageTasks: React.FC = () => {
 				);
 				setWorkers(uniqueWorkerIds);
 
-				if (selectedWorker === null && uniqueWorkerIds.length > 0) {
-					setSelectedWorker(uniqueWorkerIds[0]);
-				}
+
 			} else {
 				//if normal admin below
 				const response = await axios.get<Shift[]>(
@@ -78,9 +76,6 @@ const ManageTasks: React.FC = () => {
 				);
 				setWorkers(uniqueWorkerIds);
 
-				if (uniqueWorkerIds.length > 0) {
-					setSelectedWorker(uniqueWorkerIds[0]);
-				}
 			}
 		} catch (error) {
 			console.error('Failed to fetch shifts:', error);
@@ -93,6 +88,13 @@ const ManageTasks: React.FC = () => {
 	useEffect(() => {
 		fetchShifts();
 	}, [fetchShifts]);
+
+
+	useEffect(() => {
+	if (workers.length > 0 && selectedWorker === null) {
+	  setSelectedWorker(workers[0]);
+	}
+  }, [workers, selectedWorker]);
 
 	const tasksPerPage = 12;
 
@@ -147,9 +149,9 @@ const ManageTasks: React.FC = () => {
 		setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc');
 	};
 
-	const handleWorkerChange = (workerId: number) => {
-		setSelectedWorker(workerId);
-	};
+	const handleWorkerChange = (value: string) => {
+		setSelectedWorker(Number(value));
+	  };
 
 	const cancelShift = async (shiftId: number) => {
 		try {
@@ -184,22 +186,17 @@ const ManageTasks: React.FC = () => {
 				<div className="flex space-x-2">
 					<Select
 						value={selectedWorker?.toString() || ''}
-						onValueChange={(value) =>
-							handleWorkerChange(Number(value))
-						}
+						onValueChange={handleWorkerChange}
 					>
 						<SelectTrigger className="w-full md:w-auto">
 							<SelectValue placeholder="Select worker" />
 						</SelectTrigger>
 						<SelectContent>
-							{workers.map((workerId) => (
-								<SelectItem
-									key={workerId}
-									value={workerId.toString()}
-								>
-									Worker {workerId}
-								</SelectItem>
-							))}
+						{workers.map((workerId) => (
+							<SelectItem key={workerId} value={workerId.toString()}>
+							Worker {workerId}
+							</SelectItem>
+						))}
 						</SelectContent>
 					</Select>
 
