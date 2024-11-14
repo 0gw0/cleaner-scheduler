@@ -173,7 +173,7 @@ export default function Schedule() {
                         }
                     }} 
                     currentView="Month"
-                    selectedDate={new Date(2024, 8, 15)}
+                    // selectedDate={new Date(2024, 8, 15)} If want to set a specific start view date
                 >
                         <ViewsDirective>
                             <ViewDirective option="Day" />
