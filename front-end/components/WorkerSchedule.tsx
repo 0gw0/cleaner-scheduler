@@ -23,7 +23,7 @@ interface ScheduleItem {
 
 interface WorkerScheduleProps {
 	schedule: ScheduleItem[];
-	onScheduleUpdate?: (updatedSchedule: ScheduleItem[]) => void;
+	onScheduleUpdate: () => Promise<any>;
 }
 
 const WorkerSchedule: React.FC<WorkerScheduleProps> = ({
@@ -35,6 +35,7 @@ const WorkerSchedule: React.FC<WorkerScheduleProps> = ({
 	const [uploadType, setUploadType] = useState<'arrival' | 'completion'>(
 		'arrival'
 	);
+	const [isUpdating, setIsUpdating] = useState(false);
 
 	const now = new Date();
 	const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
@@ -78,17 +79,16 @@ const WorkerSchedule: React.FC<WorkerScheduleProps> = ({
 		setSelectedShiftId(null);
 	};
 
-	const handlePhotoUploadSuccess = (response: any) => {
-		if (selectedShiftId && onScheduleUpdate) {
-			const updatedSchedule = schedule.map((shift) => {
-				if (shift.id === selectedShiftId) {
-					return response.shift;
-				}
-				return shift;
-			});
-			onScheduleUpdate(updatedSchedule);
+	const handlePhotoUploadSuccess = async (response: any) => {
+		try {
+			setIsUpdating(true);
+			await onScheduleUpdate();
+		} catch (error) {
+			console.error('Error updating schedule:', error);
+		} finally {
+			setIsUpdating(false);
+			handleClosePhotoDialog();
 		}
-		handleClosePhotoDialog();
 	};
 
 	const ScheduleSection = ({
@@ -107,6 +107,11 @@ const WorkerSchedule: React.FC<WorkerScheduleProps> = ({
 					{items.map((item) => {
 						const isWorkerPresent =
 							item.presentWorkers?.includes(workerId);
+						const showUploadButtons = title === 'Current Schedule';
+						const showArrivalButton =
+							!isWorkerPresent && !item.arrivalImage;
+						const showCompletionButton =
+							isWorkerPresent && !item.completionImage;
 
 						return (
 							<Card key={item.id} className="bg-secondary">
@@ -139,9 +144,9 @@ const WorkerSchedule: React.FC<WorkerScheduleProps> = ({
 									<p>{`Property ID: ${item.property.propertyId}`}</p>
 									<p>{`Client ID: ${item.property.clientId}`}</p>
 
-									{title === 'Current Schedule' && (
+									{showUploadButtons && (
 										<div className="mt-3">
-											{!isWorkerPresent && (
+											{showArrivalButton && (
 												<Button
 													onClick={() =>
 														handleOpenPhotoDialog(
@@ -150,24 +155,25 @@ const WorkerSchedule: React.FC<WorkerScheduleProps> = ({
 														)
 													}
 													className="w-full"
+													disabled={isUpdating}
 												>
 													Upload Arrival Photo
 												</Button>
 											)}
-											{isWorkerPresent &&
-												!item.completionImage && (
-													<Button
-														onClick={() =>
-															handleOpenPhotoDialog(
-																item.id,
-																'completion'
-															)
-														}
-														className="w-full"
-													>
-														Upload Completion Photo
-													</Button>
-												)}
+											{showCompletionButton && (
+												<Button
+													onClick={() =>
+														handleOpenPhotoDialog(
+															item.id,
+															'completion'
+														)
+													}
+													className="w-full"
+													disabled={isUpdating}
+												>
+													Upload Completion Photo
+												</Button>
+											)}
 										</div>
 									)}
 								</CardContent>
