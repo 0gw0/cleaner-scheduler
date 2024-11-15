@@ -4,7 +4,7 @@ import React, { useEffect, useState } from "react";
 import axios from 'axios';
 import ProfilePage from "../profile";
 
-registerLicense("Ngo9BigBOggjHTQxAR8/V1NDaF5cWWtCf1JpRGRGfV5ycEVHYlZTRXxcR00DNHVRdkdnWH9feHVXRGFfV012V0U=");
+registerLicense("Ngo9BigBOggjHTQxAR8/V1NDaF1cX2hIfEx3QHxbf1x0ZFZMZVtbQX9PMyBoS35RckRiWHpec3FdRmBbWEx+");
 
 const SHIFT_API_URL = 'http://localhost:8080/shifts';
 const WORKER_API_URL = 'http://localhost:8080/workers';
