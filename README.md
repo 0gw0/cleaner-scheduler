@@ -1,6 +1,6 @@
 # Cleaner Scheduler
 
-Cleaner Scheduler is a powerful tool designed to streamline the management and scheduling of cleaning tasks. It provides an intuitive interface for task assignment, user management, and progress tracking, making it easier for administrators and workers alike to stay organized.
+Cleaner Scheduler is a tool designed to streamline the management and scheduling of cleaning tasks. It provides an intuitive interface for task assignment, user management, and progress tracking, making it easier for administrators and workers alike to stay organized.
 
 ## 🚀 Features
 
@@ -54,21 +54,16 @@ To run the project:
    run CleanerSchedulerBackendApplication.java
    ```
 
-Make sure you have an `.env` file configured in the `cleaner-scheduler-backend` directory with the required environment variables.
+## 🔑 Development Credentials
+
+For local testing purposes:
+- Worker & Admin IDs: 1 - 3
+- Root admin ID: 3
+- Default password for all accounts: `password123`
+
+## 📝 API Documentation
 
 To view the API documentation, visit:
 ```
 http://localhost:8080/swagger-ui/index.html
 ```
-
-## 🛠️ Contributing
-
-We welcome contributions! If you’d like to contribute:
-
-1. Fork the repository.
-2. Create a new branch (`git checkout -b feature/YourFeature`).
-3. Make your changes.
-4. Submit a pull request.
-
-Let's work together to make this project even better!
-
