@@ -30,28 +30,37 @@ Cleaner Scheduler is a tool designed to streamline the management and scheduling
 
 To run the project:
 
-### Front-end
+### Front-end Set up
 
-1. Navigate to the front-end directory:
+1. Create a .env file with the relevant keys in front-end folder
+
+2. Navigate to the front-end directory:
    ```bash
    cd front-end
    ```
 
-2. Start the development server:
+3. Start the development server:
    ```bash
    npm run dev
    ```
 
-### Back-end
+### Back-end Set up
 
-1. Navigate to the back-end directory:
+1. Create a .env file in the cleaner-scheduler-backend folder and add the necessary environment variables (e.g., API keys, database credentials) which will be uploaded to eLearn
+
+2. Export the google maps API key in the terminal
    ```bash
-   cd cleaner-scheduler-backend/src/main
+   export GOOGLE_MAPS_API_KEY={YOUR_API_KEY}
    ```
 
-2. Run the back-end application:
+3. Navigate to the back-end directory:
    ```bash
-   run CleanerSchedulerBackendApplication.java
+   cd cleaner-scheduler-backend
+   ```
+
+4. Run the back-end application:
+   ```bash
+   ./mvnw spring-boot:run
    ```
 
 ## 🔑 Development Credentials
@@ -67,3 +76,22 @@ To view the API documentation, visit:
 ```
 http://localhost:8080/swagger-ui/index.html
 ```
+
+## Email notifications and features
+
+- To set up email notifications for shift reminders:
+   - 1. Email Account Setup
+      - Add your email address to the SPRING_MAIL_USERNAME variable in the .env file (ensure to include the email domain, e.g., @gmail.com)
+   - 2. Gmail App Password
+      - Add a Gmail App Password to the SPRING_MAIL_PASSWORD variable in the .env file.
+      - To generate an App Password:
+         1. Go to Google Account
+         2. Navigate to Security
+         3. Search "App Passwords"
+         4. Create folder name for generated app passwor
+         5. Generate app password
+
+- Payroll Email Feature
+   - The email address used to send payroll notifications is fixed to adrian.koh.2022@scis.smu.edu.sg. This email address is the only one currently configured to receive payroll emails.
+
+
