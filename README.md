@@ -46,7 +46,9 @@ To run the project:
 
 ### Back-end Set up
 
-1. Create a .env file in the cleaner-scheduler-backend folder and add the necessary environment variables (e.g., API keys, database credentials) which will be uploaded to eLearn
+Ensure that Mamp / Wamp is turned on
+
+1. Create a .application.properties file in the cleaner-scheduler-backend/src/main/resources folder and add the necessary environment variables (e.g., API keys, database credentials) which will be uploaded to eLearn
 
 2. Export the google maps API key in the terminal
    ```bash
@@ -63,6 +65,7 @@ To run the project:
    ./mvnw spring-boot:run
    ```
 
+
 ## 🔑 Development Credentials
 
 For local testing purposes:
@@ -72,7 +75,7 @@ For local testing purposes:
 
 ## 📝 API Documentation
 
-To view the API documentation, visit:
+To view the API documentation, visit after running the back-end application:
 ```
 http://localhost:8080/swagger-ui/index.html
 ```
@@ -81,9 +84,9 @@ http://localhost:8080/swagger-ui/index.html
 
 - To set up email notifications for shift reminders:
    - 1. Email Account Setup
-      - Add your email address to the SPRING_MAIL_USERNAME variable in the .env file (ensure to include the email domain, e.g., @gmail.com)
+      - Add your email address to the SPRING_MAIL_USERNAME variable in the application.properties file (ensure to include the email domain, e.g., @gmail.com)
    - 2. Gmail App Password
-      - Add a Gmail App Password to the SPRING_MAIL_PASSWORD variable in the .env file.
+      - Add a Gmail App Password to the SPRING_MAIL_PASSWORD variable in the application.properties file.
       - To generate an App Password:
          1. Go to Google Account
          2. Navigate to Security
