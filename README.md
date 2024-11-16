@@ -37,6 +37,7 @@ To run the project:
 2. Navigate to the front-end directory:
    ```bash
    cd front-end
+   npm install
    ```
 
 3. Start the development server:
